@@ -1,0 +1,298 @@
+# English translation for Pisarz
+# Copyright (C) 2024 Pisarz
+# This file is distributed under the same license as the Pisarz package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Pisarz 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: 2024-01-01 12:00+0000\n"
+"Last-Translator: Pisarz Team\n"
+"Language-Team: English\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Application
+msgid "Pisarz - Writing Application"
+msgstr "Pisarz - Writing Application"
+
+msgid "Select project to start"
+msgstr "Select project to start"
+
+# Projects View
+msgid "Your Projects"
+msgstr "Your Projects"
+
+msgid "Select existing project or create new one to start writing."
+msgstr "Select existing project or create new one to start writing."
+
+msgid "Each project contains scenes, characters and locations to help you organize your story."
+msgstr "Each project contains scenes, characters and locations to help you organize your story."
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "New Project"
+msgstr "New Project"
+
+msgid "You don't have any projects yet.\\nCreate your first project to start!"
+msgstr "You don't have any projects yet.\\nCreate your first project to start!"
+
+# Project Tree
+msgid "Projects"
+msgstr "Projects"
+
+msgid "Scenes"
+msgstr "Scenes"
+
+msgid "Characters"
+msgstr "Characters"
+
+msgid "Locations"
+msgstr "Locations"
+
+msgid "New Scene"
+msgstr "New Scene"
+
+msgid "New Character"
+msgstr "New Character"
+
+msgid "New Location"
+msgstr "New Location"
+
+msgid "(no scenes)"
+msgstr "(no scenes)"
+
+msgid "Function unavailable"
+msgstr "Function unavailable"
+
+msgid "Characters will be available in future versions."
+msgstr "Characters will be available in future versions."
+
+msgid "Locations will be available in future versions."
+msgstr "Locations will be available in future versions."
+
+# Scenes Grid
+msgid "📝 Scenes"
+msgstr "📝 Scenes"
+
+msgid "Click on scene to edit it or create new scene."
+msgstr "Click on scene to edit it or create new scene."
+
+msgid "You don't have any scenes yet.\\nCreate first scene to start writing!"
+msgstr "You don't have any scenes yet.\\nCreate first scene to start writing!"
+
+msgid "Scene"
+msgstr "Scene"
+
+msgid "Empty scene"
+msgstr "Empty scene"
+
+msgid "Untitled"
+msgstr "Untitled"
+
+# Scene Editor
+msgid "Start writing your scene..."
+msgstr "Start writing your scene..."
+
+msgid "Scene loading error"
+msgstr "Scene loading error"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Save (Ctrl+S)"
+msgstr "Save (Ctrl+S)"
+
+msgid "Focus"
+msgstr "Focus"
+
+msgid "Focus mode (F11)"
+msgstr "Focus writing mode (F11)"
+
+msgid "Font"
+msgstr "Font"
+
+msgid "Size"
+msgstr "Size"
+
+msgid "Bold (Ctrl+B)"
+msgstr "Bold (Ctrl+B)"
+
+msgid "Italic (Ctrl+I)"
+msgstr "Italic (Ctrl+I)"
+
+msgid "Underline (Ctrl+U)"
+msgstr "Underline (Ctrl+U)"
+
+msgid "Text color"
+msgstr "Text color"
+
+msgid "Align left"
+msgstr "Align left"
+
+msgid "Center"
+msgstr "Center"
+
+msgid "Align right"
+msgstr "Align right"
+
+# Welcome Screen
+msgid "Welcome to Pisarz"
+msgstr "Welcome to Pisarz"
+
+msgid "Professional writing application with native RTF editor"
+msgstr "Professional writing application with native RTF editor"
+
+msgid "1. Select or create project in left panel"
+msgstr "1. Select or create project in left panel"
+
+msgid "2. Select or create scene for your project"
+msgstr "2. Select or create scene for your project"
+
+msgid "3. RTF editor will open automatically"
+msgstr "3. RTF editor will open automatically"
+
+msgid "Features:"
+msgstr "Features:"
+
+msgid "• Professional text formatting with toolbar"
+msgstr "• Professional text formatting with toolbar"
+
+msgid "• Font family and size selection"
+msgstr "• Font family and size selection"
+
+msgid "• Bold, italic, underline"
+msgstr "• Bold, italic, underline"
+
+msgid "• Text colors and alignment"
+msgstr "• Text colors and alignment"
+
+msgid "• Keyboard shortcuts (Ctrl+B/I/U/S)"
+msgstr "• Keyboard shortcuts (Ctrl+B/I/U/S)"
+
+# Settings Dialog
+msgid "Application Settings"
+msgstr "Application Settings"
+
+msgid "Theme"
+msgstr "Theme"
+
+msgid "Choose color theme for the application"
+msgstr "Choose color theme for the application"
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Light"
+msgstr "Light"
+
+msgid "Classic light theme"
+msgstr "Classic light theme"
+
+msgid "Dark"
+msgstr "Dark"
+
+msgid "Dark theme for night work"
+msgstr "Dark theme for night work"
+
+msgid "Sepia"
+msgstr "Sepia"
+
+msgid "Warm theme reminiscent of old books"
+msgstr "Warm theme reminiscent of old books"
+
+msgid "Forest"
+msgstr "Forest"
+
+msgid "Calm green theme"
+msgstr "Calm green theme"
+
+msgid "Blue-gray"
+msgstr "Blue-gray"
+
+msgid "Professional theme in blue shades"
+msgstr "Professional theme in blue shades"
+
+# Messages and Dialogs
+msgid "Error"
+msgstr "Error"
+
+msgid "Warning"
+msgstr "Warning"
+
+msgid "Information"
+msgstr "Information"
+
+msgid "Failed to load projects: {}"
+msgstr "Failed to load projects: {}"
+
+msgid "Failed to load scenes: {}"
+msgstr "Failed to load scenes: {}"
+
+msgid "Failed to open scene: {}"
+msgstr "Failed to open scene: {}"
+
+msgid "Failed to save scene: {}"
+msgstr "Failed to save scene: {}"
+
+msgid "Failed to create project: {}"
+msgstr "Failed to create project: {}"
+
+msgid "Failed to create scene: {}"
+msgstr "Failed to create scene: {}"
+
+msgid "Failed to load view: {}"
+msgstr "Failed to load view: {}"
+
+msgid "Scene saved successfully"
+msgstr "Scene saved successfully"
+
+msgid "Failed to save scene"
+msgstr "Failed to save scene"
+
+msgid "Project name:"
+msgstr "Project name:"
+
+msgid "Scene title:"
+msgstr "Scene title:"
+
+msgid "Created project: {}"
+msgstr "Created project: {}"
+
+msgid "Created scene: {}"
+msgstr "Created scene: {}"
+
+msgid "Project: {} ({} scenes)"
+msgstr "Project: {} ({} scenes)"
+
+msgid "Scenes view ({} scenes)"
+msgstr "Scenes view ({} scenes)"
+
+msgid "Editing scene: {}"
+msgstr "Editing scene: {}"
+
+msgid "Applied theme: {}"
+msgstr "Applied theme: {}"
+
+msgid "View {} (function unavailable)"
+msgstr "View {} (function unavailable)"
+
+msgid "Projects list ({} projects)"
+msgstr "Projects list ({} projects)"
+
+# Language Settings
+msgid "Language"
+msgstr "Language"
+
+msgid "Choose language:"
+msgstr "Choose language:"
+
+msgid "Language Changed"
+msgstr "Language Changed"
+
+msgid "Language has been changed. Please restart the application to see changes."
+msgstr "Language has been changed. Please restart the application to see changes."
