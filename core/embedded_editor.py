@@ -2,46 +2,76 @@
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                               QTextEdit, QToolBar, QComboBox, QPushButton, 
-                              QFontComboBox, QLabel, QColorDialog, QSizePolicy)
+                              QFontComboBox, QLabel, QColorDialog, QSizePolicy, QSplitter)
 from PySide6.QtCore import Signal, Qt, QTimer, QObject, Slot, Property
 from PySide6.QtGui import (QFont, QFontInfo, QTextCharFormat, QColor, QKeySequence, 
-                          QTextCursor, QBrush, QAction)
-from PySide6.QtQml import QmlElement
-from PySide6.QtQuick import QQuickItem
-from PySide6.QtQuickWidgets import QQuickWidget
-
-QML_IMPORT_NAME = "Pisarz"
-QML_IMPORT_MAJOR_VERSION = 1
+                          QTextCursor, QBrush, QShortcut)
 
 
 class EmbeddedRichTextWidget(QWidget):
-    """Edytor RTF do embeddowania w QML - bez głównego okna."""
+    """Embedded RTF editor widget for QtWidgets applications."""
     
     contentChanged = Signal()
     saveRequested = Signal(str)
     focusModeRequested = Signal()
+    contextPanelToggled = Signal(bool)  # New signal for context panel toggle
+    
+    # Context panel signals
+    characterAddedToScene = Signal(int, str)  # character_id, role
+    characterRemovedFromScene = Signal(int)   # character_id
+    locationAddedToScene = Signal(int, str)   # location_id, role
+    locationRemovedFromScene = Signal(int)    # location_id
+    newCharacterRequestedFromScene = Signal(str)  # name
+    newLocationRequestedFromScene = Signal(str)   # name
+    characterSelectedFromScene = Signal(int)     # character_id
+    locationSelectedFromScene = Signal(int)      # location_id
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self._content = ""
         self._has_changes = False
+        self.context_panel = None
+        self.context_panel_visible = False  # Start with panel hidden
         
         self.setup_ui()
         self.setup_connections()
         
+        # Initial update of toolbar to reflect current format
+        QTimer.singleShot(100, self.update_format_buttons)
+        
     def setup_ui(self):
         """Konfiguracja interfejsu jako widget (nie main window)."""
+        # Set explicit styling to remove any default spacing
+        self.setStyleSheet("EmbeddedRichTextWidget { margin: 0px; padding: 0px; border: none; }")
+        
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        layout.setSpacing(0)  # Remove spacing between toolbar and editor
         
         # Toolbar
         self.setup_toolbar(layout)
         
+        # Splitter for editor and context panel
+        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter.setContentsMargins(0, 0, 0, 0)
+        self.splitter.setHandleWidth(3)  # Minimize splitter handle width
+        self.splitter.setStyleSheet("QSplitter { margin: 0px; padding: 0px; }")
+        
         # Edytor tekstu
         self.text_edit = QTextEdit()
         self.text_edit.setAcceptRichText(True)
-        layout.addWidget(self.text_edit)
+        self.text_edit.setContentsMargins(0, 0, 0, 0)
+        self.text_edit.setStyleSheet("QTextEdit { margin: 0px; padding: 8px; border: none; }")
+        self.splitter.addWidget(self.text_edit)
+        
+        # Context panel (will be added later)
+        self.context_panel = None
+        
+        layout.addWidget(self.splitter)
+        
+        # Force layout update to prevent gaps
+        self.updateGeometry()
+        self.update()
         
         # Ustaw domyślną czcionkę po utworzeniu toolbar (żeby combo box istniał)
         self._set_default_font()
@@ -50,9 +80,10 @@ class EmbeddedRichTextWidget(QWidget):
         """Stworzenie toolbar jako widget (nie QMainWindow toolbar)."""
         # Container dla toolbar
         toolbar_widget = QWidget()
+        toolbar_widget.setFixedHeight(36)  # Fixed height instead of maximum
         toolbar_layout = QHBoxLayout(toolbar_widget)
-        toolbar_layout.setContentsMargins(5, 5, 5, 5)
-        toolbar_layout.setSpacing(5)
+        toolbar_layout.setContentsMargins(8, 2, 8, 2)  # Even smaller margins
+        toolbar_layout.setSpacing(8)
         
         # === CZCIONKA ===
         # Rodzina czcionki
@@ -92,25 +123,7 @@ class EmbeddedRichTextWidget(QWidget):
         self.bold_btn.setCheckable(True)
         self.bold_btn.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         self.bold_btn.setToolTip("Pogrubienie (Ctrl+B)")
-        self.bold_btn.setFixedSize(32, 32)
-        self.bold_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f8f9fa;
-                color: #212529;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #e9ecef;
-                border-color: #adb5bd;
-            }
-            QPushButton:checked {
-                background-color: #007bff;
-                color: white;
-                border-color: #007bff;
-            }
-        """)
+        self.bold_btn.setFixedSize(28, 28)
         toolbar_layout.addWidget(self.bold_btn)
         
         # Kursywa
@@ -120,25 +133,7 @@ class EmbeddedRichTextWidget(QWidget):
         font.setItalic(True)
         self.italic_btn.setFont(font)
         self.italic_btn.setToolTip("Kursywa (Ctrl+I)")
-        self.italic_btn.setFixedSize(32, 32)
-        self.italic_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f8f9fa;
-                color: #212529;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                font-style: italic;
-            }
-            QPushButton:hover {
-                background-color: #e9ecef;
-                border-color: #adb5bd;
-            }
-            QPushButton:checked {
-                background-color: #007bff;
-                color: white;
-                border-color: #007bff;
-            }
-        """)
+        self.italic_btn.setFixedSize(28, 28)
         toolbar_layout.addWidget(self.italic_btn)
         
         # Podkreślenie
@@ -148,25 +143,7 @@ class EmbeddedRichTextWidget(QWidget):
         font.setUnderline(True)
         self.underline_btn.setFont(font)
         self.underline_btn.setToolTip("Podkreślenie (Ctrl+U)")
-        self.underline_btn.setFixedSize(32, 32)
-        self.underline_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f8f9fa;
-                color: #212529;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                text-decoration: underline;
-            }
-            QPushButton:hover {
-                background-color: #e9ecef;
-                border-color: #adb5bd;
-            }
-            QPushButton:checked {
-                background-color: #007bff;
-                color: white;
-                border-color: #007bff;
-            }
-        """)
+        self.underline_btn.setFixedSize(28, 28)
         toolbar_layout.addWidget(self.underline_btn)
         
         # Separator
@@ -177,21 +154,8 @@ class EmbeddedRichTextWidget(QWidget):
         # === KOLOR TEKSTU ===
         self.text_color_btn = QPushButton("A")
         self.text_color_btn.setToolTip("Kolor tekstu")
-        self.text_color_btn.setFixedSize(32, 32)
+        self.text_color_btn.setFixedSize(28, 28)
         self.text_color_btn.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        self.text_color_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: 1px solid #dc3545;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-                border-color: #bd2130;
-            }
-        """)
         toolbar_layout.addWidget(self.text_color_btn)
         
         # Separator
@@ -201,60 +165,21 @@ class EmbeddedRichTextWidget(QWidget):
         
         # === WYRÓWNANIE ===
         # Wyrównanie do lewej
-        self.align_left_btn = QPushButton("L")
+        self.align_left_btn = QPushButton("◀")
         self.align_left_btn.setToolTip("Wyrównaj do lewej")
-        self.align_left_btn.setFixedSize(32, 32)
-        self.align_left_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        self.align_left_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f8f9fa;
-                color: #212529;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e9ecef;
-                border-color: #adb5bd;
-            }
-        """)
+        self.align_left_btn.setFixedSize(28, 28)
         toolbar_layout.addWidget(self.align_left_btn)
         
         # Wyśrodkowanie
-        self.align_center_btn = QPushButton("C")
+        self.align_center_btn = QPushButton("‖")
         self.align_center_btn.setToolTip("Wyśrodkuj")
-        self.align_center_btn.setFixedSize(32, 32)
-        self.align_center_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        self.align_center_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f8f9fa;
-                color: #212529;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e9ecef;
-                border-color: #adb5bd;
-            }
-        """)
+        self.align_center_btn.setFixedSize(28, 28)
         toolbar_layout.addWidget(self.align_center_btn)
         
         # Wyrównanie do prawej
-        self.align_right_btn = QPushButton("R")
+        self.align_right_btn = QPushButton("▶")
         self.align_right_btn.setToolTip("Wyrównaj do prawej")
-        self.align_right_btn.setFixedSize(32, 32)
-        self.align_right_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        self.align_right_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f8f9fa;
-                color: #212529;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e9ecef;
-                border-color: #adb5bd;
-            }
-        """)
+        self.align_right_btn.setFixedSize(28, 28)
         toolbar_layout.addWidget(self.align_right_btn)
         
         # Separator
@@ -265,21 +190,6 @@ class EmbeddedRichTextWidget(QWidget):
         # === ZAPISZ ===
         self.save_btn = QPushButton("Zapisz")
         self.save_btn.setToolTip("Zapisz (Ctrl+S)")
-        self.save_btn.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: 1px solid #28a745;
-                border-radius: 4px;
-                padding: 6px 12px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-                border-color: #1e7e34;
-            }
-        """)
         toolbar_layout.addWidget(self.save_btn)
         
         # Separator
@@ -290,21 +200,15 @@ class EmbeddedRichTextWidget(QWidget):
         # === TRYB FOKUSU ===
         self.focus_mode_btn = QPushButton("Fokus")
         self.focus_mode_btn.setToolTip("Tryb fokusu pisania (F11)")
-        self.focus_mode_btn.setFixedSize(70, 32)
-        self.focus_mode_btn.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        self.focus_mode_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #8e44ad;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #9b59b6;
-            }
-        """)
         toolbar_layout.addWidget(self.focus_mode_btn)
+        
+        # Context Panel Toggle
+        self.context_panel_btn = QPushButton("📝")
+        self.context_panel_btn.setCheckable(True)
+        self.context_panel_btn.setChecked(False)  # Start with panel hidden
+        self.context_panel_btn.setToolTip("Toggle Scene Context Panel (Ctrl+E)")
+        self.context_panel_btn.setFixedSize(32, 32)
+        toolbar_layout.addWidget(self.context_panel_btn)
         
         # Elastyczny spacer
         toolbar_layout.addStretch()
@@ -355,6 +259,35 @@ class EmbeddedRichTextWidget(QWidget):
         # Tryb fokusu
         self.focus_mode_btn.clicked.connect(self.focusModeRequested.emit)
         
+        # Context panel toggle
+        self.context_panel_btn.clicked.connect(self.toggle_context_panel)
+        
+        # Keyboard shortcuts
+        self.setup_keyboard_shortcuts()
+        
+    def setup_keyboard_shortcuts(self):
+        """Setup keyboard shortcuts for formatting."""
+        
+        # Bold - Ctrl+B
+        bold_shortcut = QShortcut(QKeySequence("Ctrl+B"), self.text_edit)
+        bold_shortcut.activated.connect(self.toggle_bold)
+        
+        # Italic - Ctrl+I
+        italic_shortcut = QShortcut(QKeySequence("Ctrl+I"), self.text_edit)
+        italic_shortcut.activated.connect(self.toggle_italic)
+        
+        # Underline - Ctrl+U
+        underline_shortcut = QShortcut(QKeySequence("Ctrl+U"), self.text_edit)
+        underline_shortcut.activated.connect(self.toggle_underline)
+        
+        # Save - Ctrl+S
+        save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self.text_edit)
+        save_shortcut.activated.connect(self.save_content)
+        
+        # Toggle Context Panel - Ctrl+E (for "Editor context")
+        context_shortcut = QShortcut(QKeySequence("Ctrl+E"), self.text_edit)
+        context_shortcut.activated.connect(self.toggle_context_panel)
+        
     def on_text_changed(self):
         """Obsługa zmian w tekście."""
         self._content = self.text_edit.toHtml()
@@ -372,17 +305,27 @@ class EmbeddedRichTextWidget(QWidget):
         self.italic_btn.setChecked(format.fontItalic())
         self.underline_btn.setChecked(format.fontUnderline())
         
-        # Aktualizuj combo boxy - zablokuj sygnały aby uniknąć cyklicznych wywołań
+        # Aktualizuj rodzinę czcionki - zablokuj sygnały aby uniknąć cyklicznych wywołań
         self.font_combo.blockSignals(True)
         current_font_family = format.font().family()
+        if not current_font_family:
+            # Fallback - pobierz czcionkę z editora
+            current_font_family = self.text_edit.currentFont().family()
+        
         index = self.font_combo.findText(current_font_family)
         if index >= 0:
             self.font_combo.setCurrentIndex(index)
         self.font_combo.blockSignals(False)
         
-        if format.fontPointSize() > 0:
+        # Aktualizuj rozmiar czcionki
+        font_size = format.fontPointSize()
+        if font_size <= 0:
+            # Fallback - pobierz rozmiar z aktualnej czcionki editora
+            font_size = self.text_edit.currentFont().pointSize()
+        
+        if font_size > 0:
             self.font_size_combo.blockSignals(True)
-            self.font_size_combo.setCurrentText(str(int(format.fontPointSize())))
+            self.font_size_combo.setCurrentText(str(int(font_size)))
             self.font_size_combo.blockSignals(False)
             
     def change_font_family(self, font_name):
@@ -432,13 +375,22 @@ class EmbeddedRichTextWidget(QWidget):
     def toggle_bold(self):
         """Przełączanie pogrubienia."""
         cursor = self.text_edit.textCursor()
+        current_format = cursor.charFormat()
+        
+        # Sprawdź aktualny stan pogrubienia
+        is_bold = current_format.fontWeight() == QFont.Weight.Bold
+        
+        # Przełącz stan
         format = QTextCharFormat()
-        format.setFontWeight(QFont.Weight.Bold if self.bold_btn.isChecked() else QFont.Weight.Normal)
+        format.setFontWeight(QFont.Weight.Normal if is_bold else QFont.Weight.Bold)
         
         if cursor.hasSelection():
             cursor.mergeCharFormat(format)
         else:
             self.text_edit.mergeCurrentCharFormat(format)
+        
+        # Aktualizuj przycisk
+        self.bold_btn.setChecked(not is_bold)
         
         # Przywróć fokus do editora
         self.text_edit.setFocus()
@@ -446,13 +398,22 @@ class EmbeddedRichTextWidget(QWidget):
     def toggle_italic(self):
         """Przełączanie kursywy."""
         cursor = self.text_edit.textCursor()
+        current_format = cursor.charFormat()
+        
+        # Sprawdź aktualny stan kursywy
+        is_italic = current_format.fontItalic()
+        
+        # Przełącz stan
         format = QTextCharFormat()
-        format.setFontItalic(self.italic_btn.isChecked())
+        format.setFontItalic(not is_italic)
         
         if cursor.hasSelection():
             cursor.mergeCharFormat(format)
         else:
             self.text_edit.mergeCurrentCharFormat(format)
+        
+        # Aktualizuj przycisk
+        self.italic_btn.setChecked(not is_italic)
         
         # Przywróć fokus do editora
         self.text_edit.setFocus()
@@ -460,13 +421,22 @@ class EmbeddedRichTextWidget(QWidget):
     def toggle_underline(self):
         """Przełączanie podkreślenia."""
         cursor = self.text_edit.textCursor()
+        current_format = cursor.charFormat()
+        
+        # Sprawdź aktualny stan podkreślenia
+        is_underline = current_format.fontUnderline()
+        
+        # Przełącz stan
         format = QTextCharFormat()
-        format.setFontUnderline(self.underline_btn.isChecked())
+        format.setFontUnderline(not is_underline)
         
         if cursor.hasSelection():
             cursor.mergeCharFormat(format)
         else:
             self.text_edit.mergeCurrentCharFormat(format)
+        
+        # Aktualizuj przycisk
+        self.underline_btn.setChecked(not is_underline)
         
         # Przywróć fokus do editora
         self.text_edit.setFocus()
@@ -509,6 +479,9 @@ class EmbeddedRichTextWidget(QWidget):
         
         # Ustaw domyślną czcionkę dla nowego tekstu
         self._set_default_font()
+        
+        # Update toolbar to reflect current format
+        QTimer.singleShot(50, self.update_format_buttons)
         
     def _set_default_font(self):
         """Ustaw domyślną czcionkę dla edytora i nowego tekstu."""
@@ -569,78 +542,68 @@ class EmbeddedRichTextWidget(QWidget):
     def has_changes(self):
         """Sprawdzenie czy są niezapisane zmiany."""
         return self._has_changes
-
-
-@QmlElement
-class EmbeddedEditorBridge(QObject):
-    """Bridge do embeddowania edytora RTF bezpośrednio w QML."""
     
-    contentChanged = Signal()
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._widget = None
-        self._content = ""
-        self._has_changes = False
+    def initialize_context_panel(self, character_manager, location_manager, project_id):
+        """Initialize the context panel with managers."""
+        from ui.widgets.scene_context_panel import SceneContextPanel
         
-    def create_widget(self):
-        """Stwórz widget edytora."""
-        if not self._widget:
-            self._widget = EmbeddedRichTextWidget()
-            self._widget.contentChanged.connect(self._on_content_changed)
-            self._widget.saveRequested.connect(self._on_save_requested)
-        return self._widget
-        
-    def _on_content_changed(self):
-        """Obsługa zmian zawartości."""
-        if self._widget:
-            self._content = self._widget.get_content()
-            self._has_changes = True
-            self.contentChanged.emit()
+        if self.context_panel is None:
+            self.context_panel = SceneContextPanel()
+            self.context_panel.set_managers(character_manager, location_manager, project_id)
+            self.splitter.addWidget(self.context_panel)
             
-    def _on_save_requested(self, content):
-        """Obsługa żądania zapisania."""
-        self._content = content
-        self._has_changes = False
-        self.contentChanged.emit()
+            # Set visibility based on current state
+            self.context_panel.setVisible(self.context_panel_visible)
+            
+            # Set initial splitter sizes based on visibility
+            if self.context_panel_visible:
+                self.splitter.setSizes([800, 300])
+            else:
+                self.splitter.setSizes([1100, 0])
+            
+            # Connect context panel signals
+            self._connect_context_panel_signals()
+        else:
+            # Update existing panel with new managers
+            self.context_panel.set_managers(character_manager, location_manager, project_id)
     
-    @Property(str, notify=contentChanged)
-    def content(self):
-        """Pobierz zawartość."""
-        return self._content
+    def set_scene_context(self, scene_id):
+        """Set the current scene for the context panel."""
+        if self.context_panel:
+            self.context_panel.set_scene_id(scene_id)
     
-    @content.setter
-    def content(self, value):
-        """Ustaw zawartość."""
-        if value != self._content:
-            self._content = value
-            if self._widget:
-                self._widget.set_content(value)
-            self._has_changes = False
-            self.contentChanged.emit()
+    def toggle_context_panel(self):
+        """Toggle the visibility of the context panel."""
+        if self.context_panel:
+            self.context_panel_visible = not self.context_panel_visible
+            self.context_panel.setVisible(self.context_panel_visible)
+            self.context_panel_btn.setChecked(self.context_panel_visible)
+            self.contextPanelToggled.emit(self.context_panel_visible)
+            
+            # Adjust splitter sizes
+            if self.context_panel_visible:
+                self.splitter.setSizes([800, 300])
+            else:
+                self.splitter.setSizes([1100, 0])
     
-    @Slot(str)
-    def setContent(self, content):
-        """Ustaw zawartość z QML."""
-        self.content = content
+    def _connect_context_panel_signals(self):
+        """Connect context panel signals to handle character/location management."""
+        if not self.context_panel:
+            return
         
-    @Slot(result=str)
-    def getContent(self):
-        """Pobierz zawartość dla QML."""
-        if self._widget:
-            return self._widget.get_content()
-        return self._content
+        # Pass through signals to main application
+        self.context_panel.character_added.connect(self.characterAddedToScene.emit)
+        self.context_panel.character_removed.connect(self.characterRemovedFromScene.emit)
+        self.context_panel.location_added.connect(self.locationAddedToScene.emit)
+        self.context_panel.location_removed.connect(self.locationRemovedFromScene.emit)
+        self.context_panel.new_character_requested.connect(self.newCharacterRequestedFromScene.emit)
+        self.context_panel.new_location_requested.connect(self.newLocationRequestedFromScene.emit)
+        self.context_panel.character_selected.connect(self.characterSelectedFromScene.emit)
+        self.context_panel.location_selected.connect(self.locationSelectedFromScene.emit)
     
-    @Slot(result=bool)
-    def hasChanges(self):
-        """Sprawdź czy są zmiany."""
-        if self._widget:
-            return self._widget.has_changes()
-        return self._has_changes
-    
-    @Slot()
-    def resetChanges(self):
-        """Resetuj flagę zmian."""
-        self._has_changes = False
-        if self._widget:
-            self._widget._has_changes = False
+    def refresh_context_panel(self):
+        """Refresh the context panel data."""
+        if self.context_panel:
+            self.context_panel.refresh_context()
+
+

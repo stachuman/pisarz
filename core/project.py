@@ -19,11 +19,11 @@ class ProjectManager:
     def create_project(self, name: str) -> Path:
         """Create a new project folder with initialized database."""
         if not name or not name.strip():
-            raise ValueError(_("Project name cannot be empty"))
+            raise ValueError("Project name cannot be empty")
         
         project_dir = self.projects_root / name
         if project_dir.exists():
-            raise ValueError(_("Project with this name already exists"))
+            raise ValueError("Project with this name already exists")
         
         project_dir.mkdir(parents=True)
         db_path = project_dir / "pisarz.db"
@@ -74,8 +74,20 @@ class ProjectManager:
         db_path = project_dir / "pisarz.db"
         
         return project_dir.exists() and db_path.exists()
+        
+    def get_project_data(self, project_path: Path) -> Optional[Dict[str, Any]]:
+        """Get project data including ID from database."""
+        db_path = project_path / "pisarz.db"
+        if not db_path.exists():
+            return None
+            
+        try:
+            project_data = execute_query(
+                db_path,
+                "SELECT id, name, created_at FROM projects ORDER BY created_at DESC LIMIT 1"
+            )
+            return project_data[0] if project_data else None
+        except Exception:
+            return None
 
 
-def _(text: str) -> str:
-    """Placeholder for gettext translation."""
-    return text

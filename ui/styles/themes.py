@@ -17,6 +17,23 @@ class ThemeManager:
     def _load_themes(self):
         """Załaduj definicje motywów."""
         return {
+            "Professional": {
+                "name": "Professional",
+                "description": "Modern professional theme with subtle colors",
+                "background": "#ffffff",
+                "text": "#1a202c",
+                "secondary_bg": "#f7fafc", 
+                "secondary_text": "#4a5568",
+                "accent": "#4299e1",
+                "accent_hover": "#3182ce",
+                "border": "#e2e8f0",
+                "editor_bg": "#ffffff",
+                "editor_text": "#2d3748",
+                "success": "#38a169",
+                "warning": "#d69e2e",
+                "danger": "#e53e3e",
+                "muted": "#718096"
+            },
             "Jasny": {
                 "name": "Jasny",
                 "description": "Klasyczny jasny motyw",
@@ -90,19 +107,19 @@ class ThemeManager:
         
     def get_current_theme(self):
         """Pobierz aktualny motyw."""
-        return self.settings.value("theme", "Jasny")
+        return self.settings.value("theme", "Professional")
         
     def set_theme(self, theme_name):
         """Ustaw aktywny motyw."""
         if theme_name not in self.themes:
-            theme_name = "Jasny"
+            theme_name = "Professional"
             
         self.settings.setValue("theme", theme_name)
         self._apply_theme(theme_name)
         
     def _apply_theme(self, theme_name):
         """Zastosuj motyw do aplikacji."""
-        theme = self.themes.get(theme_name, self.themes["Jasny"])
+        theme = self.themes.get(theme_name, self.themes["Professional"])
         
         app = QApplication.instance()
         if not app:
@@ -143,91 +160,200 @@ class ThemeManager:
         if not app:
             return
             
-        # Globalne style dla aplikacji
+        # Professional stylesheet with modern, clean design
         stylesheet = f"""
-        /* Przyciski */
-        QPushButton {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 {theme["secondary_bg"]}, stop: 1 {theme["border"]});
-            border: 1px solid {theme["border"]};
-            border-radius: 6px;
-            padding: 8px 16px;
+        /* General Application Styling */
+        QMainWindow {{
+            background-color: {theme["background"]};
             color: {theme["text"]};
-            font-weight: 500;
+        }}
+        
+        /* Professional Button Styling */
+        QPushButton {{
+            background-color: {theme["background"]};
+            border: 1px solid {theme["border"]};
+            border-radius: 4px;
+            padding: 6px 12px;
+            color: {theme["text"]};
+            font-weight: 400;
+            font-size: 13px;
+            min-height: 16px;
         }}
         
         QPushButton:hover {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 {theme["accent"]}, stop: 1 {theme["accent_hover"]});
-            color: white;
-            border: 2px solid {theme["accent"]};
+            background-color: {theme["secondary_bg"]};
+            border-color: {theme["accent"]};
+            color: {theme["text"]};
         }}
         
         QPushButton:pressed {{
-            background-color: {theme["accent_hover"]};
-            border: 2px solid {theme["accent_hover"]};
+            background-color: {theme["accent"]};
+            border-color: {theme["accent"]};
+            color: white;
         }}
         
-        /* Drzewko */
+        QPushButton:checked {{
+            background-color: {theme["accent"]};
+            border-color: {theme["accent"]};
+            color: white;
+        }}
+        
+        QPushButton:disabled {{
+            background-color: {theme["secondary_bg"]};
+            border-color: {theme["border"]};
+            color: {theme.get("muted", theme["secondary_text"])};
+        }}
+        
+        /* Input Fields */
+        QLineEdit, QTextEdit, QPlainTextEdit {{
+            background-color: {theme["background"]};
+            border: 1px solid {theme["border"]};
+            border-radius: 4px;
+            padding: 6px 8px;
+            color: {theme["text"]};
+            selection-background-color: {theme["accent"]};
+            selection-color: white;
+        }}
+        
+        QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{
+            border-color: {theme["accent"]};
+            outline: none;
+        }}
+        
+        /* ComboBox */
+        QComboBox {{
+            background-color: {theme["background"]};
+            border: 1px solid {theme["border"]};
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: {theme["text"]};
+            min-height: 20px;
+        }}
+        
+        QComboBox:hover {{
+            border-color: {theme["accent"]};
+        }}
+        
+        QComboBox::drop-down {{
+            border: none;
+            width: 20px;
+        }}
+        
+        QComboBox::down-arrow {{
+            image: none;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 6px solid {theme["text"]};
+            margin-right: 6px;
+        }}
+        
+        QComboBox QAbstractItemView {{
+            background-color: {theme["background"]};
+            border: 1px solid {theme["border"]};
+            border-radius: 4px;
+            padding: 4px;
+            color: {theme["text"]};
+            selection-background-color: {theme["accent"]};
+            selection-color: white;
+        }}
+        
+        /* Tree Widget Professional Style */
         QTreeWidget {{
             background-color: {theme["background"]};
             border: 1px solid {theme["border"]};
-            border-radius: 6px;
+            border-radius: 4px;
             color: {theme["text"]};
             selection-background-color: {theme["accent"]};
             outline: none;
+            font-size: 13px;
         }}
         
         QTreeWidget::item {{
             padding: 4px 8px;
-            border-radius: 4px;
-            margin: 1px;
+            border: none;
+            min-height: 20px;
         }}
         
         QTreeWidget::item:hover {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                        stop: 0 {theme["secondary_bg"]}, stop: 1 {theme["background"]});
-            border: 1px solid {theme["border"]};
+            background-color: {theme["secondary_bg"]};
         }}
         
         QTreeWidget::item:selected {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                        stop: 0 {theme["accent"]}, stop: 1 {theme["accent_hover"]});
+            background-color: {theme["accent"]};
             color: white;
-            border: 1px solid {theme["accent_hover"]};
         }}
         
-        QTreeWidget::item:selected:hover {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                        stop: 0 {theme["accent_hover"]}, stop: 1 {theme["accent"]});
+        QTreeWidget::branch:hover {{
+            background-color: {theme["secondary_bg"]};
         }}
         
-        /* Ramki i panele */
-        QFrame {{
-            background-color: {theme["background"]};
+        /* Labels */
+        QLabel {{
             color: {theme["text"]};
+            font-size: 13px;
         }}
         
-        /* Paski przewijania */
-        QScrollBar:vertical {{
-            background: {theme["secondary_bg"]};
+        /* Group Boxes */
+        QGroupBox {{
+            font-weight: 500;
+            font-size: 14px;
+            color: {theme["text"]};
+            border: 1px solid {theme["border"]};
+            border-radius: 4px;
+            margin-top: 8px;
+            padding-top: 8px;
+        }}
+        
+        QGroupBox::title {{
+            subcontrol-origin: margin;
+            left: 8px;
+            padding: 0 4px;
+            background-color: {theme["background"]};
+        }}
+        
+        /* List Widgets */
+        QListWidget {{
+            background-color: {theme["background"]};
+            border: 1px solid {theme["border"]};
+            border-radius: 4px;
+            color: {theme["text"]};
+            selection-background-color: {theme["accent"]};
+            selection-color: white;
+            outline: none;
+        }}
+        
+        QListWidget::item {{
+            padding: 4px 8px;
             border: none;
-            width: 14px;
-            border-radius: 7px;
-            margin: 0;
+            min-height: 20px;
+        }}
+        
+        QListWidget::item:hover {{
+            background-color: {theme["secondary_bg"]};
+        }}
+        
+        QListWidget::item:selected {{
+            background-color: {theme["accent"]};
+            color: white;
+        }}
+        
+        /* Scroll Bars */
+        QScrollBar:vertical {{
+            background-color: {theme["secondary_bg"]};
+            border: none;
+            width: 12px;
+            border-radius: 6px;
         }}
         
         QScrollBar::handle:vertical {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                        stop: 0 {theme["accent"]}, stop: 1 {theme["accent_hover"]});
-            border-radius: 7px;
+            background-color: {theme["border"]};
+            border-radius: 6px;
             min-height: 20px;
             margin: 2px;
         }}
         
         QScrollBar::handle:vertical:hover {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                        stop: 0 {theme["accent_hover"]}, stop: 1 {theme["accent"]});
+            background-color: {theme["accent"]};
         }}
         
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
@@ -237,13 +363,68 @@ class ThemeManager:
         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
             background: none;
         }}
+        
+        QScrollBar:horizontal {{
+            background-color: {theme["secondary_bg"]};
+            border: none;
+            height: 12px;
+            border-radius: 6px;
+        }}
+        
+        QScrollBar::handle:horizontal {{
+            background-color: {theme["border"]};
+            border-radius: 6px;
+            min-width: 20px;
+            margin: 2px;
+        }}
+        
+        QScrollBar::handle:horizontal:hover {{
+            background-color: {theme["accent"]};
+        }}
+        
+        /* Splitter */
+        QSplitter::handle {{
+            background-color: {theme["border"]};
+        }}
+        
+        QSplitter::handle:horizontal {{
+            width: 2px;
+        }}
+        
+        QSplitter::handle:vertical {{
+            height: 2px;
+        }}
+        
+        /* Status Bar */
+        QStatusBar {{
+            background-color: {theme["secondary_bg"]};
+            border-top: 1px solid {theme["border"]};
+            color: {theme["text"]};
+            font-size: 12px;
+        }}
+        
+        /* Dialogs */
+        QDialog {{
+            background-color: {theme["background"]};
+            color: {theme["text"]};
+        }}
+        
+        /* Tool Tips */
+        QToolTip {{
+            background-color: {theme["text"]};
+            color: {theme["background"]};
+            border: 1px solid {theme["border"]};
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+        }}
         """
         
-        # Nie zastosowuj globalnych styli dla przycisków - zostawiamy lokalne
-        # app.setStyleSheet(stylesheet)
+        # Apply the professional stylesheet globally
+        app.setStyleSheet(stylesheet)
         
     def get_theme_colors(self, theme_name=None):
         """Pobierz kolory konkretnego motywu."""
         if not theme_name:
             theme_name = self.get_current_theme()
-        return self.themes.get(theme_name, self.themes["Jasny"])
+        return self.themes.get(theme_name, self.themes["Professional"])

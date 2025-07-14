@@ -296,3 +296,82 @@ msgstr "Language Changed"
 
 msgid "Language has been changed. Please restart the application to see changes."
 msgstr "Language has been changed. Please restart the application to see changes."
+
+# Characters
+msgid "Character description..."
+msgstr "Character description..."
+
+msgid "Character Editor"
+msgstr "Character Editor"
+
+msgid "Basic Info"
+msgstr "Basic Info"
+
+msgid "Notes"
+msgstr "Notes"
+
+msgid "Character Name"
+msgstr "Character Name"
+
+msgid "Enter character name..."
+msgstr "Enter character name..."
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Describe your character's appearance, personality, background..."
+msgstr "Describe your character's appearance, personality, background..."
+
+msgid "Character Notes"
+msgstr "Character Notes"
+
+msgid "Additional notes about the character, development ideas, story arc..."
+msgstr "Additional notes about the character, development ideas, story arc..."
+
+msgid "Scenes with this Character"
+msgstr "Scenes with this Character"
+
+msgid "This character appears in the following scenes:"
+msgstr "This character appears in the following scenes:"
+
+msgid "Character name cannot be empty."
+msgstr "Character name cannot be empty."
+
+msgid "Character name:"
+msgstr "Character name:"
+
+msgid "(no characters)"
+msgstr "(no characters)"
+
+msgid "Character not found"
+msgstr "Character not found"
+
+msgid "Failed to open character: {}"
+msgstr "Failed to open character: {}"
+
+msgid "Failed to create character: {}"
+msgstr "Failed to create character: {}"
+
+msgid "Created character: {}"
+msgstr "Created character: {}"
+
+msgid "Character saved successfully"
+msgstr "Character saved successfully"
+
+msgid "Failed to save character: {}"
+msgstr "Failed to save character: {}"
+
+msgid "Failed to load characters: {}"
+msgstr "Failed to load characters: {}"
+
+msgid "Characters view ({} characters)"
+msgstr "Characters view ({} characters)"
+
+msgid "📝 Characters"
+msgstr "📝 Characters"
+
+msgid "Click on character to edit it or create new character."
+msgstr "Click on character to edit it or create new character."
+
+msgid "You don't have any characters yet.\\nCreate first character to start!"
+msgstr "You don't have any characters yet.\\nCreate first character to start!"

@@ -297,3 +297,82 @@ msgstr "Język Zmieniony"
 
 msgid "Language has been changed. Please restart the application to see changes."
 msgstr "Język został zmieniony. Proszę zrestartować aplikację aby zobaczyć zmiany."
+
+# Characters
+msgid "Character description..."
+msgstr "Opis postaci..."
+
+msgid "Character Editor"
+msgstr "Edytor Postaci"
+
+msgid "Basic Info"
+msgstr "Podstawowe Informacje"
+
+msgid "Notes"
+msgstr "Notatki"
+
+msgid "Character Name"
+msgstr "Imię Postaci"
+
+msgid "Enter character name..."
+msgstr "Wprowadź imię postaci..."
+
+msgid "Description"
+msgstr "Opis"
+
+msgid "Describe your character's appearance, personality, background..."
+msgstr "Opisz wygląd, osobowość, przeszłość postaci..."
+
+msgid "Character Notes"
+msgstr "Notatki o Postaci"
+
+msgid "Additional notes about the character, development ideas, story arc..."
+msgstr "Dodatkowe notatki o postaci, pomysły na rozwój, wątek fabularny..."
+
+msgid "Scenes with this Character"
+msgstr "Sceny z tą Postacią"
+
+msgid "This character appears in the following scenes:"
+msgstr "Ta postać pojawia się w następujących scenach:"
+
+msgid "Character name cannot be empty."
+msgstr "Imię postaci nie może być puste."
+
+msgid "Character name:"
+msgstr "Imię postaci:"
+
+msgid "(no characters)"
+msgstr "(brak postaci)"
+
+msgid "Character not found"
+msgstr "Nie znaleziono postaci"
+
+msgid "Failed to open character: {}"
+msgstr "Nie udało się otworzyć postaci: {}"
+
+msgid "Failed to create character: {}"
+msgstr "Nie udało się stworzyć postaci: {}"
+
+msgid "Created character: {}"
+msgstr "Stworzono postać: {}"
+
+msgid "Character saved successfully"
+msgstr "Postać zapisana pomyślnie"
+
+msgid "Failed to save character: {}"
+msgstr "Nie udało się zapisać postaci: {}"
+
+msgid "Failed to load characters: {}"
+msgstr "Nie udało się załadować postaci: {}"
+
+msgid "Characters view ({} characters)"
+msgstr "Widok postaci ({} postaci)"
+
+msgid "📝 Characters"
+msgstr "📝 Postacie"
+
+msgid "Click on character to edit it or create new character."
+msgstr "Kliknij na postać aby ją edytować lub stwórz nową postać."
+
+msgid "You don't have any characters yet.\\nCreate first character to start!"
+msgstr "Nie masz jeszcze żadnych postaci.\\nStwórz pierwszą postać aby rozpocząć!"

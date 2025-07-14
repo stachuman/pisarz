@@ -9,7 +9,10 @@ from PySide6.QtGui import QKeySequence, QShortcut
 
 from core.project import ProjectManager
 from core.scene import SceneManager
-from ui.widgets import ProjectsView, ProjectTreeView, Workspace, SettingsDialog
+from core.character import CharacterManager
+from core.location import LocationManager
+from ui.widgets import (ProjectsView, ProjectTreeView, Workspace, SettingsDialog,
+                       CharactersGridView, CharacterEditorDialog)
 from i18n import _
 
 
@@ -20,10 +23,16 @@ class PisarzApp(QMainWindow):
         super().__init__()
         self.project_manager = ProjectManager()
         self.current_scene_manager = None
+        self.current_character_manager = None
+        self.current_location_manager = None
         self.current_project_path = None
         self.current_project_name = ""
         self.current_scene_id = None
         self.focus_mode = False
+        
+        # Non-modal editor windows
+        self.character_editor_windows = {}  # character_id -> window
+        self.location_editor_windows = {}   # location_id -> window
         
         self.setup_ui()
         self.setup_connections()
@@ -79,15 +88,33 @@ class PisarzApp(QMainWindow):
         
         # Drzewko projektu
         self.project_tree.sceneSelected.connect(self.on_scene_selected)
+        self.project_tree.characterSelected.connect(self.on_character_selected)
+        self.project_tree.locationSelected.connect(self.on_location_selected)
         self.project_tree.categorySelected.connect(self.on_category_selected)
         self.project_tree.newSceneRequested.connect(self.create_new_scene)
+        self.project_tree.newCharacterRequested.connect(self.create_new_character)
+        self.project_tree.newLocationRequested.connect(self.create_new_location)
         self.project_tree.backToProjectsRequested.connect(self.show_projects_view)
         
         # Workspace
         self.workspace.saveRequested.connect(self.save_scene_content)
         self.workspace.sceneSelectedFromGrid.connect(self.on_scene_selected)
+        self.workspace.characterSelectedFromGrid.connect(self.on_character_selected)
+        self.workspace.locationSelectedFromGrid.connect(self.on_location_selected)
+        self.workspace.newCharacterRequestedFromGrid.connect(self.create_new_character)
+        self.workspace.newLocationRequestedFromGrid.connect(self.create_new_location)
         self.workspace.newSceneRequestedFromGrid.connect(self.create_new_scene)
         self.workspace.focusModeRequested.connect(self.toggle_focus_mode)
+        
+        # Scene context panel signals
+        self.workspace.characterAddedToScene.connect(self.on_character_added_to_scene)
+        self.workspace.characterRemovedFromScene.connect(self.on_character_removed_from_scene)
+        self.workspace.locationAddedToScene.connect(self.on_location_added_to_scene)
+        self.workspace.locationRemovedFromScene.connect(self.on_location_removed_from_scene)
+        self.workspace.newCharacterRequestedFromScene.connect(self.create_new_character)
+        self.workspace.newLocationRequestedFromScene.connect(self.create_new_location)
+        self.workspace.characterSelectedFromScene.connect(self.on_character_selected_from_scene)
+        self.workspace.locationSelectedFromScene.connect(self.on_location_selected_from_scene)
         
     def setup_shortcuts(self):
         """Konfiguracja skrótów klawiszowych."""
@@ -125,11 +152,24 @@ class PisarzApp(QMainWindow):
         try:
             # Załaduj dane projektu
             self.current_scene_manager = SceneManager(Path(project_path))
+            self.current_character_manager = CharacterManager(Path(project_path))
+            self.current_location_manager = LocationManager(Path(project_path) / "pisarz.db")
+            
+            project_data = self.project_manager.get_project_data(Path(project_path))
+            project_id = project_data['id']
+            
             scenes = self.current_scene_manager.list_scenes()
+            characters = self.current_character_manager.get_characters(project_id)
+            locations = self.current_location_manager.get_locations(project_id)
             
             # Zaktualizuj drzewko nawigacji
             self.project_tree.update_project_name(project_name)
             self.project_tree.load_scenes(scenes, preserve_selection=False)  # Nowy projekt, nie zachowuj selekcji
+            self.project_tree.load_characters(characters, preserve_selection=False)
+            
+            # Convert location objects to dictionaries for display
+            location_dicts = [loc.__dict__ for loc in locations]
+            self.project_tree.load_locations(location_dicts, preserve_selection=False)
             
             # Pokaż ekran powitalny w workspace
             self.workspace.show_welcome()
@@ -151,8 +191,22 @@ class PisarzApp(QMainWindow):
         try:
             if category == "scenes":
                 scenes = self.current_scene_manager.list_scenes()
-                self.workspace.show_scenes_grid(scenes)
+                self.workspace.show_scenes_grid(scenes, self.current_character_manager, self.current_location_manager)
                 self.status_bar.showMessage(_("Scenes view ({} scenes)").format(len(scenes)))
+            elif category == "characters":
+                if not self.current_character_manager:
+                    return
+                project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+                characters = self.current_character_manager.get_characters(project_data['id'])
+                self.workspace.show_characters_grid(characters, self.current_location_manager)
+                self.status_bar.showMessage(_("Characters view ({} characters)").format(len(characters)))
+            elif category == "locations":
+                if not self.current_location_manager:
+                    return
+                project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+                self.workspace.show_locations_grid(self.current_location_manager, project_data['id'])
+                locations = self.current_location_manager.get_locations(project_data['id'])
+                self.status_bar.showMessage(_("Locations view ({} locations)").format(len(locations)))
             else:
                 self.workspace.show_welcome()
                 self.status_bar.showMessage(_("View {} (function unavailable)").format(category))
@@ -167,7 +221,18 @@ class PisarzApp(QMainWindow):
             scene_data = self.current_scene_manager.get_scene(scene_id)
             content = scene_data.get("content_rtf", f"<p>{_('Start writing your scene...')}</p>") if scene_data else f"<p>{_('Scene loading error')}</p>"
             
-            self.workspace.open_editor_for_scene(content)
+            # Get project ID for managers
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            project_id = project_data['id'] if project_data else None
+            
+            # Open editor with context panel support
+            self.workspace.open_editor_for_scene(
+                content, 
+                scene_id=scene_id,
+                character_manager=self.current_character_manager,
+                location_manager=self.current_location_manager,
+                project_id=project_id
+            )
             self.status_bar.showMessage(_("Editing scene: {}").format(scene_title))
             
         except Exception as e:
@@ -202,6 +267,42 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to load view: {}").format(e))
             
+    def _refresh_characters_data(self):
+        """Odśwież dane postaci zachowując selekcję."""
+        try:
+            if not self.current_character_manager:
+                return
+                
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            characters = self.current_character_manager.get_characters(project_data['id'])
+            self.project_tree.load_characters(characters, preserve_selection=True)
+            
+            # Odśwież kafelki jeśli są widoczne
+            if hasattr(self.workspace, 'characters_grid_view') and self.workspace.characters_grid_view:
+                self.workspace.characters_grid_view.set_location_manager(self.current_location_manager)
+                self.workspace.characters_grid_view.load_characters(characters)
+                
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to load characters: {}").format(e))
+    
+    def _refresh_locations_data(self):
+        """Odśwież dane lokacji zachowując selekcję."""
+        try:
+            if not self.current_location_manager:
+                return
+                
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            locations = self.current_location_manager.get_locations(project_data['id'])
+            location_dicts = [loc.__dict__ for loc in locations]
+            self.project_tree.load_locations(location_dicts, preserve_selection=True)
+            
+            # Odśwież kafelki jeśli są widoczne
+            if hasattr(self.workspace, 'locations_grid_view') and self.workspace.locations_grid_view:
+                self.workspace.locations_grid_view.refresh_locations()
+                
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to load locations: {}").format(e))
+            
     def create_new_project(self, name):
         """Stwórz nowy projekt."""
         try:
@@ -222,6 +323,312 @@ class PisarzApp(QMainWindow):
             self.status_bar.showMessage(_("Created scene: {}").format(title))
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to create scene: {}").format(e))
+            
+    def on_character_selected(self, character_id, character_name):
+        """Obsługa wyboru postaci - otwiera edytor postaci."""
+        if not self.current_character_manager:
+            return
+            
+        try:
+            # Pobierz dane postaci
+            character_data = self.current_character_manager.get_character(character_id)
+            if not character_data:
+                QMessageBox.warning(self, _("Warning"), _("Character not found"))
+                return
+                
+            # Pobierz powiązane sceny
+            linked_scenes = self.current_character_manager.get_scenes_for_character(character_id)
+            character_data['scenes'] = linked_scenes
+            
+            # Pobierz wszystkie sceny w projekcie dla linkowania
+            all_scenes = self.current_scene_manager.list_scenes()
+            
+            # Otwórz editor postaci (non-modal, always on top)
+            character_id = character_data.get('id')
+            
+            # Check if window is already open for this character
+            if character_id in self.character_editor_windows:
+                window = self.character_editor_windows[character_id]
+                window.raise_()
+                window.activateWindow()
+                return
+            
+            dialog = CharacterEditorDialog(character_data, all_scenes, self)
+            dialog.characterSaved.connect(self._on_character_saved)
+            dialog.sceneLinked.connect(self._on_scene_linked)
+            dialog.sceneUnlinked.connect(self._on_scene_unlinked)
+            
+            # Store reference and handle window closing
+            if character_id:
+                self.character_editor_windows[character_id] = dialog
+                dialog.finished.connect(lambda: self.character_editor_windows.pop(character_id, None))
+            
+            dialog.show()
+            
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to open character: {}").format(e))
+            
+    def create_new_character(self, name):
+        """Stwórz nową postać."""
+        if not self.current_character_manager:
+            return
+            
+        try:
+            # Pobierz ID projektu
+            if not self.current_project_path:
+                return
+                
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            if not project_data:
+                return
+                
+            character_id = self.current_character_manager.create_character(
+                project_data['id'], name
+            )
+            
+            # Open character editor for new character to allow scene linking
+            character_data = self.current_character_manager.get_character(character_id)
+            if character_data:
+                all_scenes = self.current_scene_manager.list_scenes()
+                
+                # Check if window is already open for this character
+                if character_id in self.character_editor_windows:
+                    window = self.character_editor_windows[character_id]
+                    window.raise_()
+                    window.activateWindow()
+                    return
+                
+                dialog = CharacterEditorDialog(character_data, all_scenes, self)
+                dialog.characterSaved.connect(self._on_character_saved)
+                dialog.sceneLinked.connect(self._on_scene_linked)
+                dialog.sceneUnlinked.connect(self._on_scene_unlinked)
+                
+                # Store reference and handle window closing
+                self.character_editor_windows[character_id] = dialog
+                dialog.finished.connect(lambda: self.character_editor_windows.pop(character_id, None))
+                
+                dialog.show()
+            
+            self._refresh_characters_data()
+            self.status_bar.showMessage(_("Created character: {}").format(name))
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to create character: {}").format(e))
+            
+    def _on_character_saved(self, character_data):
+        """Obsługa zapisania postaci."""
+        if not self.current_character_manager:
+            return
+            
+        try:
+            # Extract linked scenes before processing
+            linked_scenes = character_data.pop('linked_scenes', [])
+            
+            if 'id' in character_data:
+                # Aktualizuj istniejącą postać - usunięcie id z danych
+                character_id = character_data['id']
+                update_data = {k: v for k, v in character_data.items() if k != 'id'}
+                self.current_character_manager.update_character(
+                    character_id, **update_data
+                )
+                
+                # Handle scene links for existing character
+                self._process_scene_links(character_id, linked_scenes)
+            else:
+                # This shouldn't happen for editing, but handle just in case
+                pass
+                
+            self._refresh_characters_data()
+            self.status_bar.showMessage(_("Character saved successfully"))
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to save character: {}").format(e))
+            
+    def _on_scene_linked(self, character_id, scene_id, role, importance):
+        """Handle scene linked to character."""
+        if not self.current_character_manager:
+            return
+            
+        try:
+            success = self.current_character_manager.link_character_to_scene_with_role(
+                character_id, scene_id, role
+            )
+            if success:
+                self.status_bar.showMessage(_("Scene linked to character"))
+            else:
+                QMessageBox.warning(self, _("Warning"), _("Failed to link scene"))
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to link scene: {}").format(e))
+            
+    def _on_scene_unlinked(self, character_id, scene_id):
+        """Handle scene unlinked from character."""
+        if not self.current_character_manager:
+            return
+            
+        try:
+            success = self.current_character_manager.unlink_character_from_scene(
+                character_id, scene_id
+            )
+            if success:
+                self.status_bar.showMessage(_("Scene unlinked from character"))
+            else:
+                QMessageBox.warning(self, _("Warning"), _("Failed to unlink scene"))
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to unlink scene: {}").format(e))
+            
+    def _process_scene_links(self, character_id, linked_scenes):
+        """Process scene links for a character."""
+        if not self.current_character_manager:
+            return
+            
+        for scene_data in linked_scenes:
+            scene_id = scene_data.get('id')
+            role = scene_data.get('role', '')
+            
+            if scene_id:
+                try:
+                    success = self.current_character_manager.link_character_to_scene_with_role(
+                        character_id, scene_id, role
+                    )
+                    if not success:
+                        print(f"Failed to link character {character_id} to scene {scene_id}")
+                except Exception as e:
+                    print(f"Error linking character {character_id} to scene {scene_id}: {e}")
+                    QMessageBox.warning(self, _("Warning"), 
+                                      _("Failed to link some scenes to character"))
+    
+    def on_location_selected(self, location_id, location_name):
+        """Obsługa wyboru lokacji - otwiera edytor lokacji."""
+        if not self.current_location_manager:
+            return
+            
+        try:
+            # Pobierz dane lokacji
+            location = self.current_location_manager.get_location(location_id)
+            if not location:
+                QMessageBox.warning(self, _("Warning"), _("Location not found"))
+                return
+            
+            # Otwórz editor lokacji (non-modal, always on top)
+            from ui.widgets.location_editor_dialog import LocationEditorDialog
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            
+            # Check if window is already open for this location
+            if location_id in self.location_editor_windows:
+                window = self.location_editor_windows[location_id]
+                window.raise_()
+                window.activateWindow()
+                return
+            
+            dialog = LocationEditorDialog(
+                self.current_location_manager, 
+                project_data['id'], 
+                location=location,
+                parent=self
+            )
+            
+            # Store reference and handle window closing
+            self.location_editor_windows[location_id] = dialog
+            dialog.finished.connect(lambda: self.location_editor_windows.pop(location_id, None))
+            dialog.accepted.connect(lambda: (
+                self._refresh_locations_data(),
+                self.status_bar.showMessage(_("Location updated: {}").format(location_name))
+            ))
+            
+            dialog.show()
+            
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to open location: {}").format(e))
+    
+    def create_new_location(self, name):
+        """Stwórz nową lokację."""
+        if not self.current_location_manager:
+            return
+            
+        try:
+            # Pobierz ID projektu
+            if not self.current_project_path:
+                return
+                
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            if not project_data:
+                return
+                
+            # If name is empty (from signal without name), open dialog
+            if not name or name.strip() == "":
+                from ui.widgets.location_editor_dialog import LocationEditorDialog
+                dialog = LocationEditorDialog(
+                    self.current_location_manager, 
+                    project_data['id'],
+                    parent=self
+                )
+                
+                # For new locations, we don't need to track by ID since ID doesn't exist yet
+                dialog.accepted.connect(lambda: (
+                    self._refresh_locations_data(),
+                    self.status_bar.showMessage(_("Created new location"))
+                ))
+                
+                dialog.show()
+            else:
+                # Create location with the provided name
+                location_id = self.current_location_manager.create_location(
+                    project_data['id'], name
+                )
+                
+                if location_id:
+                    self._refresh_locations_data()
+                    self.status_bar.showMessage(_("Created location: {}").format(name))
+                else:
+                    QMessageBox.warning(self, _("Warning"), _("Failed to create location"))
+                    
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to create location: {}").format(e))
+    
+    # Scene context panel handlers
+    
+    def on_character_added_to_scene(self, character_id, role):
+        """Handle character added to scene from context panel."""
+        self.status_bar.showMessage(_("Character linked to scene with role: {}").format(role))
+        # The linking is already done in the context panel, just update UI if needed
+        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
+            self.workspace.current_editor.refresh_context_panel()
+    
+    def on_character_removed_from_scene(self, character_id):
+        """Handle character removed from scene."""
+        self.status_bar.showMessage(_("Character unlinked from scene"))
+        # The unlinking is already done in the context panel, just update UI if needed
+        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
+            self.workspace.current_editor.refresh_context_panel()
+    
+    def on_location_added_to_scene(self, location_id, role):
+        """Handle location added to scene from context panel."""
+        self.status_bar.showMessage(_("Location linked to scene with role: {}").format(role))
+        # The linking is already done in the context panel, just update UI if needed
+        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
+            self.workspace.current_editor.refresh_context_panel()
+    
+    def on_location_removed_from_scene(self, location_id):
+        """Handle location removed from scene."""
+        self.status_bar.showMessage(_("Location unlinked from scene"))
+        # The unlinking is already done in the context panel, just update UI if needed
+        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
+            self.workspace.current_editor.refresh_context_panel()
+    
+    def on_character_selected_from_scene(self, character_id):
+        """Handle character selected for editing from scene context panel."""
+        # Get character name for the signal
+        if self.current_character_manager:
+            character = self.current_character_manager.get_character(character_id)
+            if character:
+                character_name = character.get('name', _('Unknown Character'))
+                self.on_character_selected(character_id, character_name)
+    
+    def on_location_selected_from_scene(self, location_id):
+        """Handle location selected for editing from scene context panel."""
+        # Get location name for the signal
+        if self.current_location_manager:
+            location = self.current_location_manager.get_location(location_id)
+            if location:
+                self.on_location_selected(location_id, location.name)
             
     def show_settings(self):
         """Pokaż dialog ustawień."""

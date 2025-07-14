@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QPen
 
 from ..styles.styles import HEADER_COLOR, NEW_SCENE_BUTTON_STYLE
+from i18n import _
 
 
 class ProjectTreeView(QWidget):
@@ -83,9 +84,9 @@ class ProjectTreeView(QWidget):
         self.actions_layout.addWidget(self.new_scene_btn)
         
         # Przycisk nowa postać (future)
-        self.new_character_btn = QPushButton("+ Nowa Postać")
+        self.new_character_btn = QPushButton(_("New Character"))
         self.new_character_btn.clicked.connect(self._on_new_character_clicked)
-        self.new_character_btn.setEnabled(False)  # TODO: Enable in future versions
+        self.new_character_btn.setEnabled(True)
         self.new_character_btn.setStyleSheet("""
             QPushButton {
                 background-color: #f39c12;
@@ -105,10 +106,10 @@ class ProjectTreeView(QWidget):
         """)
         self.actions_layout.addWidget(self.new_character_btn)
         
-        # Przycisk nowa lokacja (future)
-        self.new_location_btn = QPushButton("+ Nowa Lokacja")
+        # Przycisk nowa lokacja
+        self.new_location_btn = QPushButton(_("New Location"))
         self.new_location_btn.clicked.connect(self._on_new_location_clicked)
-        self.new_location_btn.setEnabled(False)  # TODO: Enable in future versions
+        self.new_location_btn.setEnabled(True)
         self.new_location_btn.setStyleSheet("""
             QPushButton {
                 background-color: #27ae60;
@@ -176,7 +177,7 @@ class ProjectTreeView(QWidget):
                 y = doc2.top() + (i + 2) * line_height
                 painter.drawLine(doc2.left() + 2, y, doc2.right() - 2, y)
                 
-        elif icon_type == "characters":
+        elif icon_type == "characters" or icon_type == "character":
             # Stylizowana postać
             painter.setBrush(main_color)
             
@@ -284,21 +285,21 @@ class ProjectTreeView(QWidget):
         self.tree.clear()
         
         # Sceny
-        self.scenes_item = QTreeWidgetItem(["Sceny"])
+        self.scenes_item = QTreeWidgetItem([_("Scenes")])
         self.scenes_item.setIcon(0, self._create_icon("scenes"))
         self.scenes_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "category", "category": "scenes"})
         self.tree.addTopLevelItem(self.scenes_item)
         self.scenes_item.setExpanded(True)
         
-        # Postacie (future)
-        self.characters_item = QTreeWidgetItem(["Postacie"])
+        # Postacie
+        self.characters_item = QTreeWidgetItem([_("Characters")])
         self.characters_item.setIcon(0, self._create_icon("characters"))
         self.characters_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "category", "category": "characters"})
         self.tree.addTopLevelItem(self.characters_item)
         self.characters_item.setExpanded(True)
         
         # Lokacje (future)
-        self.locations_item = QTreeWidgetItem(["Lokacje"])
+        self.locations_item = QTreeWidgetItem([_("Locations")])
         self.locations_item.setIcon(0, self._create_icon("locations"))
         self.locations_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "category", "category": "locations"})
         self.tree.addTopLevelItem(self.locations_item)
@@ -330,6 +331,70 @@ class ProjectTreeView(QWidget):
             empty_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "empty"})
             empty_item.setDisabled(True)
             self.scenes_item.addChild(empty_item)
+            
+        # Przywróć selekcję
+        if selected_data:
+            self._restore_selection(selected_data)
+            
+    def load_characters(self, characters, preserve_selection=True):
+        """Załaduj postacie do drzewka."""
+        # Zachowaj selekcję
+        selected_data = None
+        if preserve_selection and self.tree.currentItem():
+            selected_data = self.tree.currentItem().data(0, Qt.ItemDataRole.UserRole)
+        
+        # Wyczyść obecne postacie
+        self.characters_item.takeChildren()
+        
+        # Dodaj postacie
+        for character in characters:
+            character_item = QTreeWidgetItem([character.get("name", _("Untitled"))])
+            character_item.setIcon(0, self._create_icon("character"))
+            character_item.setData(0, Qt.ItemDataRole.UserRole, {
+                "type": "character", 
+                "id": character["id"], 
+                "name": character.get("name", _("Untitled"))
+            })
+            self.characters_item.addChild(character_item)
+            
+        if not characters:
+            empty_item = QTreeWidgetItem([_("(no characters)")])
+            empty_item.setIcon(0, self._create_icon("empty"))
+            empty_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "empty"})
+            empty_item.setDisabled(True)
+            self.characters_item.addChild(empty_item)
+            
+        # Przywróć selekcję
+        if selected_data:
+            self._restore_selection(selected_data)
+    
+    def load_locations(self, locations, preserve_selection=True):
+        """Załaduj lokacje do drzewka."""
+        # Zachowaj selekcję
+        selected_data = None
+        if preserve_selection and self.tree.currentItem():
+            selected_data = self.tree.currentItem().data(0, Qt.ItemDataRole.UserRole)
+        
+        # Wyczyść obecne lokacje
+        self.locations_item.takeChildren()
+        
+        # Dodaj lokacje
+        for location in locations:
+            location_item = QTreeWidgetItem([location.get("name", _("Untitled Location"))])
+            location_item.setIcon(0, self._create_icon("locations"))
+            location_item.setData(0, Qt.ItemDataRole.UserRole, {
+                "type": "location", 
+                "id": location["id"], 
+                "name": location.get("name", _("Untitled Location"))
+            })
+            self.locations_item.addChild(location_item)
+            
+        if not locations:
+            empty_item = QTreeWidgetItem([_("(no locations)")])
+            empty_item.setIcon(0, self._create_icon("empty"))
+            empty_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "empty"})
+            empty_item.setDisabled(True)
+            self.locations_item.addChild(empty_item)
             
         # Przywróć selekcję
         if selected_data:
@@ -398,8 +463,36 @@ class ProjectTreeView(QWidget):
             
     def _on_new_character_clicked(self):
         """Obsługa kliknięcia przycisku nowa postać."""
-        QMessageBox.information(self, "Funkcja niedostępna", "Postacie będą dostępne w przyszłych wersjach.")
+        name, ok = QInputDialog.getText(
+            self, 
+            _("New Character"), 
+            _("Character name:"),
+            text=_("Untitled")
+        )
+        
+        if ok and name.strip():
+            self.newCharacterRequested.emit(name.strip())
+        elif ok:
+            QMessageBox.warning(
+                self, 
+                _("Warning"), 
+                _("Character name cannot be empty.")
+            )
         
     def _on_new_location_clicked(self):
         """Obsługa kliknięcia przycisku nowa lokacja."""
-        QMessageBox.information(self, "Funkcja niedostępna", "Lokacje będą dostępne w przyszłych wersjach.")
+        name, ok = QInputDialog.getText(
+            self, 
+            _("New Location"), 
+            _("Location name:"),
+            text=_("Untitled Location")
+        )
+        
+        if ok and name.strip():
+            self.newLocationRequested.emit(name.strip())
+        elif ok:
+            QMessageBox.warning(
+                self, 
+                _("Warning"), 
+                _("Location name cannot be empty.")
+            )
