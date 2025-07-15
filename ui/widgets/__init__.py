@@ -7,6 +7,7 @@ from .navigation_panel import NavigationPanel
 from .workspace import Workspace
 from .projects_view import ProjectsView
 from .project_tree_view import ProjectTreeView
+from .project_properties_dialog import ProjectPropertiesDialog
 from .scenes_grid_view import ScenesGridView
 from .characters_grid_view import CharactersGridView
 from .character_editor_dialog import CharacterEditorDialog
@@ -16,4 +17,4 @@ from .search_view import SearchView
 from .search_result_card import SearchResultCard
 from .find_replace_dialog import FindReplaceDialog
 
-__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog']
+__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ProjectPropertiesDialog', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog']

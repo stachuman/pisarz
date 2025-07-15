@@ -16,6 +16,7 @@ class Workspace(QWidget):
     """Obszar roboczy z ekranem powitalnym, widokami kafelków i edytorem."""
     
     saveRequested = Signal(str)             # content
+    autoSaveRequested = Signal(str)         # content - periodic auto-save
     sceneSelectedFromGrid = Signal(int, str) # id, title - from grid view
     newSceneRequestedFromGrid = Signal(str) # title - from grid view
     sceneRenameRequestedFromGrid = Signal(int, str) # id, new_title - from grid view
@@ -204,6 +205,7 @@ class Workspace(QWidget):
         
         # Połącz sygnały
         self.current_editor.saveRequested.connect(self.saveRequested.emit)
+        self.current_editor.autoSaveRequested.connect(self.autoSaveRequested.emit)
         self.current_editor.focusModeRequested.connect(self.focusModeRequested.emit)
         
         # Connect context panel signals

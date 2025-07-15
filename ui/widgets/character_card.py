@@ -186,7 +186,8 @@ class CharacterCard(QFrame):
             self.clicked.emit(self.character_id, self.character_name)
         elif event.button() == Qt.MouseButton.RightButton:
             self._show_context_menu(event.globalPosition().toPoint())
-        super().mousePressEvent(event)
+        else:
+            super().mousePressEvent(event)
     
     def _show_context_menu(self, pos):
         """Show context menu for character actions."""

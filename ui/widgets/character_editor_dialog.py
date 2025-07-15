@@ -1,6 +1,6 @@
 """Character editor dialog for creating and editing characters."""
 
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+from PySide6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, 
                               QLineEdit, QTextEdit, QPushButton, QGroupBox,
                               QMessageBox, QTabWidget, QWidget, QListWidget,
                               QListWidgetItem, QFrame, QSpinBox, QComboBox,
@@ -8,11 +8,12 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
+from ..base.base_dialog import BaseDialog
 from .scene_selector_dialog import SceneSelector
 from i18n import _
 
 
-class CharacterEditorDialog(QDialog):
+class CharacterEditorDialog(BaseDialog):
     """Dialog for creating and editing character information."""
     
     characterSaved = Signal(dict)  # character data
@@ -20,7 +21,7 @@ class CharacterEditorDialog(QDialog):
     sceneUnlinked = Signal(int, int)  # character_id, scene_id
     
     def __init__(self, character_data=None, scenes_data=None, parent=None):
-        super().__init__(parent)
+        super().__init__(title=_("Character Editor"), width=500, height=400, modal=False, parent=parent)
         self.character_data = character_data or {}
         self.scenes_data = scenes_data or []
         self.linked_scenes = []  # Will store linked scene data with roles
@@ -29,15 +30,6 @@ class CharacterEditorDialog(QDialog):
         
     def setup_ui(self):
         """Setup the character editor dialog UI."""
-        self.setWindowTitle(_("Character Editor"))
-        self.setMinimumSize(500, 400)
-        
-        # Make it non-modal and always on top
-        self.setModal(False)
-        self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
-        
-        layout = QVBoxLayout(self)
-        
         # Tab widget for different sections
         self.tabs = QTabWidget()
         
@@ -57,23 +49,15 @@ class CharacterEditorDialog(QDialog):
         self.scenes_tab = self.create_scenes_tab()
         self.tabs.addTab(self.scenes_tab, _("Scenes"))
         
-        layout.addWidget(self.tabs)
+        self.add_content_widget(self.tabs)
         
         # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        self.cancel_btn = self.create_custom_button(_("Cancel"), self.reject, "secondary")
+        self.save_btn = self.create_custom_button(_("Save"), self.save_character, "primary")
         
-        self.cancel_btn = QPushButton(_("Cancel"))
-        self.cancel_btn.clicked.connect(self.reject)
-        button_layout.addWidget(self.cancel_btn)
-        
-        self.save_btn = QPushButton(_("Save"))
-        self.save_btn.setDefault(True)
-        self.save_btn.clicked.connect(self.save_character)
-        # Remove custom styling to use global professional theme
-        button_layout.addWidget(self.save_btn)
-        
-        layout.addLayout(button_layout)
+        self.add_button_stretch()
+        self.add_button(self.cancel_btn)
+        self.add_button(self.save_btn)
         
     def create_basic_tab(self):
         """Create the basic information tab."""

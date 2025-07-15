@@ -25,6 +25,7 @@ class ProjectTreeView(QWidget):
     newLocationRequested = Signal(str)      # name (future)
     
     backToProjectsRequested = Signal()
+    projectPropertiesRequested = Signal()
     
     def __init__(self, project_name="", parent=None):
         super().__init__(parent)
@@ -59,6 +60,25 @@ class ProjectTreeView(QWidget):
         header_layout.addWidget(back_btn)
         
         header_layout.addStretch()
+        
+        # Project properties button
+        properties_btn = QPushButton("⚙️ " + _("Properties"))
+        properties_btn.clicked.connect(self.projectPropertiesRequested.emit)
+        properties_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        header_layout.addWidget(properties_btn)
+        
         layout.addLayout(header_layout)
         
         self.project_title_label = QLabel(self.project_name)

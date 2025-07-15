@@ -14,7 +14,8 @@ from core.character import CharacterManager
 from core.location import LocationManager
 from core.search import SearchManager
 from ui.widgets import (ProjectsView, ProjectTreeView, Workspace, SettingsDialog,
-                       CharactersGridView, CharacterEditorDialog)
+                       CharactersGridView, CharacterEditorDialog, ProjectPropertiesDialog)
+from ui.base.enhanced_theme_manager import EnhancedThemeManager
 from i18n import _
 
 
@@ -23,6 +24,11 @@ class PisarzApp(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        
+        # Initialize theme manager first
+        self.theme_manager = EnhancedThemeManager()
+        self.theme_manager.apply_global_theme()
+        
         self.project_manager = ProjectManager()
         self.current_scene_manager = None
         self.current_character_manager = None
@@ -99,9 +105,11 @@ class PisarzApp(QMainWindow):
         self.project_tree.newLocationRequested.connect(self.create_new_location)
         self.project_tree.searchRequested.connect(self.on_search_requested)
         self.project_tree.backToProjectsRequested.connect(self.show_projects_view)
+        self.project_tree.projectPropertiesRequested.connect(self.show_project_properties)
         
         # Workspace
         self.workspace.saveRequested.connect(self.save_scene_content)
+        self.workspace.autoSaveRequested.connect(self.auto_save_scene_content)
         self.workspace.sceneSelectedFromGrid.connect(self.on_scene_selected)
         self.workspace.characterSelectedFromGrid.connect(self.on_character_selected)
         self.workspace.locationSelectedFromGrid.connect(self.on_location_selected)
@@ -139,6 +147,23 @@ class PisarzApp(QMainWindow):
         """Wyjdź z trybu fokusu tylko jeśli jest aktywny."""
         if self.focus_mode:
             self.toggle_focus_mode()
+    
+    def closeEvent(self, event):
+        """Handle application close event - auto-save current scene."""
+        try:
+            # Auto-save current scene before closing
+            if self.current_scene_id and self.workspace.current_editor:
+                if self.workspace.current_editor.has_changes():
+                    content = self.workspace.current_editor.get_content()
+                    success = self.current_scene_manager.update_scene(self.current_scene_id, content_rtf=content)
+                    if success:
+                        self.status_bar.showMessage(_("Auto-saved scene before closing"), 1000)
+        except Exception as e:
+            # Don't block application closing if auto-save fails
+            pass
+        
+        # Accept the close event
+        event.accept()
         
     def show_projects_view(self) -> None:
         """Pokaż widok projektów."""
@@ -152,6 +177,19 @@ class PisarzApp(QMainWindow):
             
     def on_project_selected(self, project_path: str, project_name: str) -> None:
         """Obsługa wyboru projektu - przejście do widoku projektu."""
+        
+        # Auto-save current scene before switching projects
+        if self.current_scene_id and self.workspace.current_editor:
+            if self.workspace.current_editor.has_changes():
+                try:
+                    content = self.workspace.current_editor.get_content()
+                    success = self.current_scene_manager.update_scene(self.current_scene_id, content_rtf=content)
+                    if success:
+                        self.status_bar.showMessage(_("Auto-saved scene before switching projects"), 2000)
+                except Exception as e:
+                    # Don't block project switching if auto-save fails
+                    pass
+        
         self.current_project_path = project_path
         self.current_project_name = project_name
         self.current_scene_id = None
@@ -228,6 +266,24 @@ class PisarzApp(QMainWindow):
             
     def on_scene_selected(self, scene_id: int, scene_title: str) -> None:
         """Obsługa wyboru sceny."""
+        
+        # Auto-save current scene before switching to a new one
+        if self.current_scene_id and self.workspace.current_editor:
+            # Check if current editor has unsaved changes
+            if self.workspace.current_editor.has_changes():
+                try:
+                    content = self.workspace.current_editor.get_content()
+                    success = self.current_scene_manager.update_scene(self.current_scene_id, content_rtf=content)
+                    if success:
+                        # Mark editor as saved
+                        self.workspace.current_editor._has_changes = False
+                        self.status_bar.showMessage(_("Auto-saved previous scene"), 2000)  # Show for 2 seconds
+                    else:
+                        self.status_bar.showMessage(_("Failed to auto-save previous scene"), 3000)
+                except Exception as e:
+                    # Don't block scene switching if auto-save fails, just log it
+                    self.status_bar.showMessage(_("Auto-save failed: {}").format(str(e)), 3000)
+        
         self.current_scene_id = scene_id
         
         try:
@@ -251,7 +307,7 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to open scene: {}").format(e))
             
-    def save_scene_content(self, content: str) -> None:
+    def save_scene_content(self, content: str, is_auto_save: bool = False) -> None:
         """Zapisz zawartość sceny."""
         if not self.current_scene_manager or not self.current_scene_id:
             return
@@ -259,13 +315,36 @@ class PisarzApp(QMainWindow):
         try:
             success = self.current_scene_manager.update_scene(self.current_scene_id, content_rtf=content)
             if success:
-                self.status_bar.showMessage(_("Scene saved successfully"))
-                self._refresh_scenes_data()
+                if is_auto_save:
+                    # For auto-save, show a subtle message
+                    self.status_bar.showMessage(_("Auto-saved"), 1500)
+                else:
+                    # For manual save, show more prominent message
+                    self.status_bar.showMessage(_("Scene saved successfully"))
+                    self._refresh_scenes_data()
             else:
-                self.status_bar.showMessage(_("Failed to save scene"))
-                QMessageBox.warning(self, _("Warning"), _("Failed to save scene"))
+                if not is_auto_save:
+                    self.status_bar.showMessage(_("Failed to save scene"))
+                    QMessageBox.warning(self, _("Warning"), _("Failed to save scene"))
         except Exception as e:
-            QMessageBox.critical(self, _("Error"), _("Failed to save scene: {}").format(e))
+            if not is_auto_save:
+                QMessageBox.critical(self, _("Error"), _("Failed to save scene: {}").format(e))
+    
+    def auto_save_scene_content(self, content: str) -> None:
+        """Handle periodic auto-save."""
+        if not self.current_scene_manager or not self.current_scene_id:
+            return
+            
+        try:
+            success = self.current_scene_manager.update_scene(self.current_scene_id, content_rtf=content)
+            if success:
+                # Confirm auto-save to the editor
+                if self.workspace.current_editor:
+                    self.workspace.current_editor.confirm_auto_save()
+                self.status_bar.showMessage(_("Auto-saved"), 1500)
+        except Exception as e:
+            # Silently fail for auto-save - don't show error dialogs
+            pass
             
     def _refresh_scenes_data(self):
         """Odśwież dane scen zachowując selekcję."""
@@ -762,6 +841,42 @@ class PisarzApp(QMainWindow):
         self.projects_view.refresh_theme()
         if hasattr(self.workspace, 'scenes_grid_view') and self.workspace.scenes_grid_view:
             self.workspace.scenes_grid_view.refresh_theme()
+    
+    def show_project_properties(self):
+        """Show project properties dialog."""
+        if not self.current_project_path:
+            return
+            
+        # Get current project data
+        project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+        if not project_data:
+            QMessageBox.warning(self, _("Error"), _("Could not load project data"))
+            return
+            
+        # Show the properties dialog
+        dialog = ProjectPropertiesDialog(project_data, self)
+        dialog.propertiesSaved.connect(self.on_project_properties_saved)
+        dialog.exec()
+    
+    def on_project_properties_saved(self, properties):
+        """Handle project properties being saved."""
+        if not self.current_project_path:
+            return
+            
+        # Update the project in the database
+        success = self.project_manager.update_project_properties(
+            Path(self.current_project_path), properties
+        )
+        
+        if success:
+            self.status_bar.showMessage(_("Project properties saved successfully"))
+            
+            # Update the project title in the UI if it changed
+            if 'title' in properties:
+                display_title = properties['title'] or self.current_project_name
+                self.project_tree.update_project_name(display_title)
+        else:
+            QMessageBox.warning(self, _("Error"), _("Failed to save project properties"))
             
         # Odśwież ikony w drzewku
         self.project_tree.refresh_icons()

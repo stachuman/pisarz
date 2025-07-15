@@ -21,12 +21,13 @@ from contextlib import contextmanager
 
 
 # Database schema versions and migration steps
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 MIGRATION_STEPS = {
     1: "Add comprehensive character fields",
     2: "Add scene_characters role column and performance indexes",
     3: "Add locations and plot threads with tri-directional linking",
-    4: "Add FTS5 full-text search tables and triggers"
+    4: "Add FTS5 full-text search tables and triggers",
+    5: "Add project attributes and metadata fields"
 }
 
 
@@ -477,6 +478,71 @@ def migrate_to_version_4(db_path: Path) -> bool:
         return False
 
 
+def migrate_to_version_5(db_path: Path) -> bool:
+    """Migrate database to version 5: Add project attributes and metadata fields."""
+    print(f"  Migrating to version 5: Adding project attributes and metadata fields...")
+    
+    try:
+        with get_db_connection(db_path) as conn:
+            # Get existing columns in projects table
+            existing_columns = get_table_columns(conn, 'projects')
+            print(f"    Existing projects columns: {sorted(existing_columns)}")
+            
+            # Define new project attribute columns
+            new_columns = {
+                'modified_at': 'TEXT DEFAULT (datetime(\'now\'))',
+                'title': 'TEXT',
+                'author': 'TEXT',
+                'genre': 'TEXT',
+                'description': 'TEXT',
+                'language': 'TEXT DEFAULT \'en\'',
+                'target_word_count': 'INTEGER',
+                'status': 'TEXT DEFAULT \'draft\'',
+                'tags': 'TEXT',
+                'publisher': 'TEXT',
+                'isbn': 'TEXT',
+                'publication_date': 'TEXT',
+                'copyright': 'TEXT',
+                'default_scene_template': 'TEXT',
+                'auto_backup_enabled': 'INTEGER DEFAULT 1',
+                'daily_word_goal': 'INTEGER DEFAULT 500',
+                'weekly_word_goal': 'INTEGER DEFAULT 3500'
+            }
+            
+            # Add missing columns
+            columns_added = 0
+            for column_name, column_type in new_columns.items():
+                if column_name not in existing_columns:
+                    try:
+                        alter_query = f"ALTER TABLE projects ADD COLUMN {column_name} {column_type}"
+                        conn.execute(alter_query)
+                        print(f"    ✓ Added column '{column_name}'")
+                        columns_added += 1
+                    except sqlite3.OperationalError as e:
+                        print(f"    ✗ Failed to add column '{column_name}': {e}")
+                        return False
+            
+            if columns_added == 0:
+                print(f"    All project attribute columns already exist")
+            else:
+                print(f"    Added {columns_added} new project attribute columns")
+            
+            # Set title to name for existing projects where title is NULL
+            conn.execute("UPDATE projects SET title = name WHERE title IS NULL")
+            print(f"    ✓ Set title to name for existing projects")
+            
+            # Set modified_at to created_at for existing projects where modified_at is NULL
+            conn.execute("UPDATE projects SET modified_at = created_at WHERE modified_at IS NULL")
+            print(f"    ✓ Set modified_at to created_at for existing projects")
+            
+            conn.commit()
+            return True
+            
+    except sqlite3.Error as e:
+        print(f"    Error during version 5 migration: {e}")
+        return False
+
+
 def validate_schema_integrity(db_path: Path) -> bool:
     """Validate that the database schema matches its reported version."""
     try:
@@ -511,6 +577,16 @@ def validate_schema_integrity(db_path: Path) -> bool:
                 for table in required_fts_tables:
                     if not table_exists(conn, table):
                         print(f"  ⚠ Schema validation failed: Missing FTS table {table} for version {version}")
+                        return False
+            
+            # For version 5+, projects table must have extended attributes
+            if version >= 5:
+                if table_exists(conn, 'projects'):
+                    projects_columns = get_table_columns(conn, 'projects')
+                    required_project_columns = ['title', 'author', 'genre', 'description', 'language', 'status', 'modified_at']
+                    missing_columns = [col for col in required_project_columns if col not in projects_columns]
+                    if missing_columns:
+                        print(f"  ⚠ Schema validation failed: Missing project columns {missing_columns} for version {version}")
                         return False
             
             return True
@@ -570,6 +646,8 @@ def migrate_database(db_path: Path, force: bool = False) -> bool:
             success = migrate_to_version_3(db_path)
         elif version == 4:
             success = migrate_to_version_4(db_path)
+        elif version == 5:
+            success = migrate_to_version_5(db_path)
         else:
             print(f"    Error: Unknown migration version {version}")
             success = False

@@ -375,3 +375,250 @@ msgstr "Click on character to edit it or create new character."
 
 msgid "You don't have any characters yet.\\nCreate first character to start!"
 msgstr "You don't have any characters yet.\\nCreate first character to start!"
+
+msgid "Auto-saved"
+msgstr "Auto-saved"
+
+# Project Properties Dialog
+msgid "Project Properties"
+msgstr "Project Properties"
+
+msgid "Properties"
+msgstr "Properties"
+
+msgid "General"
+msgstr "General"
+
+msgid "Writing"
+msgstr "Writing"
+
+msgid "Publishing"
+msgstr "Publishing"
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "Core Information"
+msgstr "Core Information"
+
+msgid "Project Name:"
+msgstr "Project Name:"
+
+msgid "Display Title:"
+msgstr "Display Title:"
+
+msgid "Enter project title..."
+msgstr "Enter project title..."
+
+msgid "Enter author name..."
+msgstr "Enter author name..."
+
+msgid "Author:"
+msgstr "Author:"
+
+msgid "Genre:"
+msgstr "Genre:"
+
+msgid "Language:"
+msgstr "Language:"
+
+msgid "Enter project description or synopsis..."
+msgstr "Enter project description or synopsis..."
+
+msgid "Enter tags separated by commas..."
+msgstr "Enter tags separated by commas..."
+
+msgid "Use tags to categorize and organize your projects"
+msgstr "Use tags to categorize and organize your projects"
+
+msgid "Writing Progress"
+msgstr "Writing Progress"
+
+msgid "Status:"
+msgstr "Status:"
+
+msgid "Target Word Count:"
+msgstr "Target Word Count:"
+
+msgid " words"
+msgstr " words"
+
+msgid "Writing Goals"
+msgstr "Writing Goals"
+
+msgid "Daily Word Goal:"
+msgstr "Daily Word Goal:"
+
+msgid " words/day"
+msgstr " words/day"
+
+msgid "Weekly Word Goal:"
+msgstr "Weekly Word Goal:"
+
+msgid " words/week"
+msgstr " words/week"
+
+msgid "Publishing Information"
+msgstr "Publishing Information"
+
+msgid "Publisher:"
+msgstr "Publisher:"
+
+msgid "Enter publisher name..."
+msgstr "Enter publisher name..."
+
+msgid "ISBN:"
+msgstr "ISBN:"
+
+msgid "Enter ISBN..."
+msgstr "Enter ISBN..."
+
+msgid "Publication Date:"
+msgstr "Publication Date:"
+
+msgid "Not set"
+msgstr "Not set"
+
+msgid "Copyright"
+msgstr "Copyright"
+
+msgid "Enter copyright information..."
+msgstr "Enter copyright information..."
+
+msgid "Editor Settings"
+msgstr "Editor Settings"
+
+msgid "Default Scene Template:"
+msgstr "Default Scene Template:"
+
+msgid "Enter default RTF template for new scenes..."
+msgstr "Enter default RTF template for new scenes..."
+
+msgid "Backup Settings"
+msgstr "Backup Settings"
+
+msgid "Enable automatic backups"
+msgstr "Enable automatic backups"
+
+msgid "Automatically create backups of your project"
+msgstr "Automatically create backups of your project"
+
+msgid "Validation Error"
+msgstr "Validation Error"
+
+msgid "Display title cannot be empty."
+msgstr "Display title cannot be empty."
+
+msgid "Could not load project data"
+msgstr "Could not load project data"
+
+msgid "Project properties saved successfully"
+msgstr "Project properties saved successfully"
+
+msgid "Failed to save project properties"
+msgstr "Failed to save project properties"
+
+# Project Status Options
+msgid "Draft"
+msgstr "Draft"
+
+msgid "In Progress"
+msgstr "In Progress"
+
+msgid "First Draft Complete"
+msgstr "First Draft Complete"
+
+msgid "Revision"
+msgstr "Revision"
+
+msgid "Editing"
+msgstr "Editing"
+
+msgid "Final Draft"
+msgstr "Final Draft"
+
+msgid "Completed"
+msgstr "Completed"
+
+msgid "Published"
+msgstr "Published"
+
+msgid "On Hold"
+msgstr "On Hold"
+
+msgid "Abandoned"
+msgstr "Abandoned"
+
+# Genre Options
+msgid "Novel"
+msgstr "Novel"
+
+msgid "Short Story"
+msgstr "Short Story"
+
+msgid "Poetry"
+msgstr "Poetry"
+
+msgid "Non-fiction"
+msgstr "Non-fiction"
+
+msgid "Biography"
+msgstr "Biography"
+
+msgid "Science Fiction"
+msgstr "Science Fiction"
+
+msgid "Fantasy"
+msgstr "Fantasy"
+
+msgid "Mystery"
+msgstr "Mystery"
+
+msgid "Romance"
+msgstr "Romance"
+
+msgid "Thriller"
+msgstr "Thriller"
+
+msgid "Historical Fiction"
+msgstr "Historical Fiction"
+
+msgid "Literary Fiction"
+msgstr "Literary Fiction"
+
+msgid "Children's Book"
+msgstr "Children's Book"
+
+msgid "Young Adult"
+msgstr "Young Adult"
+
+msgid "Memoir"
+msgstr "Memoir"
+
+msgid "Other"
+msgstr "Other"
+
+# Language Options
+msgid "English"
+msgstr "English"
+
+msgid "Polish"
+msgstr "Polish"
+
+msgid "German"
+msgstr "German"
+
+msgid "French"
+msgstr "French"
+
+msgid "Spanish"
+msgstr "Spanish"
+
+msgid "Italian"
+msgstr "Italian"
+
+msgid "Portuguese"
+msgstr "Portuguese"
+
+msgid "Russian"
+msgstr "Russian"

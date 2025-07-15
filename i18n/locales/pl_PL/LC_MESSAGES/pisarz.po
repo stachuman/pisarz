@@ -376,3 +376,250 @@ msgstr "Kliknij na postać aby ją edytować lub stwórz nową postać."
 
 msgid "You don't have any characters yet.\\nCreate first character to start!"
 msgstr "Nie masz jeszcze żadnych postaci.\\nStwórz pierwszą postać aby rozpocząć!"
+
+msgid "Auto-saved"
+msgstr "Automatycznie zapisano"
+
+# Project Properties Dialog
+msgid "Project Properties"
+msgstr "Właściwości Projektu"
+
+msgid "Properties"
+msgstr "Właściwości"
+
+msgid "General"
+msgstr "Ogólne"
+
+msgid "Writing"
+msgstr "Pisanie"
+
+msgid "Publishing"
+msgstr "Publikacja"
+
+msgid "Settings"
+msgstr "Ustawienia"
+
+msgid "Core Information"
+msgstr "Podstawowe Informacje"
+
+msgid "Project Name:"
+msgstr "Nazwa Projektu:"
+
+msgid "Display Title:"
+msgstr "Tytuł Wyświetlany:"
+
+msgid "Enter project title..."
+msgstr "Wprowadź tytuł projektu..."
+
+msgid "Enter author name..."
+msgstr "Wprowadź imię autora..."
+
+msgid "Author:"
+msgstr "Autor:"
+
+msgid "Genre:"
+msgstr "Gatunek:"
+
+msgid "Language:"
+msgstr "Język:"
+
+msgid "Enter project description or synopsis..."
+msgstr "Wprowadź opis projektu lub streszczenie..."
+
+msgid "Enter tags separated by commas..."
+msgstr "Wprowadź tagi oddzielone przecinkami..."
+
+msgid "Use tags to categorize and organize your projects"
+msgstr "Użyj tagów aby kategoryzować i organizować projekty"
+
+msgid "Writing Progress"
+msgstr "Postęp Pisania"
+
+msgid "Status:"
+msgstr "Status:"
+
+msgid "Target Word Count:"
+msgstr "Docelowa Liczba Słów:"
+
+msgid " words"
+msgstr " słów"
+
+msgid "Writing Goals"
+msgstr "Cele Pisania"
+
+msgid "Daily Word Goal:"
+msgstr "Dzienny Cel Słów:"
+
+msgid " words/day"
+msgstr " słów/dzień"
+
+msgid "Weekly Word Goal:"
+msgstr "Tygodniowy Cel Słów:"
+
+msgid " words/week"
+msgstr " słów/tydzień"
+
+msgid "Publishing Information"
+msgstr "Informacje Publikacyjne"
+
+msgid "Publisher:"
+msgstr "Wydawca:"
+
+msgid "Enter publisher name..."
+msgstr "Wprowadź nazwę wydawcy..."
+
+msgid "ISBN:"
+msgstr "ISBN:"
+
+msgid "Enter ISBN..."
+msgstr "Wprowadź ISBN..."
+
+msgid "Publication Date:"
+msgstr "Data Publikacji:"
+
+msgid "Not set"
+msgstr "Nie ustawiono"
+
+msgid "Copyright"
+msgstr "Prawa Autorskie"
+
+msgid "Enter copyright information..."
+msgstr "Wprowadź informacje o prawach autorskich..."
+
+msgid "Editor Settings"
+msgstr "Ustawienia Edytora"
+
+msgid "Default Scene Template:"
+msgstr "Domyślny Szablon Sceny:"
+
+msgid "Enter default RTF template for new scenes..."
+msgstr "Wprowadź domyślny szablon RTF dla nowych scen..."
+
+msgid "Backup Settings"
+msgstr "Ustawienia Kopii Zapasowych"
+
+msgid "Enable automatic backups"
+msgstr "Włącz automatyczne kopie zapasowe"
+
+msgid "Automatically create backups of your project"
+msgstr "Automatycznie twórz kopie zapasowe projektu"
+
+msgid "Validation Error"
+msgstr "Błąd Walidacji"
+
+msgid "Display title cannot be empty."
+msgstr "Tytuł wyświetlany nie może być pusty."
+
+msgid "Could not load project data"
+msgstr "Nie można załadować danych projektu"
+
+msgid "Project properties saved successfully"
+msgstr "Właściwości projektu zapisane pomyślnie"
+
+msgid "Failed to save project properties"
+msgstr "Nie udało się zapisać właściwości projektu"
+
+# Project Status Options
+msgid "Draft"
+msgstr "Szkic"
+
+msgid "In Progress"
+msgstr "W Trakcie"
+
+msgid "First Draft Complete"
+msgstr "Pierwszy Szkic Ukończony"
+
+msgid "Revision"
+msgstr "Rewizja"
+
+msgid "Editing"
+msgstr "Edycja"
+
+msgid "Final Draft"
+msgstr "Ostateczny Szkic"
+
+msgid "Completed"
+msgstr "Ukończone"
+
+msgid "Published"
+msgstr "Opublikowane"
+
+msgid "On Hold"
+msgstr "Wstrzymane"
+
+msgid "Abandoned"
+msgstr "Porzucone"
+
+# Genre Options
+msgid "Novel"
+msgstr "Powieść"
+
+msgid "Short Story"
+msgstr "Opowiadanie"
+
+msgid "Poetry"
+msgstr "Poezja"
+
+msgid "Non-fiction"
+msgstr "Literatura faktu"
+
+msgid "Biography"
+msgstr "Biografia"
+
+msgid "Science Fiction"
+msgstr "Science Fiction"
+
+msgid "Fantasy"
+msgstr "Fantasy"
+
+msgid "Mystery"
+msgstr "Kryminał"
+
+msgid "Romance"
+msgstr "Romans"
+
+msgid "Thriller"
+msgstr "Thriller"
+
+msgid "Historical Fiction"
+msgstr "Powieść Historyczna"
+
+msgid "Literary Fiction"
+msgstr "Literatura Piękna"
+
+msgid "Children's Book"
+msgstr "Książka dla Dzieci"
+
+msgid "Young Adult"
+msgstr "Dla Młodzieży"
+
+msgid "Memoir"
+msgstr "Pamiętnik"
+
+msgid "Other"
+msgstr "Inne"
+
+# Language Options
+msgid "English"
+msgstr "Angielski"
+
+msgid "Polish"
+msgstr "Polski"
+
+msgid "German"
+msgstr "Niemiecki"
+
+msgid "French"
+msgstr "Francuski"
+
+msgid "Spanish"
+msgstr "Hiszpański"
+
+msgid "Italian"
+msgstr "Włoski"
+
+msgid "Portuguese"
+msgstr "Portugalski"
+
+msgid "Russian"
+msgstr "Rosyjski"
