@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QListWidget,
                                QComboBox, QMessageBox, QGroupBox)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
+from i18n import _
 
 
 class LocationSelectorDialog(QDialog):
@@ -147,7 +148,6 @@ class LocationSelectorDialog(QDialog):
             
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to load locations: {}").format(str(e)))
-            print(f"Error loading locations: {e}")
     
     def _populate_locations_list(self):
         """Populate the locations list widget."""
@@ -236,7 +236,3 @@ class LocationSelectorDialog(QDialog):
         self.location_selected.emit(location_id, role)
         self.accept()
 
-
-def _(text):
-    """Placeholder for translation function."""
-    return text

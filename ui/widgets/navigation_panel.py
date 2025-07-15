@@ -9,6 +9,7 @@ from .project_card import ProjectCard
 from .scene_card import SceneCard
 from ..styles.styles import (HEADER_COLOR, NEW_PROJECT_BUTTON_STYLE, 
                            NEW_SCENE_BUTTON_STYLE, MUTED_TEXT_COLOR)
+from i18n import _
 
 
 class NavigationPanel(QWidget):
@@ -83,7 +84,7 @@ class NavigationPanel(QWidget):
             self.projects_layout.addWidget(card)
             
         if not projects:
-            no_projects_label = QLabel("Brak projektów\\nStwórz nowy projekt aby rozpocząć")
+            no_projects_label = QLabel(_("No projects\nCreate a new project to get started"))
             no_projects_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             no_projects_label.setStyleSheet(MUTED_TEXT_COLOR)
             self.projects_layout.addWidget(no_projects_label)
@@ -102,7 +103,7 @@ class NavigationPanel(QWidget):
         self.new_scene_btn.setEnabled(True)
         
         if not scenes:
-            no_scenes_label = QLabel("Brak scen\\nStwórz nową scenę aby rozpocząć pisanie")
+            no_scenes_label = QLabel(_("No scenes\nCreate a new scene to start writing"))
             no_scenes_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             no_scenes_label.setStyleSheet(MUTED_TEXT_COLOR)
             self.scenes_layout.addWidget(no_scenes_label)
@@ -121,6 +122,6 @@ class NavigationPanel(QWidget):
             
     def _on_new_scene_clicked(self):
         """Obsługa kliknięcia przycisku nowa scena."""
-        title, ok = QInputDialog.getText(self, "Nowa Scena", "Tytuł sceny:")
+        title, ok = QInputDialog.getText(self, _("New Scene"), _("Scene title:"))
         if ok and title.strip():
             self.newSceneRequested.emit(title.strip())

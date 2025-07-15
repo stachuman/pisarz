@@ -5,12 +5,15 @@ Provides full-text search across scenes, characters, and locations using SQLite 
 """
 
 import sqlite3
+import logging
 from typing import List, Dict, Optional, Tuple, Any, Union
 from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
 
 from .db import get_db_connection
+
+logger = logging.getLogger(__name__)
 
 
 class SearchResultType(Enum):
@@ -59,7 +62,26 @@ class SearchManager:
         self.db_path = db_path
     
     def search_all(self, query: str, project_id: int, limit: int = 50) -> SearchResults:
-        """Search across all content types and return unified results."""
+        """
+        Search across all content types (scenes, characters, locations) and return unified results.
+        
+        This method performs a comprehensive FTS5 search across all project content:
+        - Splits the limit evenly between content types (1/3 each)
+        - Sorts results by relevance ranking 
+        - Returns structured SearchResults with timing information
+        
+        Args:
+            query: The search term(s) to find
+            project_id: The ID of the project to search within
+            limit: Maximum number of total results to return (default 50)
+            
+        Returns:
+            SearchResults object containing:
+            - query: The original search query
+            - results: List of SearchResult objects sorted by relevance
+            - total_count: Number of results found
+            - search_time_ms: Time taken to perform the search
+        """
         import time
         start_time = time.time()
         
@@ -148,7 +170,7 @@ class SearchManager:
                 return results
                 
         except sqlite3.Error as e:
-            print(f"Error searching scenes: {e}")
+            logger.error(f"Error searching scenes: {e}")
             return []
     
     def search_characters(self, query: str, project_id: int, limit: int = 20) -> List[SearchResult]:
@@ -202,7 +224,7 @@ class SearchManager:
                 return results
                 
         except sqlite3.Error as e:
-            print(f"Error searching characters: {e}")
+            logger.error(f"Error searching characters: {e}")
             return []
     
     def search_locations(self, query: str, project_id: int, limit: int = 20) -> List[SearchResult]:
@@ -254,7 +276,7 @@ class SearchManager:
                 return results
                 
         except sqlite3.Error as e:
-            print(f"Error searching locations: {e}")
+            logger.error(f"Error searching locations: {e}")
             return []
     
     def get_search_suggestions(self, query_prefix: str, project_id: int, limit: int = 10) -> List[str]:
@@ -297,7 +319,7 @@ class SearchManager:
                     suggestions.add(row['name'])
         
         except sqlite3.Error as e:
-            print(f"Error getting search suggestions: {e}")
+            logger.error(f"Error getting search suggestions: {e}")
             return []
         
         return sorted(list(suggestions))[:limit]
@@ -372,5 +394,5 @@ class SearchManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error rebuilding search index: {e}")
+            logger.error(f"Error rebuilding search index: {e}")
             return False

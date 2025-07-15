@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from .db import execute_query, execute_insert, execute_update
+from i18n import _
 
 
 class CharacterManager:

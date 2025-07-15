@@ -14,5 +14,6 @@ from .scene_selector_dialog import SceneSelector
 from .settings_dialog import SettingsDialog
 from .search_view import SearchView
 from .search_result_card import SearchResultCard
+from .find_replace_dialog import FindReplaceDialog
 
-__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard']
+__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog']

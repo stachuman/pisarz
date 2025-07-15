@@ -12,6 +12,7 @@ from PySide6.QtGui import QFont
 
 from .location_card import LocationCard
 from .location_editor_dialog import LocationEditorDialog
+from i18n import _
 
 
 class LocationsGridView(QWidget):
@@ -358,8 +359,3 @@ class LocationsGridView(QWidget):
         self.search_input.clear()
         self.type_filter.setCurrentIndex(0)
         self._apply_filters()
-
-
-def _(text):
-    """Placeholder for translation function."""
-    return text

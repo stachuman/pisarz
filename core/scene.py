@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from .db import execute_query, execute_insert, execute_update
+from i18n import _
 
 
 class SceneManager:
@@ -113,8 +114,3 @@ class SceneManager:
         )
         
         return rows_affected > 0
-
-
-def _(text: str) -> str:
-    """Placeholder for gettext translation."""
-    return text

@@ -6,12 +6,15 @@ between locations, scenes, and characters.
 """
 
 import sqlite3
+import logging
 from typing import List, Dict, Optional, Tuple, Any
 from pathlib import Path
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from .db import get_db_connection
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -75,7 +78,7 @@ class LocationManager:
                 return cursor.lastrowid
                 
         except sqlite3.Error as e:
-            print(f"Error creating location: {e}")
+            logger.error(f"Error creating location: {e}")
             return None
     
     def get_location(self, location_id: int) -> Optional[Location]:
@@ -92,7 +95,7 @@ class LocationManager:
                 return None
                 
         except sqlite3.Error as e:
-            print(f"Error getting location: {e}")
+            logger.error(f"Error getting location: {e}")
             return None
     
     def get_locations(self, project_id: int) -> List[Location]:
@@ -108,7 +111,7 @@ class LocationManager:
                 return [Location(**dict(row)) for row in cursor.fetchall()]
                 
         except sqlite3.Error as e:
-            print(f"Error getting locations: {e}")
+            logger.error(f"Error getting locations: {e}")
             return []
     
     def update_location(self, location_id: int, **kwargs) -> bool:
@@ -139,7 +142,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error updating location: {e}")
+            logger.error(f"Error updating location: {e}")
             return False
     
     def delete_location(self, location_id: int) -> bool:
@@ -157,7 +160,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error deleting location: {e}")
+            logger.error(f"Error deleting location: {e}")
             return False
     
     # Scene-Location relationships
@@ -175,7 +178,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error linking location to scene: {e}")
+            logger.error(f"Error linking location to scene: {e}")
             return False
     
     def unlink_location_from_scene(self, location_id: int, scene_id: int) -> bool:
@@ -191,7 +194,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error unlinking location from scene: {e}")
+            logger.error(f"Error unlinking location from scene: {e}")
             return False
     
     def get_scene_locations(self, scene_id: int) -> List[Tuple[Location, str]]:
@@ -216,7 +219,7 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            print(f"Error getting scene locations: {e}")
+            logger.error(f"Error getting scene locations: {e}")
             return []
     
     def get_location_scenes(self, location_id: int) -> List[Tuple[Dict, str]]:
@@ -240,7 +243,7 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            print(f"Error getting location scenes: {e}")
+            logger.error(f"Error getting location scenes: {e}")
             return []
     
     # Character-Location relationships
@@ -260,7 +263,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error linking character to location: {e}")
+            logger.error(f"Error linking character to location: {e}")
             return False
     
     def unlink_character_from_location(self, character_id: int, location_id: int) -> bool:
@@ -276,7 +279,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error unlinking character from location: {e}")
+            logger.error(f"Error unlinking character from location: {e}")
             return False
     
     def get_location_characters(self, location_id: int) -> List[Tuple[Dict, str, str]]:
@@ -301,7 +304,7 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            print(f"Error getting location characters: {e}")
+            logger.error(f"Error getting location characters: {e}")
             return []
     
     def get_character_locations(self, character_id: int) -> List[Tuple[Location, str, str]]:
@@ -327,7 +330,7 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            print(f"Error getting character locations: {e}")
+            logger.error(f"Error getting character locations: {e}")
             return []
     
     # Plot Thread operations
@@ -358,7 +361,7 @@ class LocationManager:
                 return cursor.lastrowid
                 
         except sqlite3.Error as e:
-            print(f"Error creating plot thread: {e}")
+            logger.error(f"Error creating plot thread: {e}")
             return None
     
     def get_plot_threads(self, project_id: int) -> List[PlotThread]:
@@ -374,7 +377,7 @@ class LocationManager:
                 return [PlotThread(**dict(row)) for row in cursor.fetchall()]
                 
         except sqlite3.Error as e:
-            print(f"Error getting plot threads: {e}")
+            logger.error(f"Error getting plot threads: {e}")
             return []
     
     def update_plot_thread(self, plot_id: int, **kwargs) -> bool:
@@ -405,7 +408,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error updating plot thread: {e}")
+            logger.error(f"Error updating plot thread: {e}")
             return False
     
     def delete_plot_thread(self, plot_id: int) -> bool:
@@ -422,5 +425,5 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            print(f"Error deleting plot thread: {e}")
+            logger.error(f"Error deleting plot thread: {e}")
             return False

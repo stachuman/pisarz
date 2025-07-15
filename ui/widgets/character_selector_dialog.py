@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QListWidget,
                                QComboBox, QMessageBox, QGroupBox)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
+from i18n import _
 
 
 class CharacterSelectorDialog(QDialog):
@@ -150,7 +151,6 @@ class CharacterSelectorDialog(QDialog):
             
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to load characters: {}").format(str(e)))
-            print(f"Error loading characters: {e}")
     
     def _populate_characters_list(self):
         """Populate the characters list widget."""
@@ -238,8 +238,3 @@ class CharacterSelectorDialog(QDialog):
         role = self.role_combo.currentText()
         self.character_selected.emit(character_id, role)
         self.accept()
-
-
-def _(text):
-    """Placeholder for translation function."""
-    return text

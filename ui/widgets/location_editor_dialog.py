@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
                                QPushButton, QLabel, QMessageBox, QScrollArea, QWidget, QFrame)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from i18n import _
 
 
 class LocationEditorDialog(QDialog):
@@ -308,8 +309,3 @@ class LocationEditorDialog(QDialog):
                 _("Error"), 
                 _("An error occurred while saving: {}").format(str(e))
             )
-
-
-def _(text):
-    """Placeholder for translation function."""
-    return text

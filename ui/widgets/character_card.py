@@ -115,7 +115,7 @@ class CharacterCard(QFrame):
             locations = self.location_manager.get_character_locations(self.character_id)
             return len(locations)
         except Exception as e:
-            print(f"Error getting character location count: {e}")
+            # Silently handle error - count will remain 0
             return 0
     
     def _get_location_info(self):
@@ -146,7 +146,7 @@ class CharacterCard(QFrame):
             
             return " | ".join(rel_parts)
         except Exception as e:
-            print(f"Error getting character location info: {e}")
+            # Silently handle error - location info will be empty
             return ""
     
     def _setup_tooltip(self):
@@ -172,8 +172,9 @@ class CharacterCard(QFrame):
                             rel_text += f" ({description})"
                         tooltip_parts.append(rel_text)
                     
-        except Exception as e:
-            print(f"Error creating character tooltip: {e}")
+        except:
+            pass
+            # Silently handle error - tooltip will show basic info only
         
         if len(tooltip_parts) > 2:  # More than just name
             tooltip_text = "<br>".join(tooltip_parts)

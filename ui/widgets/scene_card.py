@@ -170,8 +170,9 @@ class SceneCard(QFrame):
             if self.location_manager and scene_id:
                 locations = self.location_manager.get_scene_locations(scene_id)
                 location_count = len(locations)
-        except Exception as e:
-            print(f"Error getting scene counts: {e}")
+        except:
+            pass
+            # Silently handle error - counts will remain 0
         
         return character_count, location_count
     
@@ -201,7 +202,8 @@ class SceneCard(QFrame):
                         char_text = f"👤 {', '.join(char_names)}"
                     context_parts.append(char_text)
         except Exception as e:
-            print(f"Error getting scene context: {e}")
+            pass
+            # Silently handle error - context info will be empty
         
         return " | ".join(context_parts)
     
@@ -241,7 +243,8 @@ class SceneCard(QFrame):
                     tooltip_parts.extend(relationships)
                     
         except Exception as e:
-            print(f"Error creating tooltip: {e}")
+            pass
+            # Silently handle error - tooltip will show basic info only
         
         if len(tooltip_parts) > 2:  # More than just title
             tooltip_text = "<br>".join(tooltip_parts)
@@ -278,7 +281,8 @@ class SceneCard(QFrame):
                 relationships.extend(relevant_relationships)
                 
         except Exception as e:
-            print(f"Error getting detailed relationships: {e}")
+            pass
+            # Silently handle error - relationships won't be shown
         
         return relationships
 

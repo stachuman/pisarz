@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from typing import Optional
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                               QSplitter, QStatusBar, QMessageBox, QStackedWidget, QPushButton)
 from PySide6.QtCore import Qt
@@ -41,7 +42,7 @@ class PisarzApp(QMainWindow):
         self.setup_shortcuts()
         self.show_projects_view()
         
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Konfiguracja głównego interfejsu."""
         self.setWindowTitle(_("Pisarz - Writing Application"))
         self.setMinimumSize(1200, 800)
@@ -81,7 +82,7 @@ class PisarzApp(QMainWindow):
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage(_("Select project to start"))
         
-    def setup_connections(self):
+    def setup_connections(self) -> None:
         """Konfiguracja połączeń sygnałów."""
         # Widok projektów
         self.projects_view.projectSelected.connect(self.on_project_selected)
@@ -124,7 +125,7 @@ class PisarzApp(QMainWindow):
         self.workspace.searchRequested.connect(self.perform_search)
         self.workspace.searchResultSelected.connect(self.on_search_result_selected)
         
-    def setup_shortcuts(self):
+    def setup_shortcuts(self) -> None:
         """Konfiguracja skrótów klawiszowych."""
         # F11 - przełącz tryb fokusu
         self.focus_shortcut = QShortcut(QKeySequence("F11"), self)
@@ -139,7 +140,7 @@ class PisarzApp(QMainWindow):
         if self.focus_mode:
             self.toggle_focus_mode()
         
-    def show_projects_view(self):
+    def show_projects_view(self) -> None:
         """Pokaż widok projektów."""
         try:
             projects = self.project_manager.list_projects()
@@ -149,7 +150,7 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to load projects: {}").format(e))
             
-    def on_project_selected(self, project_path, project_name):
+    def on_project_selected(self, project_path: str, project_name: str) -> None:
         """Obsługa wyboru projektu - przejście do widoku projektu."""
         self.current_project_path = project_path
         self.current_project_name = project_name
@@ -192,7 +193,7 @@ class PisarzApp(QMainWindow):
             QMessageBox.critical(self, _("Error"), _("Failed to load projects: {}").format(e))
             self.show_projects_view()
             
-    def on_category_selected(self, category):
+    def on_category_selected(self, category: str) -> None:
         """Obsługa wyboru kategorii - pokaż widok kafelków."""
         if not self.current_scene_manager:
             return
@@ -225,7 +226,7 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to load view: {}").format(e))
             
-    def on_scene_selected(self, scene_id, scene_title):
+    def on_scene_selected(self, scene_id: int, scene_title: str) -> None:
         """Obsługa wyboru sceny."""
         self.current_scene_id = scene_id
         
@@ -250,7 +251,7 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to open scene: {}").format(e))
             
-    def save_scene_content(self, content):
+    def save_scene_content(self, content: str) -> None:
         """Zapisz zawartość sceny."""
         if not self.current_scene_manager or not self.current_scene_id:
             return
@@ -315,7 +316,7 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to load locations: {}").format(e))
             
-    def create_new_project(self, name):
+    def create_new_project(self, name: str) -> None:
         """Stwórz nowy projekt."""
         try:
             project_path = self.project_manager.create_project(name)
@@ -324,7 +325,7 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to create project: {}").format(e))
             
-    def create_new_scene(self, title):
+    def create_new_scene(self, title: str) -> None:
         """Stwórz nową scenę."""
         if not self.current_scene_manager:
             return
@@ -336,7 +337,7 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to create scene: {}").format(e))
     
-    def on_scene_rename_requested(self, scene_id, new_title):
+    def on_scene_rename_requested(self, scene_id: int, new_title: str) -> None:
         """Handle scene rename request."""
         if not self.current_scene_manager:
             return
@@ -516,11 +517,11 @@ class PisarzApp(QMainWindow):
                         character_id, scene_id, role
                     )
                     if not success:
-                        print(f"Failed to link character {character_id} to scene {scene_id}")
+                        # This is already shown in the warning dialog below
+                        pass
                 except Exception as e:
-                    print(f"Error linking character {character_id} to scene {scene_id}: {e}")
                     QMessageBox.warning(self, _("Warning"), 
-                                      _("Failed to link some scenes to character"))
+                                      _("Failed to link character {} to scene {}: {}").format(character_id, scene_id, str(e)))
     
     def on_location_selected(self, location_id, location_name):
         """Obsługa wyboru lokacji - otwiera edytor lokacji."""

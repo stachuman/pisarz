@@ -1,9 +1,12 @@
 """SQLite database helper with context manager for Pisarz projects."""
 
 import sqlite3
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from contextlib import contextmanager
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -248,11 +251,8 @@ def rebuild_fts_index(db_path: Path) -> bool:
             conn.commit()
             return True
     except Exception as e:
-        print(f"Error rebuilding FTS index: {e}")
+        logger.error(f"Error rebuilding FTS index: {e}")
         return False
-
-
-
 
 def execute_query(db_path: Path, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
     """Execute a SELECT query and return results as list of dictionaries."""

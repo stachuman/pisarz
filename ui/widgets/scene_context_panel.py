@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QSizePolicy, QToolButton, QMenu)
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
+from i18n import _
 
 
 class SceneContextPanel(QWidget):
@@ -364,8 +365,9 @@ class SceneContextPanel(QWidget):
         try:
             self.all_characters = self.character_manager.get_characters(self.project_id)
             self.all_locations = self.location_manager.get_locations(self.project_id)
-        except Exception as e:
-            print(f"Error refreshing data: {e}")
+        except:
+            pass
+            # Silently handle error - data won't be refreshed
     
     def _load_scene_context(self):
         """Load the current scene's characters and locations."""
@@ -386,8 +388,9 @@ class SceneContextPanel(QWidget):
             self._update_characters_list()
             self._update_relationships()
             
-        except Exception as e:
-            print(f"Error loading scene context: {e}")
+        except:
+            pass
+            # Silently handle error - scene context won't be loaded
     
     def _update_locations_list(self):
         """Update the locations list widget."""
@@ -427,7 +430,7 @@ class SceneContextPanel(QWidget):
                 list_item.setData(Qt.UserRole, character.get('id'))
                 self.characters_list.addItem(list_item)
             except Exception as e:
-                print(f"Error processing character item {item}: {e}")
+                # Silently handle error - character item will be skipped
                 continue
     
     def _update_relationships(self):
@@ -449,7 +452,7 @@ class SceneContextPanel(QWidget):
                     char_id = character.get('id')
                     char_name = character.get('name', 'Unknown')
                 except Exception as e:
-                    print(f"Error processing character in relationships: {e}")
+                    # Silently handle error - character relationships will be skipped
                     continue
                 
                 # Get character's location relationships
@@ -463,8 +466,9 @@ class SceneContextPanel(QWidget):
                                 if description:
                                     rel_text += f" ({description})"
                                 relationships.append(rel_text)
-        except Exception as e:
-            print(f"Error updating relationships: {e}")
+        except:
+            pass
+            # Silently handle error - relationships won't be updated
         
         if relationships:
             self.relationships_label.setText("\n".join(relationships))
@@ -538,8 +542,9 @@ class SceneContextPanel(QWidget):
                         linked_character_ids.append(character.get('id'))
                     elif isinstance(item, dict):
                         linked_character_ids.append(item.get('id'))
-                except Exception as e:
-                    print(f"Error getting character ID: {e}")
+                except:
+                    pass
+                    # Silently handle error - character won't be added
             
             from .character_selector_dialog import CharacterSelectorDialog
             dialog = CharacterSelectorDialog(
@@ -661,8 +666,3 @@ class SceneContextPanel(QWidget):
                     QMessageBox.warning(self, _("Warning"), _("Failed to link character to scene."))
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to link character: {}").format(str(e)))
-
-
-def _(text):
-    """Placeholder for translation function."""
-    return text

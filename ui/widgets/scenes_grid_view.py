@@ -8,6 +8,7 @@ from PySide6.QtGui import QFont
 
 from .scene_card import SceneCard
 from ..styles.styles import HEADER_COLOR, NEW_SCENE_BUTTON_STYLE
+from i18n import _
 
 
 class ScenesGridView(QWidget):
@@ -54,7 +55,7 @@ class ScenesGridView(QWidget):
         layout.addSpacing(15)
         
         # Instrukcje
-        instructions = QLabel("Kliknij na scenę aby ją edytować lub stwórz nową scenę.")
+        instructions = QLabel(_("Click on a scene to edit it or create a new scene."))
         instructions.setFont(QFont("Arial", 11))
         instructions.setStyleSheet("color: #7f8c8d;")
         layout.addWidget(instructions)
@@ -122,7 +123,7 @@ class ScenesGridView(QWidget):
                     
         if not self.filtered_scenes:
             # Brak scen - pokaż komunikat
-            no_scenes = QLabel("Nie znaleziono scen spełniających kryteria.\\nSpróbuj zmienić filtry.")
+            no_scenes = QLabel(_("No scenes found matching the criteria.\nTry changing the filters."))
             no_scenes.setAlignment(Qt.AlignmentFlag.AlignCenter)
             no_scenes.setFont(QFont("Arial", 14))
             no_scenes.setStyleSheet("color: #95a5a6; font-style: italic; padding: 50px;")
@@ -189,8 +190,9 @@ class ScenesGridView(QWidget):
                 if location:
                     self.location_filter.addItem(location.name, loc_id)
                     
-        except Exception as e:
-            print(f"Error populating filters: {e}")
+        except:
+            pass
+            # Silently handle error - filters won't be populated
         finally:
             self.character_filter.blockSignals(False)
             self.location_filter.blockSignals(False)
