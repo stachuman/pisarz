@@ -12,5 +12,7 @@ from .characters_grid_view import CharactersGridView
 from .character_editor_dialog import CharacterEditorDialog
 from .scene_selector_dialog import SceneSelector
 from .settings_dialog import SettingsDialog
+from .search_view import SearchView
+from .search_result_card import SearchResultCard
 
-__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog']
+__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard']

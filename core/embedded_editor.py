@@ -605,5 +605,51 @@ class EmbeddedRichTextWidget(QWidget):
         """Refresh the context panel data."""
         if self.context_panel:
             self.context_panel.refresh_context()
+    
+    def find_and_highlight_text(self, search_text):
+        """Find and highlight the first occurrence of search text in the editor."""
+        if not search_text:
+            return False
+        
+        # Get the plain text content for searching
+        plain_text = self.text_edit.toPlainText()
+        
+        # Find the first occurrence (case insensitive)
+        index = plain_text.lower().find(search_text.lower())
+        if index == -1:
+            return False
+        
+        # Create a cursor and move it to the found position
+        cursor = self.text_edit.textCursor()
+        cursor.setPosition(index)
+        cursor.setPosition(index + len(search_text), QTextCursor.MoveMode.KeepAnchor)
+        
+        # Set the cursor to select the found text
+        self.text_edit.setTextCursor(cursor)
+        
+        # Ensure the found text is visible
+        self.text_edit.ensureCursorVisible()
+        
+        # Apply temporary highlighting
+        format = QTextCharFormat()
+        format.setBackground(QBrush(QColor(255, 255, 0, 128)))  # Semi-transparent yellow
+        cursor.mergeCharFormat(format)
+        
+        # Clear the highlighting after 2 seconds
+        QTimer.singleShot(2000, self._clear_search_highlight)
+        
+        return True
+    
+    def _clear_search_highlight(self):
+        """Clear search highlighting from the text."""
+        cursor = self.text_edit.textCursor()
+        if cursor.hasSelection():
+            # Clear the background formatting
+            format = QTextCharFormat()
+            format.setBackground(QBrush())  # Clear background
+            cursor.mergeCharFormat(format)
+            # Move cursor to end of selection to deselect
+            cursor.setPosition(cursor.selectionEnd())
+            self.text_edit.setTextCursor(cursor)
 
 

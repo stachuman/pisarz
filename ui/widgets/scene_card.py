@@ -1,9 +1,9 @@
 """Scene card widget for displaying scene information."""
 
 from PySide6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
-                               QGraphicsDropShadowEffect, QWidget)
+                               QGraphicsDropShadowEffect, QWidget, QMenu, QInputDialog)
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QColor
+from PySide6.QtGui import QFont, QColor, QAction
 
 from ..styles.styles import SECONDARY_TEXT_COLOR, SEPARATOR_COLOR
 from ..styles.themes import ThemeManager
@@ -13,6 +13,7 @@ class SceneCard(QFrame):
     """Karta sceny - imituje QML GridView."""
     
     sceneSelected = Signal(int, str)  # id, title
+    sceneRenameRequested = Signal(int, str)  # id, new_title
     
     def __init__(self, scene_data, character_manager=None, location_manager=None, parent=None):
         super().__init__(parent)
@@ -285,4 +286,31 @@ class SceneCard(QFrame):
         """Obsługa kliknięcia na kartę."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.sceneSelected.emit(self.scene_data["id"], self.scene_data.get("title", "Scena"))
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.show_context_menu(event.globalPosition().toPoint())
         super().mousePressEvent(event)
+    
+    def show_context_menu(self, position):
+        """Show context menu with rename option."""
+        menu = QMenu(self)
+        
+        # Rename action
+        rename_action = QAction("📝 Rename Scene", self)
+        rename_action.triggered.connect(self.rename_scene)
+        menu.addAction(rename_action)
+        
+        menu.exec(position)
+    
+    def rename_scene(self):
+        """Show rename dialog and emit rename signal."""
+        current_title = self.scene_data.get("title", "Untitled Scene")
+        
+        new_title, ok = QInputDialog.getText(
+            self,
+            "Rename Scene",
+            "Enter new scene title:",
+            text=current_title
+        )
+        
+        if ok and new_title.strip() and new_title.strip() != current_title:
+            self.sceneRenameRequested.emit(self.scene_data["id"], new_title.strip())

@@ -9,6 +9,7 @@ from core.embedded_editor import EmbeddedRichTextWidget
 from .scenes_grid_view import ScenesGridView
 from .characters_grid_view import CharactersGridView
 from .locations_grid_view import LocationsGridView
+from .search_view import SearchView
 
 
 class Workspace(QWidget):
@@ -17,6 +18,7 @@ class Workspace(QWidget):
     saveRequested = Signal(str)             # content
     sceneSelectedFromGrid = Signal(int, str) # id, title - from grid view
     newSceneRequestedFromGrid = Signal(str) # title - from grid view
+    sceneRenameRequestedFromGrid = Signal(int, str) # id, new_title - from grid view
     characterSelectedFromGrid = Signal(int, str) # id, name - from characters grid view
     newCharacterRequestedFromGrid = Signal(str) # name - from characters grid view
     characterEditRequestedFromGrid = Signal(int) # character_id - from characters grid view
@@ -35,12 +37,17 @@ class Workspace(QWidget):
     characterSelectedFromScene = Signal(int)     # character_id
     locationSelectedFromScene = Signal(int)      # location_id
     
+    # Search view signals
+    searchRequested = Signal(str, str)           # query, filter_type
+    searchResultSelected = Signal(str, int, str, str) # result_type, id, title, search_query
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.current_editor = None
         self.scenes_grid_view = None
         self.characters_grid_view = None
         self.locations_grid_view = None
+        self.search_view = None
         self.setup_ui()
         
     def setup_ui(self):
@@ -62,6 +69,7 @@ class Workspace(QWidget):
         self.scenes_grid_view = ScenesGridView()
         self.scenes_grid_view.sceneSelected.connect(self.sceneSelectedFromGrid.emit)
         self.scenes_grid_view.newSceneRequested.connect(self.newSceneRequestedFromGrid.emit)
+        self.scenes_grid_view.sceneRenameRequested.connect(self.sceneRenameRequestedFromGrid.emit)
         self.workspace_stack.addWidget(self.scenes_grid_view)
         
         # === WIDOK KAFELKÓW POSTACI ===
@@ -75,6 +83,12 @@ class Workspace(QWidget):
         # === WIDOK KAFELKÓW LOKACJI ===
         # Note: LocationsGridView requires location_manager and project_id to be set later
         self.locations_grid_view = None  # Will be initialized when needed
+        
+        # === WIDOK WYSZUKIWANIA ===
+        self.search_view = SearchView()
+        self.search_view.searchRequested.connect(self.searchRequested.emit)
+        self.search_view.resultSelected.connect(self.searchResultSelected.emit)
+        self.workspace_stack.addWidget(self.search_view)
         
     def _create_welcome_screen(self):
         """Stwórz ekran powitalny."""
@@ -150,14 +164,24 @@ class Workspace(QWidget):
                 if self.workspace_stack.widget(i) is self.locations_grid_view:
                     self.workspace_stack.setCurrentIndex(i)
                     break
-        
+    
+    def show_search_view(self):
+        """Pokaż widok wyszukiwania."""
+        search_index = 3  # welcome(0) + scenes(1) + characters(2) + search(3)
+        self.workspace_stack.setCurrentIndex(search_index)
+        self.search_view.focus_search_input()  # Focus search input when shown
+    
+    def load_search_results(self, search_results):
+        """Załaduj wyniki wyszukiwania do widoku."""
+        if self.search_view:
+            self.search_view.load_search_results(search_results)
         
     def open_editor_for_scene(self, scene_content="<p>Zacznij pisać swoją scenę...</p>", scene_id=None, 
                             character_manager=None, location_manager=None, project_id=None):
         """Otwórz zintegrowany edytor RTF dla sceny."""
         # Usuń istniejący edytor jeśli jest (zachowaj welcome + grid views)
         # Find current grid view count dynamically 
-        base_views = 3  # welcome + scenes + characters
+        base_views = 4  # welcome + scenes + characters + search
         if self.locations_grid_view:
             base_views += 1
         

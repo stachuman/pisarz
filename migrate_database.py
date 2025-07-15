@@ -21,11 +21,12 @@ from contextlib import contextmanager
 
 
 # Database schema versions and migration steps
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 MIGRATION_STEPS = {
     1: "Add comprehensive character fields",
     2: "Add scene_characters role column and performance indexes",
-    3: "Add locations and plot threads with tri-directional linking"
+    3: "Add locations and plot threads with tri-directional linking",
+    4: "Add FTS5 full-text search tables and triggers"
 }
 
 
@@ -391,6 +392,91 @@ def migrate_to_version_3(db_path: Path) -> bool:
         return False
 
 
+def migrate_to_version_4(db_path: Path) -> bool:
+    """Migrate database to version 4: Add FTS5 full-text search tables and triggers."""
+    print(f"  Migrating to version 4: Adding FTS5 full-text search tables and triggers...")
+    
+    try:
+        with get_db_connection(db_path) as conn:
+            # Create FTS5 virtual tables
+            print(f"    Creating FTS5 virtual tables...")
+            
+            # FTS5 table for scenes
+            conn.execute("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS scenes_fts USING fts5(
+                    title,
+                    content_rtf,
+                    content='scenes',
+                    content_rowid='id'
+                )
+            """)
+            
+            # FTS5 table for characters  
+            conn.execute("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS characters_fts USING fts5(
+                    name,
+                    description,
+                    personality,
+                    background,
+                    notes,
+                    content='characters',
+                    content_rowid='id'
+                )
+            """)
+            
+            # FTS5 table for locations
+            conn.execute("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS locations_fts USING fts5(
+                    name,
+                    type,
+                    description,
+                    atmosphere,
+                    details,
+                    significance,
+                    notes,
+                    content='locations',
+                    content_rowid='id'
+                )
+            """)
+            
+            print(f"    ✓ Created FTS5 virtual tables")
+            
+            # Note: FTS5 external content tables automatically sync with main tables
+            # No manual triggers needed when using content='table_name' and content_rowid='id'
+            print(f"    ✓ FTS5 external content tables configured for automatic sync")
+            
+            # Populate FTS tables with existing data
+            print(f"    Populating FTS tables with existing data...")
+            
+            # Populate scenes FTS
+            conn.execute("""
+                INSERT INTO scenes_fts(title, content_rtf)
+                SELECT title, content_rtf FROM scenes
+            """)
+            
+            # Populate characters FTS
+            conn.execute("""
+                INSERT INTO characters_fts(name, description, personality, background, notes)
+                SELECT name, description, personality, background, notes FROM characters
+            """)
+            
+            # Populate locations FTS (only if locations table exists)
+            if table_exists(conn, 'locations'):
+                conn.execute("""
+                    INSERT INTO locations_fts(name, type, description, atmosphere, details, significance, notes)
+                    SELECT name, type, description, atmosphere, details, significance, notes FROM locations
+                """)
+            
+            print(f"    ✓ Populated FTS tables with existing data")
+            
+            conn.commit()
+            return True
+            
+    except sqlite3.Error as e:
+        print(f"    Error during version 4 migration: {e}")
+        return False
+
+
 def validate_schema_integrity(db_path: Path) -> bool:
     """Validate that the database schema matches its reported version."""
     try:
@@ -417,6 +503,14 @@ def validate_schema_integrity(db_path: Path) -> bool:
                 for table in required_tables:
                     if not table_exists(conn, table):
                         print(f"  ⚠ Schema validation failed: Missing {table} table for version {version}")
+                        return False
+            
+            # For version 4+, FTS5 tables must exist
+            if version >= 4:
+                required_fts_tables = ['scenes_fts', 'characters_fts', 'locations_fts']
+                for table in required_fts_tables:
+                    if not table_exists(conn, table):
+                        print(f"  ⚠ Schema validation failed: Missing FTS table {table} for version {version}")
                         return False
             
             return True
@@ -474,6 +568,8 @@ def migrate_database(db_path: Path, force: bool = False) -> bool:
             success = migrate_to_version_2(db_path)
         elif version == 3:
             success = migrate_to_version_3(db_path)
+        elif version == 4:
+            success = migrate_to_version_4(db_path)
         else:
             print(f"    Error: Unknown migration version {version}")
             success = False

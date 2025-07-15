@@ -11,6 +11,7 @@ from core.project import ProjectManager
 from core.scene import SceneManager
 from core.character import CharacterManager
 from core.location import LocationManager
+from core.search import SearchManager
 from ui.widgets import (ProjectsView, ProjectTreeView, Workspace, SettingsDialog,
                        CharactersGridView, CharacterEditorDialog)
 from i18n import _
@@ -25,6 +26,7 @@ class PisarzApp(QMainWindow):
         self.current_scene_manager = None
         self.current_character_manager = None
         self.current_location_manager = None
+        self.current_search_manager = None
         self.current_project_path = None
         self.current_project_name = ""
         self.current_scene_id = None
@@ -94,6 +96,7 @@ class PisarzApp(QMainWindow):
         self.project_tree.newSceneRequested.connect(self.create_new_scene)
         self.project_tree.newCharacterRequested.connect(self.create_new_character)
         self.project_tree.newLocationRequested.connect(self.create_new_location)
+        self.project_tree.searchRequested.connect(self.on_search_requested)
         self.project_tree.backToProjectsRequested.connect(self.show_projects_view)
         
         # Workspace
@@ -104,6 +107,7 @@ class PisarzApp(QMainWindow):
         self.workspace.newCharacterRequestedFromGrid.connect(self.create_new_character)
         self.workspace.newLocationRequestedFromGrid.connect(self.create_new_location)
         self.workspace.newSceneRequestedFromGrid.connect(self.create_new_scene)
+        self.workspace.sceneRenameRequestedFromGrid.connect(self.on_scene_rename_requested)
         self.workspace.focusModeRequested.connect(self.toggle_focus_mode)
         
         # Scene context panel signals
@@ -115,6 +119,10 @@ class PisarzApp(QMainWindow):
         self.workspace.newLocationRequestedFromScene.connect(self.create_new_location)
         self.workspace.characterSelectedFromScene.connect(self.on_character_selected_from_scene)
         self.workspace.locationSelectedFromScene.connect(self.on_location_selected_from_scene)
+        
+        # Search signals
+        self.workspace.searchRequested.connect(self.perform_search)
+        self.workspace.searchResultSelected.connect(self.on_search_result_selected)
         
     def setup_shortcuts(self):
         """Konfiguracja skrótów klawiszowych."""
@@ -154,6 +162,7 @@ class PisarzApp(QMainWindow):
             self.current_scene_manager = SceneManager(Path(project_path))
             self.current_character_manager = CharacterManager(Path(project_path))
             self.current_location_manager = LocationManager(Path(project_path) / "pisarz.db")
+            self.current_search_manager = SearchManager(Path(project_path) / "pisarz.db")
             
             project_data = self.project_manager.get_project_data(Path(project_path))
             project_id = project_data['id']
@@ -207,6 +216,9 @@ class PisarzApp(QMainWindow):
                 self.workspace.show_locations_grid(self.current_location_manager, project_data['id'])
                 locations = self.current_location_manager.get_locations(project_data['id'])
                 self.status_bar.showMessage(_("Locations view ({} locations)").format(len(locations)))
+            elif category == "search":
+                self.workspace.show_search_view()
+                self.status_bar.showMessage(_("Search view - Enter text to search across your project"))
             else:
                 self.workspace.show_welcome()
                 self.status_bar.showMessage(_("View {} (function unavailable)").format(category))
@@ -323,6 +335,21 @@ class PisarzApp(QMainWindow):
             self.status_bar.showMessage(_("Created scene: {}").format(title))
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to create scene: {}").format(e))
+    
+    def on_scene_rename_requested(self, scene_id, new_title):
+        """Handle scene rename request."""
+        if not self.current_scene_manager:
+            return
+            
+        try:
+            success = self.current_scene_manager.update_scene(scene_id, title=new_title)
+            if success:
+                self._refresh_scenes_data()
+                self.status_bar.showMessage(_("Scene renamed to: {}").format(new_title))
+            else:
+                QMessageBox.warning(self, _("Warning"), _("Failed to rename scene"))
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to rename scene: {}").format(e))
             
     def on_character_selected(self, character_id, character_name):
         """Obsługa wyboru postaci - otwiera edytor postaci."""
@@ -629,6 +656,95 @@ class PisarzApp(QMainWindow):
             location = self.current_location_manager.get_location(location_id)
             if location:
                 self.on_location_selected(location_id, location.name)
+    
+    def on_search_requested(self):
+        """Handle search category selection from tree."""
+        if not self.current_search_manager:
+            return
+        self.workspace.show_search_view()
+        self.status_bar.showMessage(_("Search view - Enter text to search across your project"))
+    
+    def perform_search(self, query, filter_type):
+        """Perform search and display results."""
+        if not self.current_search_manager or not query.strip():
+            return
+            
+        try:
+            # Get project ID
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            project_id = project_data['id'] if project_data else None
+            
+            if not project_id:
+                return
+            
+            # Perform search based on filter type
+            if filter_type == "scenes":
+                results = self.current_search_manager.search_scenes(query, project_id, limit=50)
+                from core.search import SearchResults
+                search_results = SearchResults(query=query, results=results, total_count=len(results), search_time_ms=0.0)
+            elif filter_type == "characters":
+                results = self.current_search_manager.search_characters(query, project_id, limit=50)
+                from core.search import SearchResults
+                search_results = SearchResults(query=query, results=results, total_count=len(results), search_time_ms=0.0)
+            elif filter_type == "locations":
+                results = self.current_search_manager.search_locations(query, project_id, limit=50)
+                from core.search import SearchResults
+                search_results = SearchResults(query=query, results=results, total_count=len(results), search_time_ms=0.0)
+            else:  # "all"
+                search_results = self.current_search_manager.search_all(query, project_id, limit=100)
+            
+            # Load results into search view
+            self.workspace.load_search_results(search_results)
+            
+            # Update status
+            result_count = len(search_results.results) if hasattr(search_results, 'results') else len(search_results)
+            self.status_bar.showMessage(_("Search completed - Found {} results for '{}'").format(result_count, query))
+            
+        except Exception as e:
+            QMessageBox.critical(self, _("Search Error"), _("Failed to perform search: {}").format(e))
+            self.status_bar.showMessage(_("Search failed"))
+    
+    def on_search_result_selected(self, result_type, result_id, title, search_query):
+        """Handle selection of a search result."""
+        try:
+            if result_type == "scene":
+                self.on_scene_selected_with_search(result_id, title, search_query)
+            elif result_type == "character":
+                self.on_character_selected(result_id, title)
+            elif result_type == "location":
+                self.on_location_selected(result_id, title)
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to open search result: {}").format(e))
+    
+    def on_scene_selected_with_search(self, scene_id, scene_title, search_query):
+        """Handle scene selection from search results with text highlighting."""
+        self.current_scene_id = scene_id
+        
+        try:
+            scene_data = self.current_scene_manager.get_scene(scene_id)
+            content = scene_data.get("content_rtf", f"<p>{_('Start writing your scene...')}</p>") if scene_data else f"<p>{_('Scene loading error')}</p>"
+            
+            # Get project ID for managers
+            project_data = self.project_manager.get_project_data(Path(self.current_project_path))
+            project_id = project_data['id'] if project_data else None
+            
+            # Open editor with context panel support
+            self.workspace.open_editor_for_scene(
+                content, 
+                scene_id=scene_id,
+                character_manager=self.current_character_manager,
+                location_manager=self.current_location_manager,
+                project_id=project_id
+            )
+            
+            # Find and highlight the search term in the editor
+            if search_query and self.workspace.current_editor:
+                self.workspace.current_editor.find_and_highlight_text(search_query)
+            
+            self.status_bar.showMessage(_("Editing scene: {} (search: '{}')").format(scene_title, search_query))
+            
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to open scene: {}").format(e))
             
     def show_settings(self):
         """Pokaż dialog ustawień."""

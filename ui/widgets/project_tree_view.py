@@ -16,8 +16,9 @@ class ProjectTreeView(QWidget):
     sceneSelected = Signal(int, str)        # id, title
     characterSelected = Signal(int, str)    # id, name (future)
     locationSelected = Signal(int, str)     # id, name (future)
+    searchRequested = Signal()              # search category selected
     
-    categorySelected = Signal(str)          # category name ("scenes", "characters", "locations")
+    categorySelected = Signal(str)          # category name ("scenes", "characters", "locations", "search")
     
     newSceneRequested = Signal(str)         # title
     newCharacterRequested = Signal(str)     # name (future)
@@ -253,6 +254,23 @@ class ProjectTreeView(QWidget):
             text_y = rect.center().y()
             painter.drawLine(rect.left() + 2, text_y, rect.right() - corner_size - 1, text_y)
             
+        elif icon_type == "search":
+            # Lupa (magnifying glass)
+            painter.setBrush(Qt.GlobalColor.transparent)
+            painter.setPen(QPen(text_color, 2))
+            
+            # Kółko lupy
+            lens_size = rect.width() // 2
+            lens_rect = rect.adjusted(2, 2, -lens_size//2, -lens_size//2)
+            painter.drawEllipse(lens_rect)
+            
+            # Rączka lupy
+            handle_start_x = lens_rect.right() - 2
+            handle_start_y = lens_rect.bottom() - 2
+            handle_end_x = rect.right() - 2
+            handle_end_y = rect.bottom() - 2
+            painter.drawLine(handle_start_x, handle_start_y, handle_end_x, handle_end_y)
+            
         elif icon_type == "empty":
             # Stylizowany plus w kółku
             painter.setBrush(text_color)
@@ -283,6 +301,12 @@ class ProjectTreeView(QWidget):
     def _setup_tree_structure(self):
         """Stwórz podstawową strukturę drzewka."""
         self.tree.clear()
+        
+        # Search
+        self.search_item = QTreeWidgetItem([_("🔍 Search")])
+        self.search_item.setIcon(0, self._create_icon("search"))
+        self.search_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "category", "category": "search"})
+        self.tree.addTopLevelItem(self.search_item)
         
         # Sceny
         self.scenes_item = QTreeWidgetItem([_("Scenes")])
@@ -406,7 +430,7 @@ class ProjectTreeView(QWidget):
         
         try:
             if selected_data.get("type") == "category":
-                category_items = {"scenes": self.scenes_item, "characters": self.characters_item, "locations": self.locations_item}
+                category_items = {"search": self.search_item, "scenes": self.scenes_item, "characters": self.characters_item, "locations": self.locations_item}
                 item = category_items.get(selected_data.get("category"))
                 if item:
                     self.tree.setCurrentItem(item)
@@ -425,6 +449,7 @@ class ProjectTreeView(QWidget):
     def refresh_icons(self):
         """Odśwież ikony po zmianie motywu."""
         # Odśwież ikony kategorii
+        self.search_item.setIcon(0, self._create_icon("search"))
         self.scenes_item.setIcon(0, self._create_icon("scenes"))
         self.characters_item.setIcon(0, self._create_icon("characters"))
         self.locations_item.setIcon(0, self._create_icon("locations"))
@@ -447,7 +472,10 @@ class ProjectTreeView(QWidget):
             
         if data.get("type") == "category":
             # Kliknięcie na kategorię - pokaż widok kafelków
-            self.categorySelected.emit(data["category"])
+            category = data["category"]
+            if category == "search":
+                self.searchRequested.emit()
+            self.categorySelected.emit(category)
         elif data.get("type") == "scene":
             self.sceneSelected.emit(data["id"], data["title"])
         elif data.get("type") == "character":

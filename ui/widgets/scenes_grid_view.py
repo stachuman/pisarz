@@ -15,6 +15,7 @@ class ScenesGridView(QWidget):
     
     sceneSelected = Signal(int, str)        # id, title
     newSceneRequested = Signal(str)         # title
+    sceneRenameRequested = Signal(int, str) # id, new_title
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -135,6 +136,7 @@ class ScenesGridView(QWidget):
             
             card = SceneCard(scene, self.character_manager, self.location_manager)
             card.sceneSelected.connect(self.sceneSelected.emit)
+            card.sceneRenameRequested.connect(self.sceneRenameRequested.emit)
             self.scenes_grid.addWidget(card, row, col)
             
     def _on_new_scene_clicked(self):
