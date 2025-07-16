@@ -646,7 +646,7 @@ class PisarzApp(QMainWindow):
             content = scene_data.get("content_rtf", f"<p>{_('Start writing your scene...')}</p>") if scene_data else f"<p>{_('Scene loading error')}</p>"
             
             # Get project ID for managers
-            project_path, _ = self.project_controller.get_current_project_info()
+            project_path, project_name = self.project_controller.get_current_project_info()
             if project_path:
                 project_data = self.project_controller.get_project_data(Path(project_path))
                 project_id = project_data['id'] if project_data else None

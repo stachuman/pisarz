@@ -75,7 +75,7 @@ class CharacterEditorDialog(BaseDialog):
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText(_("Enter character name..."))
         identity_form.addRow(_("Name") + "*:", self.name_edit)
-        
+
         self.full_name_edit = QLineEdit()
         self.full_name_edit.setPlaceholderText(_("Full legal name"))
         identity_form.addRow(_("Full Name") + ":", self.full_name_edit)
@@ -321,6 +321,8 @@ class CharacterEditorDialog(BaseDialog):
         self.full_name_edit.setText(self.character_data.get('full_name', ''))
         self.alias_edit.setText(self.character_data.get('alias', ''))
         
+        self.setWindowTitle(self.character_data.get('name', 'Character'))
+
         # Demographics
         age = self.character_data.get('age')
         if age is not None:
