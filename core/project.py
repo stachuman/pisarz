@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from .db import init_project_db, execute_query, execute_insert, update_database_schema, rebuild_fts_index
+from .error_handler import get_error_handler, ErrorLevel, ErrorCategory
 
 
 class ProjectManager:
@@ -13,6 +14,7 @@ class ProjectManager:
         """Initialize project manager with root directory for projects."""
         if projects_root is None:
             projects_root = Path.home() / "Pisarz Projects"
+        self.error_handler = get_error_handler()
         self.projects_root = projects_root
         self.projects_root.mkdir(exist_ok=True)
     
@@ -199,7 +201,9 @@ class ProjectManager:
             return True
             
         except Exception as e:
-            print(f"Error updating project properties: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context="Updating project properties",
+                                        show_to_user=False)
             return False
     
     def rebuild_project_search_index(self, project_path: Path) -> bool:

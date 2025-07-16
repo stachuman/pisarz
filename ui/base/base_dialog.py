@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
 from .enhanced_theme_manager import EnhancedThemeManager
-from .font_manager import FontManager
+from .ui_font_manager import UIFontManager
 from i18n import _
 
 
@@ -15,7 +15,7 @@ class BaseDialog(QDialog):
     def __init__(self, title="Dialog", width=400, height=300, modal=True, parent=None):
         super().__init__(parent)
         self.theme_manager = EnhancedThemeManager()
-        self.font_manager = FontManager()
+        self.font_manager = UIFontManager()
         self.setup_base_ui(title, width, height, modal)
         self.apply_theme()
         

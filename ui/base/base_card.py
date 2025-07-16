@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QColor, QMouseEvent
 
 from .enhanced_theme_manager import EnhancedThemeManager
-from .font_manager import FontManager
+from .ui_font_manager import UIFontManager
 
 
 class BaseCard(QFrame):
@@ -16,7 +16,7 @@ class BaseCard(QFrame):
     def __init__(self, width=200, height=120, parent=None):
         super().__init__(parent)
         self.theme_manager = EnhancedThemeManager()
-        self.font_manager = FontManager()
+        self.font_manager = UIFontManager()
         self.setup_base_ui(width, height)
         self.apply_theme()
         

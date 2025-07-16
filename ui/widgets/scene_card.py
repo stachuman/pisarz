@@ -7,6 +7,7 @@ from PySide6.QtGui import QFont, QColor, QAction
 
 from ..styles.styles import SECONDARY_TEXT_COLOR, SEPARATOR_COLOR
 from ..styles.themes import ThemeManager
+from core.error_handler import get_error_handler, ErrorCategory
 
 
 class SceneCard(QFrame):
@@ -170,9 +171,11 @@ class SceneCard(QFrame):
             if self.location_manager and scene_id:
                 locations = self.location_manager.get_scene_locations(scene_id)
                 location_count = len(locations)
-        except:
-            pass
-            # Silently handle error - counts will remain 0
+        except Exception as e:
+            # Log error but don't show to user - this is UI display info
+            get_error_handler().log_warning(f"Failed to get scene context counts: {e}",
+                                           ErrorCategory.UI, show_to_user=False)
+            # Counts will remain 0 as fallback
         
         return character_count, location_count
     
@@ -202,8 +205,10 @@ class SceneCard(QFrame):
                         char_text = f"👤 {', '.join(char_names)}"
                     context_parts.append(char_text)
         except Exception as e:
-            pass
-            # Silently handle error - context info will be empty
+            # Log error but continue - context info will be empty
+            get_error_handler().log_warning(f"Failed to get context info: {e}",
+                                           ErrorCategory.UI, show_to_user=False)
+            # Context info will be empty as fallback
         
         return " | ".join(context_parts)
     

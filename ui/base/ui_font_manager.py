@@ -5,7 +5,7 @@ from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtCore import QSettings
 
 
-class FontManager:
+class UIFontManager:
     """Manager for consistent font usage throughout the application."""
     
     def __init__(self):

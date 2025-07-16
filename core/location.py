@@ -13,6 +13,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from .db import get_db_connection
+from .error_handler import get_error_handler, ErrorLevel, ErrorCategory
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ class LocationManager:
     
     def __init__(self, db_path: Path):
         self.db_path = db_path
+        self.error_handler = get_error_handler()
     
     def create_location(self, project_id: int, name: str, **kwargs) -> Optional[int]:
         """Create a new location and return its ID."""
@@ -78,7 +80,9 @@ class LocationManager:
                 return cursor.lastrowid
                 
         except sqlite3.Error as e:
-            logger.error(f"Error creating location: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Creating location: {name}",
+                                        show_to_user=False)
             return None
     
     def get_location(self, location_id: int) -> Optional[Location]:
@@ -95,7 +99,9 @@ class LocationManager:
                 return None
                 
         except sqlite3.Error as e:
-            logger.error(f"Error getting location: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting location: {location_id}",
+                                        show_to_user=False)
             return None
     
     def get_locations(self, project_id: int) -> List[Location]:
@@ -111,7 +117,9 @@ class LocationManager:
                 return [Location(**dict(row)) for row in cursor.fetchall()]
                 
         except sqlite3.Error as e:
-            logger.error(f"Error getting locations: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting locations for project: {project_id}",
+                                        show_to_user=False)
             return []
     
     def update_location(self, location_id: int, **kwargs) -> bool:
@@ -142,7 +150,9 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error updating location: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Updating location: {location_id}",
+                                        show_to_user=False)
             return False
     
     def delete_location(self, location_id: int) -> bool:
@@ -160,7 +170,9 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error deleting location: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Deleting location: {location_id}",
+                                        show_to_user=False)
             return False
     
     # Scene-Location relationships
@@ -178,7 +190,9 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error linking location to scene: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Linking location {location_id} to scene {scene_id}",
+                                        show_to_user=False)
             return False
     
     def unlink_location_from_scene(self, location_id: int, scene_id: int) -> bool:
@@ -194,7 +208,9 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error unlinking location from scene: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Unlinking location {location_id} from scene {scene_id}",
+                                        show_to_user=False)
             return False
     
     def get_scene_locations(self, scene_id: int) -> List[Tuple[Location, str]]:
@@ -219,7 +235,9 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            logger.error(f"Error getting scene locations: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting locations for scene: {scene_id}",
+                                        show_to_user=False)
             return []
     
     def get_location_scenes(self, location_id: int) -> List[Tuple[Dict, str]]:
@@ -243,7 +261,9 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            logger.error(f"Error getting location scenes: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting scenes for location: {location_id}",
+                                        show_to_user=False)
             return []
     
     # Character-Location relationships
@@ -263,7 +283,9 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error linking character to location: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Linking character {character_id} to location {location_id}",
+                                        show_to_user=False)
             return False
     
     def unlink_character_from_location(self, character_id: int, location_id: int) -> bool:
@@ -279,7 +301,9 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error unlinking character from location: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Unlinking character {character_id} from location {location_id}",
+                                        show_to_user=False)
             return False
     
     def get_location_characters(self, location_id: int) -> List[Tuple[Dict, str, str]]:
@@ -304,7 +328,9 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            logger.error(f"Error getting location characters: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting characters for location: {location_id}",
+                                        show_to_user=False)
             return []
     
     def get_character_locations(self, character_id: int) -> List[Tuple[Location, str, str]]:
@@ -330,7 +356,9 @@ class LocationManager:
                 return results
                 
         except sqlite3.Error as e:
-            logger.error(f"Error getting character locations: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting locations for character: {character_id}",
+                                        show_to_user=False)
             return []
     
     # Plot Thread operations
@@ -361,7 +389,9 @@ class LocationManager:
                 return cursor.lastrowid
                 
         except sqlite3.Error as e:
-            logger.error(f"Error creating plot thread: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Creating plot thread: {name}",
+                                        show_to_user=False)
             return None
     
     def get_plot_threads(self, project_id: int) -> List[PlotThread]:
@@ -377,7 +407,9 @@ class LocationManager:
                 return [PlotThread(**dict(row)) for row in cursor.fetchall()]
                 
         except sqlite3.Error as e:
-            logger.error(f"Error getting plot threads: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting plot threads for project: {project_id}",
+                                        show_to_user=False)
             return []
     
     def update_plot_thread(self, plot_id: int, **kwargs) -> bool:
@@ -408,7 +440,9 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error updating plot thread: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Updating plot thread: {plot_id}",
+                                        show_to_user=False)
             return False
     
     def delete_plot_thread(self, plot_id: int) -> bool:
@@ -425,5 +459,7 @@ class LocationManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error deleting plot thread: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Deleting plot thread: {plot_id}",
+                                        show_to_user=False)
             return False

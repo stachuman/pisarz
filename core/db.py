@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from contextlib import contextmanager
 
+from .error_handler import get_error_handler, ErrorLevel, ErrorCategory
+
 logger = logging.getLogger(__name__)
+error_handler = get_error_handler()
 
 
 @contextmanager
@@ -230,7 +233,9 @@ def _set_initial_schema_version(db_path: Path) -> None:
                 conn.commit()
                 logger.info(f"Set initial schema version to {CURRENT_SCHEMA_VERSION}")
     except Exception as e:
-        logger.error(f"Error setting initial schema version: {e}")
+        error_handler.log_error(e, ErrorCategory.DATABASE,
+                               context="Setting initial schema version",
+                               show_to_user=False)
 
 
 def get_schema_version(db_path: Path) -> int:
@@ -251,7 +256,9 @@ def get_schema_version(db_path: Path) -> int:
             return row[0] if row else 0
             
     except Exception as e:
-        logger.error(f"Error checking schema version for {db_path}: {e}")
+        error_handler.log_error(e, ErrorCategory.DATABASE,
+                               context=f"Checking schema version for {db_path}",
+                               show_to_user=False)
         return -1
 
 
@@ -263,7 +270,9 @@ def set_schema_version(db_path: Path, version: int) -> bool:
             conn.commit()
             return True
     except Exception as e:
-        logger.error(f"Error setting schema version for {db_path}: {e}")
+        error_handler.log_error(e, ErrorCategory.DATABASE,
+                               context=f"Setting schema version for {db_path}",
+                               show_to_user=False)
         return False
 
 
@@ -410,7 +419,9 @@ def update_database_schema(db_path: Path) -> bool:
             conn.commit()
             return True
     except Exception as e:
-        logger.error(f"Error updating database schema: {e}")
+        error_handler.log_error(e, ErrorCategory.DATABASE,
+                               context="Updating database schema",
+                               show_to_user=False)
         return False
 
 
@@ -430,7 +441,9 @@ def rebuild_fts_index(db_path: Path) -> bool:
             conn.commit()
             return True
     except Exception as e:
-        logger.error(f"Error rebuilding FTS index: {e}")
+        error_handler.log_error(e, ErrorCategory.DATABASE,
+                               context="Rebuilding FTS index",
+                               show_to_user=False)
         return False
 
 def execute_query(db_path: Path, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
@@ -485,7 +498,8 @@ def validate_schema_integrity(db_path: Path) -> bool:
                     WHERE type='table' AND name=?
                 """, (table_name,))
                 if not cursor.fetchone():
-                    logger.warning(f"Missing required table: {table_name}")
+                    error_handler.log_warning(f"Missing required table: {table_name}",
+                                             ErrorCategory.DATABASE, show_to_user=False)
                     return False
                 
                 # For regular tables, check key columns exist
@@ -495,7 +509,8 @@ def validate_schema_integrity(db_path: Path) -> bool:
                     
                     missing_columns = set(required_columns) - existing_columns
                     if missing_columns:
-                        logger.warning(f"Table {table_name} missing columns: {missing_columns}")
+                        error_handler.log_warning(f"Table {table_name} missing columns: {missing_columns}",
+                                                 ErrorCategory.DATABASE, show_to_user=False)
                         return False
             
             # Check FTS triggers exist
@@ -513,13 +528,16 @@ def validate_schema_integrity(db_path: Path) -> bool:
             
             missing_triggers = set(expected_triggers) - set(fts_triggers)
             if missing_triggers:
-                logger.warning(f"Missing FTS triggers: {missing_triggers}")
+                error_handler.log_warning(f"Missing FTS triggers: {missing_triggers}",
+                                         ErrorCategory.DATABASE, show_to_user=False)
                 # Don't fail validation for missing triggers, they can be added automatically
             
             return True
             
     except Exception as e:
-        logger.error(f"Error during schema validation: {e}")
+        error_handler.log_error(e, ErrorCategory.DATABASE,
+                               context="Schema validation",
+                               show_to_user=False)
         return False
 
 
@@ -571,6 +589,8 @@ def get_database_info(db_path: Path) -> Dict[str, Any]:
             info['valid'] = validate_schema_integrity(db_path)
             
     except Exception as e:
-        logger.error(f"Error getting database info: {e}")
+        error_handler.log_error(e, ErrorCategory.DATABASE,
+                               context="Getting database info",
+                               show_to_user=False)
     
     return info

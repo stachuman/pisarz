@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
 from .enhanced_theme_manager import EnhancedThemeManager
-from .font_manager import FontManager
+from .ui_font_manager import UIFontManager
 from i18n import _
 
 
@@ -21,7 +21,7 @@ class BaseGridView(QWidget):
         self.title = title
         self.icon = icon
         self.theme_manager = EnhancedThemeManager()
-        self.font_manager = FontManager()
+        self.font_manager = UIFontManager()
         self.items_data = []
         self.filtered_items = []
         
@@ -241,7 +241,7 @@ class BaseGridView(QWidget):
         
     def create_item_card(self, item):
         """Create a card widget for an item (to be implemented by subclasses)."""
-        return None
+        raise NotImplementedError("Subclasses must implement create_item_card() method")
         
     def clear_grid(self):
         """Clear all items from the grid."""

@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from .db import execute_query, execute_insert, execute_update
+from .error_handler import get_error_handler, ErrorLevel, ErrorCategory
 from i18n import _
 
 
@@ -14,6 +15,7 @@ class CharacterManager:
         """Initialize character manager for a project."""
         self.project_path = project_path
         self.db_path = project_path / "pisarz.db"
+        self.error_handler = get_error_handler()
         
     def get_characters(self, project_id: int) -> List[Dict[str, Any]]:
         """Get all characters for a project."""
@@ -131,11 +133,15 @@ class CharacterManager:
             return True
         except sqlite3.Error as e:
             # Log specific database errors
-            print(f"Database error linking character {character_id} to scene {scene_id}: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Linking character {character_id} to scene {scene_id}",
+                                        show_to_user=False)
             return False
         except Exception as e:
             # Log unexpected errors
-            print(f"Unexpected error linking character to scene: {e}")
+            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
+                                        context="Linking character to scene",
+                                        show_to_user=False)
             return False
             
     def unlink_character_from_scene(self, character_id: int, scene_id: int) -> bool:
@@ -236,12 +242,14 @@ class CharacterManager:
             execute_insert(self.db_path, query, (scene_id, character_id, role))
             return True
         except sqlite3.Error as e:
-            error_msg = f"Database error linking character {character_id} to scene {scene_id} with role '{role}': {e}"
-            print(error_msg)
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Linking character {character_id} to scene {scene_id} with role '{role}'",
+                                        show_to_user=False)
             return False
         except Exception as e:
-            error_msg = f"Unexpected error linking character to scene with role: {e}"
-            print(error_msg)
+            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
+                                        context="Linking character to scene with role",
+                                        show_to_user=False)
             return False
             
     def get_character_importance_levels(self) -> List[Dict[str, Any]]:

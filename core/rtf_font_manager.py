@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QObject, Signal
 from PySide6.QtGui import QFont, QFontInfo, QTextCharFormat, QColor, QBrush
 
 
-class FontManager(QObject):
+class RTFFontManager(QObject):
     """Manages font operations for the RTF editor."""
     
     def __init__(self, text_edit: QTextEdit, parent=None):

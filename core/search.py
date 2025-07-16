@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .db import get_db_connection
+from .error_handler import get_error_handler, ErrorLevel, ErrorCategory
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ class SearchManager:
     
     def __init__(self, db_path: Path):
         self.db_path = db_path
+        self.error_handler = get_error_handler()
     
     def search_all(self, query: str, project_id: int, limit: int = 50) -> SearchResults:
         """
@@ -170,7 +172,9 @@ class SearchManager:
                 return results
                 
         except sqlite3.Error as e:
-            logger.error(f"Error searching scenes: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Searching scenes with query: {query}",
+                                        show_to_user=False)
             return []
     
     def search_characters(self, query: str, project_id: int, limit: int = 20) -> List[SearchResult]:
@@ -224,7 +228,9 @@ class SearchManager:
                 return results
                 
         except sqlite3.Error as e:
-            logger.error(f"Error searching characters: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Searching characters with query: {query}",
+                                        show_to_user=False)
             return []
     
     def search_locations(self, query: str, project_id: int, limit: int = 20) -> List[SearchResult]:
@@ -276,7 +282,9 @@ class SearchManager:
                 return results
                 
         except sqlite3.Error as e:
-            logger.error(f"Error searching locations: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Searching locations with query: {query}",
+                                        show_to_user=False)
             return []
     
     def get_search_suggestions(self, query_prefix: str, project_id: int, limit: int = 10) -> List[str]:
@@ -319,7 +327,9 @@ class SearchManager:
                     suggestions.add(row['name'])
         
         except sqlite3.Error as e:
-            logger.error(f"Error getting search suggestions: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context=f"Getting search suggestions for: {query_prefix}",
+                                        show_to_user=False)
             return []
         
         return sorted(list(suggestions))[:limit]
@@ -394,5 +404,7 @@ class SearchManager:
                 return True
                 
         except sqlite3.Error as e:
-            logger.error(f"Error rebuilding search index: {e}")
+            self.error_handler.log_error(e, ErrorCategory.DATABASE,
+                                        context="Rebuilding search index",
+                                        show_to_user=False)
             return False

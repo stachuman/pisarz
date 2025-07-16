@@ -10,7 +10,7 @@ import re
 from .toolbar_manager import ToolbarManager
 from .find_replace_manager import FindReplaceManager
 from .context_panel_manager import ContextPanelManager
-from .font_manager import FontManager
+from .rtf_font_manager import RTFFontManager
 
 
 class EmbeddedRichTextWidget(QWidget):
@@ -97,7 +97,7 @@ class EmbeddedRichTextWidget(QWidget):
         self.context_panel_manager = ContextPanelManager(self.splitter, self)
         
         # Initialize font manager after text_edit is created
-        self.font_manager = FontManager(self.text_edit, self)
+        self.font_manager = RTFFontManager(self.text_edit, self)
         
         layout.addWidget(self.splitter)
         

@@ -21,7 +21,7 @@ class ToolbarManager(QObject):
     saveRequested = Signal()
     focusModeRequested = Signal()
     contextPanelToggled = Signal()
-    button_fixed_size = 30
+    button_fixed_size = 32
 
     
     def __init__(self, parent=None):
