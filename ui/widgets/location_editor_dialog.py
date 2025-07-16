@@ -215,6 +215,8 @@ class LocationEditorDialog(QDialog):
         if not self.location:
             return
         
+        self.setWindowTitle(self.location.name or "Location")
+
         self.name_input.setText(self.location.name or "")
         self.type_combo.setCurrentText(self.location.type or "")
         self.atmosphere_input.setText(self.location.atmosphere or "")
