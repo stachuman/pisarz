@@ -21,6 +21,8 @@ class EmbeddedRichTextWidget(QWidget):
     autoSaveRequested = Signal(str)     # Periodic auto-save signal
     focusModeRequested = Signal()
     contextPanelToggled = Signal(bool)  # New signal for context panel toggle
+    aiAssistantToggled = Signal()       # New signal for AI assistant toggle
+    textSelectionChanged = Signal(str, str)  # selected_text, current_text
     
     # Context panel signals
     characterAddedToScene = Signal(int, str)  # character_id, role
@@ -114,6 +116,8 @@ class EmbeddedRichTextWidget(QWidget):
         # Zmiany tekstu
         self.text_edit.textChanged.connect(self.on_text_changed)
         self.text_edit.cursorPositionChanged.connect(self.update_format_buttons)
+        self.text_edit.cursorPositionChanged.connect(self._on_cursor_position_changed)
+        self.text_edit.selectionChanged.connect(self._on_text_selection_changed)
         
         # Connect toolbar manager signals to font manager
         self.toolbar_manager.fontFamilyChanged.connect(self.font_manager.change_font_family)
@@ -126,6 +130,7 @@ class EmbeddedRichTextWidget(QWidget):
         self.toolbar_manager.saveRequested.connect(self.save_content)
         self.toolbar_manager.focusModeRequested.connect(self.focusModeRequested.emit)
         self.toolbar_manager.contextPanelToggled.connect(self.context_panel_manager.toggle_context_panel)
+        self.toolbar_manager.aiAssistantToggled.connect(self.aiAssistantToggled.emit)
         
         # Connect context panel manager signals
         self.context_panel_manager.contextPanelToggled.connect(self.contextPanelToggled.emit)
@@ -362,6 +367,47 @@ class EmbeddedRichTextWidget(QWidget):
         else:
             self.auto_save_timer.stop()
     
+    def set_ai_assistant_state(self, visible: bool):
+        """Set the AI assistant button state in the toolbar."""
+        if self.toolbar_manager:
+            self.toolbar_manager.set_ai_assistant_state(visible)
+    
+    def _on_cursor_position_changed(self):
+        """Handle cursor position changes."""
+        try:
+            # Get current text (paragraph around cursor)
+            cursor = self.text_edit.textCursor()
+            cursor.select(cursor.SelectionType.BlockUnderCursor)
+            current_text = cursor.selectedText()
+            
+            # Get selected text if any
+            selected_text = self.text_edit.textCursor().selectedText()
+            
+            # Emit signal with current context
+            self.textSelectionChanged.emit(selected_text, current_text)
+            
+        except Exception as e:
+            # Log error but don't crash
+            pass
+    
+    def _on_text_selection_changed(self):
+        """Handle text selection changes."""
+        try:
+            # Get selected text
+            selected_text = self.text_edit.textCursor().selectedText()
+            
+            # Get current text (paragraph around cursor)
+            cursor = self.text_edit.textCursor()
+            cursor.select(cursor.SelectionType.BlockUnderCursor)
+            current_text = cursor.selectedText()
+            
+            # Emit signal with current context
+            self.textSelectionChanged.emit(selected_text, current_text)
+            
+        except Exception as e:
+            # Log error but don't crash
+            pass
+
     def cleanup(self):
         """Clean up resources when the editor is destroyed."""
         # Stop auto-save timer

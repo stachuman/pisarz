@@ -1,0 +1,34 @@
+=== OLLAMA REQUEST LOG ===
+Timestamp: 2025-07-17T19:19:47.409468
+Host: 192.168.1.102:11434
+Model: qwen3:32b
+Payload: {
+  "model": "qwen3:32b",
+  "prompt": "\nKontynuuj t\u0119 histori\u0119 na podstawie zaznaczonego fragmentu:\n\"Opowiedzia\u0142em mu o ojcu, pi\u0142sudczykach, wyroku i Syberji. Milcza\u0142 dalej. Opowiedzia\u0142em mu o wizycie na Miodowej i bilecie do Irkucka. Milcza\u0142. Opowiedzia\u0142em mu o ojcu i lutych. Milcz\u0105c, wyszed\u0142 z salonu bocznemi drzwiami. Siedzia\u0142em z d\u0142o\u0144mi splecionemi na kolanach, przede mn\u0105 na stole \u2013 czerwone die\u0144gi, nade mn\u0105 na \u015bcianie \u2013 huzar i panna z kwiatami, wko\u0142o \u2013 profuzja bibelot\u00f3w delikatnych i rodzinnych memorabilj\u00f3w pa\u0144stwa Korzy\u0144skich. Wielki zegar stoj\u0105cy wybi\u0142 \u00f3sm\u0105.\"\n\n\nKontekst sceny:\nNie wobec ka\u017cdego wierzyciela mo\u017cna sobie pozwoli\u0107 na taktyk\u0119, kt\u00f3ra si\u0119 sprawdza wobec Abiezera Blumsteina; nie wobec ka\u017cdego warto tak post\u0119powa\u0107. Prosto od Herszfielda poszed\u0142em na Biela\u0144sk\u0105, do domu Korzy\u0144skich. Zasta\u0142em pana, poproszono mnie do salonu. D\u0142ugo czy\u015bci\u0142em buty ze \u015bniegu i b\u0142ota pod okiem pokojowego, zanim wpu\u015bci\u0142 mnie na parkiety i dywany. Przeszli\u015bmy z jasno o\u015bwietlonej sieni po szerokich, drewnianych schodach na pierwsze pi\u0119tro. Pachnia\u0142o cynamonem i wanilj\u0105. Z g\u0142\u0119bi korytarz...\n\n\n\n\n\n\n\nKontynuuj pisanie w naturalny spos\u00f3b, zachowuj\u0105c styl i ton tekstu.",
+  "stream": false,
+  "options": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "top_k": 40,
+    "repeat_penalty": 1.1,
+    "num_predict": 512
+  }
+}
+
+=== FULL PROMPT ===
+
+Kontynuuj tę historię na podstawie zaznaczonego fragmentu:
+"Opowiedziałem mu o ojcu, piłsudczykach, wyroku i Syberji. Milczał dalej. Opowiedziałem mu o wizycie na Miodowej i bilecie do Irkucka. Milczał. Opowiedziałem mu o ojcu i lutych. Milcząc, wyszedł z salonu bocznemi drzwiami. Siedziałem z dłońmi splecionemi na kolanach, przede mną na stole – czerwone dieńgi, nade mną na ścianie – huzar i panna z kwiatami, wkoło – profuzja bibelotów delikatnych i rodzinnych memorabiljów państwa Korzyńskich. Wielki zegar stojący wybił ósmą."
+
+
+Kontekst sceny:
+Nie wobec każdego wierzyciela można sobie pozwolić na taktykę, która się sprawdza wobec Abiezera Blumsteina; nie wobec każdego warto tak postępować. Prosto od Herszfielda poszedłem na Bielańską, do domu Korzyńskich. Zastałem pana, poproszono mnie do salonu. Długo czyściłem buty ze śniegu i błota pod okiem pokojowego, zanim wpuścił mnie na parkiety i dywany. Przeszliśmy z jasno oświetlonej sieni po szerokich, drewnianych schodach na pierwsze piętro. Pachniało cynamonem i wanilją. Z głębi korytarz...
+
+
+
+
+
+
+
+Kontynuuj pisanie w naturalny sposób, zachowując styl i ton tekstu.
+=== END PROMPT ===

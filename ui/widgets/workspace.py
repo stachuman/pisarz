@@ -37,6 +37,8 @@ class Workspace(QWidget):
     newLocationRequestedFromScene = Signal(str)   # name
     characterSelectedFromScene = Signal(int)     # character_id
     locationSelectedFromScene = Signal(int)      # location_id
+    aiAssistantToggled = Signal()                # AI assistant toggle from editor
+    textSelectionChanged = Signal(str, str)      # selected_text, current_text from editor
     
     # Search view signals
     searchRequested = Signal(str, str)           # query, filter_type
@@ -207,6 +209,8 @@ class Workspace(QWidget):
         self.current_editor.saveRequested.connect(self.saveRequested.emit)
         self.current_editor.autoSaveRequested.connect(self.autoSaveRequested.emit)
         self.current_editor.focusModeRequested.connect(self.focusModeRequested.emit)
+        self.current_editor.aiAssistantToggled.connect(self.aiAssistantToggled.emit)
+        self.current_editor.textSelectionChanged.connect(self.textSelectionChanged.emit)
         
         # Connect context panel signals
         self.current_editor.characterAddedToScene.connect(self.characterAddedToScene.emit)
@@ -227,3 +231,8 @@ class Workspace(QWidget):
         if self.current_editor:
             return self.current_editor.get_content()
         return ""
+    
+    def set_ai_assistant_state(self, visible: bool):
+        """Set the AI assistant button state in the current editor."""
+        if self.current_editor:
+            self.current_editor.set_ai_assistant_state(visible)

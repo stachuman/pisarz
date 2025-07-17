@@ -3,10 +3,10 @@
 import sys
 from pathlib import Path
 from typing import Optional
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
-                              QSplitter, QStatusBar, QMessageBox, QStackedWidget)
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
+                              QSplitter, QStatusBar, QMessageBox, QStackedWidget, QMenuBar)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QKeySequence, QShortcut, QAction
 
 from core.error_handler import get_error_handler, ErrorLevel, ErrorCategory
 from core.logging_config import setup_logging
@@ -18,8 +18,10 @@ from controllers.app_location_controller import AppLocationController
 from controllers.app_search_controller import AppSearchController
 from controllers.app_ui_controller import AppUIController
 from controllers.app_focus_controller import AppFocusController
+from controllers.app_llm_controller import AppLLMController
 from ui.widgets import (ProjectsView, ProjectTreeView, Workspace, SettingsDialog,
-                       CharactersGridView, CharacterEditorDialog, ProjectPropertiesDialog)
+                       CharactersGridView, CharacterEditorDialog, ProjectPropertiesDialog,
+                       LLMAssistantPanel)
 from i18n import _
 
 
@@ -41,6 +43,11 @@ class PisarzApp(QMainWindow):
         self.search_controller = AppSearchController(self)
         self.ui_controller = AppUIController(self, self)
         self.focus_controller = AppFocusController(self, self)
+        self.llm_controller = AppLLMController(self)
+        
+        # Set global LLM controller instance
+        from controllers.app_llm_controller import set_llm_controller
+        set_llm_controller(self.llm_controller)
         
         # Initialize theme
         self.focus_controller.initialize_theme()
@@ -73,25 +80,49 @@ class PisarzApp(QMainWindow):
         
         # === WIDOK PROJEKTU (z nawigacją + workspace) ===
         self.project_widget = QWidget()
-        project_layout = QHBoxLayout(self.project_widget)
+        project_layout = QVBoxLayout(self.project_widget)
         project_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Splitter dla nawigacji i workspace
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        project_layout.addWidget(splitter)
+        # Główny splitter pionowy (góra: nawigacja+workspace, dół: AI assistant)
+        main_splitter = QSplitter(Qt.Orientation.Vertical)
+        project_layout.addWidget(main_splitter)
+        
+        # Górny widget zawierający nawigację i workspace
+        top_widget = QWidget()
+        top_layout = QHBoxLayout(top_widget)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Splitter poziomy dla nawigacji i workspace
+        horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
+        top_layout.addWidget(horizontal_splitter)
         
         # Drzewko nawigacji w projekcie
         self.project_tree = ProjectTreeView()
-        splitter.addWidget(self.project_tree)
+        horizontal_splitter.addWidget(self.project_tree)
         
         # Obszar roboczy
         self.workspace = Workspace()
-        splitter.addWidget(self.workspace)
+        horizontal_splitter.addWidget(self.workspace)
         
-        # Proporcje splitter
-        splitter.setSizes([300, 900])
+        # Proporcje splitter poziomego (nawigacja vs workspace)
+        horizontal_splitter.setSizes([300, 900])
+        
+        # Dodaj górny widget do głównego splitteru
+        main_splitter.addWidget(top_widget)
+        
+        # LLM Assistant Panel (teraz na dole)
+        self.llm_panel = LLMAssistantPanel()
+        self.llm_panel.setMaximumHeight(300)
+        self.llm_panel.setVisible(False)  # Hidden by default
+        main_splitter.addWidget(self.llm_panel)
+        
+        # Proporcje głównego splitteru (góra vs dół)
+        main_splitter.setSizes([700, 300])
         
         self.main_stack.addWidget(self.project_widget)
+        
+        # Menu bar
+        self.setup_menu_bar()
         
         # Pasek stanu
         self.status_bar = QStatusBar()
@@ -108,11 +139,58 @@ class PisarzApp(QMainWindow):
         
         # Setup focus controller with components
         self.focus_controller.setup_components(
-            self.project_widget, self.workspace, self.status_bar
+            self.project_widget, self.workspace, self.status_bar, self.llm_panel
         )
+        
+        # Initialize LLM controller
+        self.llm_controller.initialize()
+        self.llm_panel.set_llm_controller(self.llm_controller)
         
         # Connect controller signals
         self._connect_controller_signals()
+        
+    def setup_menu_bar(self):
+        """Setup the menu bar with AI Assistant toggle."""
+        menubar = self.menuBar()
+        
+        # Tools menu
+        tools_menu = menubar.addMenu(_("Tools"))
+        
+        # AI Assistant toggle action
+        self.ai_assistant_action = QAction(_("AI Assistant"), self)
+        self.ai_assistant_action.setCheckable(True)
+        self.ai_assistant_action.setChecked(False)
+        self.ai_assistant_action.setShortcut(QKeySequence("Ctrl+Alt+A"))
+        self.ai_assistant_action.triggered.connect(self.toggle_ai_assistant)
+        tools_menu.addAction(self.ai_assistant_action)
+        
+        # Settings action (if not already present)
+        if not hasattr(self, 'settings_action'):
+            tools_menu.addSeparator()
+            settings_action = QAction(_("Settings"), self)
+            settings_action.setShortcut(QKeySequence("Ctrl+,"))
+            settings_action.triggered.connect(self.show_settings)
+            tools_menu.addAction(settings_action)
+    
+    def toggle_ai_assistant(self):
+        """Toggle AI Assistant panel visibility."""
+        is_visible = self.llm_panel.isVisible()
+        self.llm_panel.setVisible(not is_visible)
+        self.ai_assistant_action.setChecked(not is_visible)
+        
+        # Update editor button state
+        self.workspace.set_ai_assistant_state(not is_visible)
+        
+        # Notify focus controller about visibility change
+        self.focus_controller.on_ai_assistant_visibility_changed(not is_visible)
+        
+        # Update status message
+        if not is_visible:
+            self.status_bar.showMessage(_("AI Assistant panel opened"))
+        else:
+            self.status_bar.showMessage(_("AI Assistant panel closed"))
+        
+        self.logger.info(f"AI Assistant panel {'opened' if not is_visible else 'closed'}")
         
     def _connect_controller_signals(self) -> None:
         """Connect signals from controllers."""
@@ -143,6 +221,9 @@ class PisarzApp(QMainWindow):
         self.location_controller.locationsRefreshNeeded.connect(self._refresh_locations_data)
         self.location_controller.statusMessage.connect(self.status_bar.showMessage)
         self.location_controller.errorOccurred.connect(self._show_error_message)
+        
+        # LLM assistant panel signals
+        self.llm_panel.insertTextRequested.connect(self._on_insert_text_requested)
         
         # Search controller signals
         self.search_controller.searchResultsReady.connect(self._on_search_results_ready)
@@ -188,6 +269,8 @@ class PisarzApp(QMainWindow):
         self.workspace.newSceneRequestedFromGrid.connect(self.create_new_scene)
         self.workspace.sceneRenameRequestedFromGrid.connect(self.on_scene_rename_requested)
         self.workspace.focusModeRequested.connect(self.toggle_focus_mode)
+        self.workspace.aiAssistantToggled.connect(self.toggle_ai_assistant)
+        self.workspace.textSelectionChanged.connect(self.on_text_selection_changed)
         
         # Scene context panel signals
         self.workspace.characterAddedToScene.connect(self.on_character_added_to_scene)
@@ -264,6 +347,9 @@ class PisarzApp(QMainWindow):
             managers_dict['locations']
         )
         
+        # Update LLM context with project info
+        self.llm_controller.update_project_context(project_name, project_path)
+        
     def _on_project_created(self, project_name: str):
         """Handle project created signal."""
         self.show_projects_view()
@@ -285,6 +371,12 @@ class PisarzApp(QMainWindow):
                 location_manager=managers['location_manager'],
                 project_id=project_id
             )
+            
+            # Update LLM panel with scene context
+            self.llm_panel.set_scene_context(scene_id, content)
+            
+            # Update LLM controller with scene context
+            self.llm_controller.update_scene_context(scene_id, scene_title, content)
             
     def _on_scene_saved(self, is_auto_save: bool):
         """Handle scene saved signal."""
@@ -403,12 +495,22 @@ class PisarzApp(QMainWindow):
     def save_scene_content(self, content: str, is_auto_save: bool = False) -> None:
         """Zapisz zawartość sceny."""
         self.scene_controller.save_scene_content(content, is_auto_save)
+        
+        # Update LLM panel with latest content
+        current_scene_id = self.scene_controller.get_current_scene_id()
+        if current_scene_id:
+            self.llm_panel.set_scene_context(current_scene_id, content)
     
     def auto_save_scene_content(self, content: str) -> None:
         """Handle periodic auto-save."""
         success = self.scene_controller.auto_save_scene_content(content)
         if success and self.workspace.current_editor:
             self.workspace.current_editor.confirm_auto_save()
+            
+            # Update LLM panel with latest content
+            current_scene_id = self.scene_controller.get_current_scene_id()
+            if current_scene_id:
+                self.llm_panel.set_scene_context(current_scene_id, content)
             
     def _refresh_scenes_data(self):
         """Odśwież dane scen zachowując selekcję."""
@@ -679,6 +781,7 @@ class PisarzApp(QMainWindow):
         dialog = SettingsDialog(self)
         dialog.themeChanged.connect(self.on_theme_changed)
         dialog.languageChanged.connect(self.on_language_changed)
+        dialog.llmSettingsChanged.connect(self.on_llm_settings_changed)
         dialog.exec()
         
     def on_theme_changed(self, theme_name):
@@ -689,6 +792,22 @@ class PisarzApp(QMainWindow):
         self.projects_view.refresh_theme()
         if hasattr(self.workspace, 'scenes_grid_view') and self.workspace.scenes_grid_view:
             self.workspace.scenes_grid_view.refresh_theme()
+    
+    def on_llm_settings_changed(self):
+        """Handle LLM settings changes."""
+        self.status_bar.showMessage(_("LLM settings updated"))
+        
+        # Notify the LLM controller about settings changes
+        self.llm_controller.on_settings_changed()
+    
+    def on_text_selection_changed(self, selected_text: str, current_text: str):
+        """Handle text selection changes from editor."""
+        try:
+            # Update LLM context with text selection
+            self.llm_controller.update_text_selection(selected_text, current_text)
+            
+        except Exception as e:
+            self.logger.error(f"Error handling text selection change: {e}")
     
     def show_project_properties(self):
         """Show project properties dialog."""
@@ -837,6 +956,55 @@ class PisarzApp(QMainWindow):
         """Usuń styl okna trybu fokusu."""
         # Przywróć domyślny styl
         self.setStyleSheet("")
+    
+    def _on_insert_text_requested(self, text: str) -> None:
+        """Handle text insertion request from LLM assistant."""
+        try:
+            # Get the current editor from workspace
+            if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
+                editor = self.workspace.current_editor
+                
+                # Get the text widget from the editor
+                text_widget = None
+                if hasattr(editor, 'text_widget'):
+                    text_widget = editor.text_widget
+                elif hasattr(editor, 'text_edit'):
+                    text_widget = editor.text_edit
+                else:
+                    # Search for QTextEdit in the editor
+                    from PySide6.QtWidgets import QTextEdit
+                    text_widgets = editor.findChildren(QTextEdit)
+                    if text_widgets:
+                        text_widget = text_widgets[0]
+                
+                if text_widget:
+                    # Insert text at cursor position
+                    cursor = text_widget.textCursor()
+                    cursor.insertText(text)
+                    text_widget.setTextCursor(cursor)
+                    
+                    # Set focus to the text widget
+                    text_widget.setFocus()
+                    
+                    # Show success message
+                    self.status_bar.showMessage(_("Text inserted successfully"))
+                    
+                    # Log the insertion
+                    from core.logging_config import get_logger
+                    logger = get_logger("main.text_insertion")
+                    logger.info(f"Inserted {len(text)} characters into editor")
+                else:
+                    self.status_bar.showMessage(_("No text editor found"))
+                    
+            else:
+                self.status_bar.showMessage(_("No editor active"))
+                
+        except Exception as e:
+            error_msg = f"Error inserting text: {str(e)}"
+            self.status_bar.showMessage(error_msg)
+            from core.logging_config import get_logger
+            logger = get_logger("main.text_insertion")
+            logger.error(error_msg)
 
 
 def main():

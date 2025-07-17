@@ -209,6 +209,43 @@ def _ensure_all_tables(db_path: Path) -> None:
             CREATE INDEX IF NOT EXISTS idx_character_locations_location_id ON character_locations(location_id);
             CREATE INDEX IF NOT EXISTS idx_scene_plot_threads_scene_id ON scene_plot_threads(scene_id);
             CREATE INDEX IF NOT EXISTS idx_scene_plot_threads_plot_id ON scene_plot_threads(plot_thread_id);
+            
+            -- LLM cache table
+            CREATE TABLE IF NOT EXISTS llm_cache (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cache_key TEXT UNIQUE NOT NULL,
+                task_id TEXT NOT NULL,
+                response TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME
+            );
+            
+            -- LLM settings
+            CREATE TABLE IF NOT EXISTS llm_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            -- LLM conversation history
+            CREATE TABLE IF NOT EXISTS llm_conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                scene_id INTEGER,
+                task_id TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                response TEXT NOT NULL,
+                context_data TEXT,  -- JSON
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (project_id) REFERENCES projects (id),
+                FOREIGN KEY (scene_id) REFERENCES scenes (id)
+            );
+            
+            -- Indexes for LLM performance
+            CREATE INDEX IF NOT EXISTS idx_llm_cache_key ON llm_cache (cache_key);
+            CREATE INDEX IF NOT EXISTS idx_llm_cache_expires ON llm_cache (expires_at);
+            CREATE INDEX IF NOT EXISTS idx_llm_conversations_project ON llm_conversations (project_id);
+            CREATE INDEX IF NOT EXISTS idx_llm_conversations_scene ON llm_conversations (scene_id);
         """)
         
         # Create FTS5 virtual tables for search functionality

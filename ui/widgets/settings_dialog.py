@@ -2,11 +2,12 @@
 
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                               QPushButton, QComboBox, QGroupBox, QGridLayout,
-                              QFrame, QColorDialog, QSizePolicy)
+                              QFrame, QColorDialog, QSizePolicy, QTabWidget, QWidget)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPalette, QColor
 
 from ..styles.themes import ThemeManager
+from .llm_settings_widget import LLMSettingsWidget
 from i18n import _, get_available_languages, get_current_language, set_language
 
 
@@ -76,6 +77,7 @@ class SettingsDialog(QDialog):
     
     themeChanged = Signal(str)  # theme_name
     languageChanged = Signal(str)  # language_code
+    llmSettingsChanged = Signal()  # llm settings changed
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -87,7 +89,8 @@ class SettingsDialog(QDialog):
     def setup_ui(self):
         """Konfiguracja interfejsu dialogu."""
         self.setWindowTitle(_("Application Settings"))
-        self.setFixedSize(500, 500)
+        self.setMinimumSize(800, 700)
+        self.resize(900, 750)
         
         layout = QVBoxLayout(self)
         
@@ -98,7 +101,14 @@ class SettingsDialog(QDialog):
         title.setStyleSheet("color: #2c3e50; padding: 10px;")
         layout.addWidget(title)
         
-        # === JĘZYK ===
+        # Tabs for different settings categories
+        tabs = QTabWidget()
+        
+        # === GENERAL TAB ===
+        general_tab = QWidget()
+        general_layout = QVBoxLayout(general_tab)
+        
+        # Language section
         language_group = QGroupBox(_("Language"))
         language_group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         language_layout = QVBoxLayout(language_group)
@@ -124,9 +134,9 @@ class SettingsDialog(QDialog):
         lang_layout.addStretch()
         
         language_layout.addLayout(lang_layout)
-        layout.addWidget(language_group)
+        general_layout.addWidget(language_group)
         
-        # === MOTYWY ===
+        # Themes section
         themes_group = QGroupBox(_("Theme"))
         themes_group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         themes_layout = QVBoxLayout(themes_group)
@@ -162,7 +172,21 @@ class SettingsDialog(QDialog):
             themes_grid.addWidget(container_widget, row, col)
             
         themes_layout.addLayout(themes_grid)
-        layout.addWidget(themes_group)
+        general_layout.addWidget(themes_group)
+        
+        # Add stretch to general tab
+        general_layout.addStretch()
+        
+        # Add general tab to tabs
+        tabs.addTab(general_tab, _("General"))
+        
+        # === LLM TAB ===
+        self.llm_settings_widget = LLMSettingsWidget()
+        self.llm_settings_widget.settings_changed.connect(self.llmSettingsChanged.emit)
+        tabs.addTab(self.llm_settings_widget, _("AI Assistant"))
+        
+        # Add tabs to main layout
+        layout.addWidget(tabs)
         
         # === PRZYCISKI ===
         buttons_layout = QHBoxLayout()

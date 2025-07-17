@@ -1,0 +1,17 @@
+=== LLAMACPP REQUEST LOG ===
+Timestamp: 2025-07-17T17:44:34.272429
+URL: http://192.168.1.102:80/completion
+Payload: {
+  "prompt": "Napisz kr\u00f3tki test: \u0105, \u0119, \u0107, \u0142, \u0144, \u00f3, \u015b, \u017a, \u017c. Kontynuuj dalej...",
+  "n_predict": 1000,
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "top_k": 40,
+  "repeat_penalty": 1.1,
+  "seed": -1,
+  "stream": true
+}
+
+=== FULL PROMPT ===
+Napisz krótki test: ą, ę, ć, ł, ń, ó, ś, ź, ż. Kontynuuj dalej...
+=== END PROMPT ===

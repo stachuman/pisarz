@@ -21,6 +21,7 @@ class ToolbarManager(QObject):
     saveRequested = Signal()
     focusModeRequested = Signal()
     contextPanelToggled = Signal()
+    aiAssistantToggled = Signal()
     button_fixed_size = 32
 
     
@@ -39,6 +40,7 @@ class ToolbarManager(QObject):
         self.save_btn = None
         self.focus_mode_btn = None
         self.context_panel_btn = None
+        self.ai_assistant_btn = None
         
     def create_toolbar(self) -> QWidget:
         """Create and return the toolbar widget."""
@@ -180,6 +182,14 @@ class ToolbarManager(QObject):
         self.context_panel_btn.setToolTip(_("Toggle Scene Context Panel (Ctrl+E)"))
         self.context_panel_btn.setFixedSize(32, 32)
         layout.addWidget(self.context_panel_btn)
+        
+        # AI Assistant toggle
+        self.ai_assistant_btn = QPushButton("🤖")
+        self.ai_assistant_btn.setCheckable(True)
+        self.ai_assistant_btn.setChecked(False)
+        self.ai_assistant_btn.setToolTip(_("Toggle AI Assistant Panel (Ctrl+Alt+A)"))
+        self.ai_assistant_btn.setFixedSize(32, 32)
+        layout.addWidget(self.ai_assistant_btn)
     
     def _add_separator(self, layout: QHBoxLayout):
         """Add a separator widget."""
@@ -237,6 +247,8 @@ class ToolbarManager(QObject):
             self.focus_mode_btn.clicked.connect(self.focusModeRequested.emit)
         if self.context_panel_btn:
             self.context_panel_btn.clicked.connect(self.contextPanelToggled.emit)
+        if self.ai_assistant_btn:
+            self.ai_assistant_btn.clicked.connect(self.aiAssistantToggled.emit)
     
     def _on_text_color_clicked(self):
         """Handle text color button click."""
@@ -302,3 +314,8 @@ class ToolbarManager(QObject):
         """Set the context panel button state."""
         if self.context_panel_btn:
             self.context_panel_btn.setChecked(visible)
+    
+    def set_ai_assistant_state(self, visible: bool):
+        """Set the AI assistant button state."""
+        if self.ai_assistant_btn:
+            self.ai_assistant_btn.setChecked(visible)

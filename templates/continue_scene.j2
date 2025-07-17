@@ -1,0 +1,13 @@
+{% if has_selection -%}
+Kontynuuj tę historię na podstawie zaznaczonego fragmentu:
+"{{ selected_text }}"
+
+Kontekst sceny:
+{{ current_text }}
+{%- else -%}
+Kontynuuj tę historię:
+
+{{ current_text }}
+{%- endif %}
+
+Napisz tylko kontynuację (2-3 akapity), bez komentarzy lub wyjaśnień:
