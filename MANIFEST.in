@@ -1,0 +1,35 @@
+# Include data files for packaging
+include README.md
+include requirements.txt
+include pisarz.spec
+include build.py
+include *.txt
+include *.md
+
+# Include i18n files
+recursive-include i18n *.po *.mo *.pot
+recursive-include i18n/locales *
+
+# Include template files
+recursive-include templates *.j2 *.yaml *.yml
+
+# Include UI files
+recursive-include ui *.qml *.py
+recursive-include ui/base *.py
+recursive-include ui/widgets *.py
+recursive-include ui/styles *.py
+
+# Include core modules
+recursive-include core *.py
+recursive-include controllers *.py
+
+# Exclude build artifacts
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .git*
+global-exclude *.db
+global-exclude logs/
+global-exclude build/
+global-exclude dist/
+global-exclude installer/

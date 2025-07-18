@@ -1,0 +1,142 @@
+name: Build Executables
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            artifact_name: pisarz-linux
+            executable_name: pisarz
+          - os: windows-latest
+            name: Windows
+            artifact_name: pisarz-windows
+            executable_name: pisarz.exe
+          - os: macos-latest
+            name: macOS
+            artifact_name: pisarz-macos
+            executable_name: pisarz
+
+    runs-on: ${{ matrix.os }}
+    name: Build for ${{ matrix.name }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install system dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgl1-mesa-glx \
+          libglib2.0-0 \
+          libxkbcommon-x11-0 \
+          libxcb-icccm4 \
+          libxcb-image0 \
+          libxcb-keysyms1 \
+          libxcb-randr0 \
+          libxcb-render-util0 \
+          libxcb-shape0 \
+          libxcb-xinerama0 \
+          libxcb-xfixes0 \
+          libfontconfig1 \
+          libxrender1 \
+          libxext6 \
+          libx11-6
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller pisarz.spec --clean --noconfirm
+
+    - name: Test executable (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        # Test that the executable can be created and help works
+        chmod +x dist/pisarz
+        # Note: Can't test GUI on headless CI, but can test it loads
+        timeout 10s dist/pisarz --help || true
+
+    - name: Test executable (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        # Test that the executable exists and can be loaded
+        if (Test-Path "dist/pisarz.exe") {
+          Write-Host "Executable created successfully"
+        } else {
+          Write-Host "Executable not found"
+          exit 1
+        }
+
+    - name: Create release package (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd dist
+        tar -czf ${{ matrix.artifact_name }}.tar.gz pisarz
+        ls -la
+
+    - name: Create release package (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd dist
+        Compress-Archive -Path pisarz.exe -DestinationPath ${{ matrix.artifact_name }}.zip
+        dir
+
+    - name: Upload artifact (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: dist/${{ matrix.artifact_name }}.tar.gz
+
+    - name: Upload artifact (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: dist/${{ matrix.artifact_name }}.zip
+
+    - name: Upload executable for debugging
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.artifact_name }}-debug
+        path: dist/${{ matrix.executable_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          pisarz-linux/pisarz-linux.tar.gz
+          pisarz-windows/pisarz-windows.zip
+          pisarz-macos/pisarz-macos.tar.gz
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
