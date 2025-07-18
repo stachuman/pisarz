@@ -123,7 +123,8 @@ class PisarzApp(QMainWindow):
         self.main_splitter.addWidget(self.narrative_context_panel)
         
         # Proporcje głównego splitteru (góra vs dół)
-        self.main_splitter.setSizes([700, 300])
+        # Initial setup: main area gets all space, panels get 0 (hidden)
+        self.main_splitter.setSizes([1000, 0, 0])
         
         self.main_stack.addWidget(self.project_widget)
         
@@ -192,6 +193,9 @@ class PisarzApp(QMainWindow):
         self.llm_panel.setVisible(not is_visible)
         self.ai_assistant_action.setChecked(not is_visible)
         
+        # Update splitter sizes to properly show/hide the panel
+        self._update_splitter_sizes()
+        
         # Update editor button state
         self.workspace.set_ai_assistant_state(not is_visible)
         
@@ -206,26 +210,55 @@ class PisarzApp(QMainWindow):
         
         self.logger.info(f"AI Assistant panel {'opened' if not is_visible else 'closed'}")
     
+    def _update_splitter_sizes(self):
+        """Update splitter sizes based on panel visibility."""
+        ai_visible = self.llm_panel.isVisible()
+        narrative_visible = self.narrative_context_panel.isVisible()
+        
+        # Get current total height
+        current_sizes = self.main_splitter.sizes()
+        total_height = sum(current_sizes) if current_sizes else 1000
+        
+        # Define minimum sizes for panels
+        ai_min_height = 250
+        narrative_min_height = 300
+        main_min_height = 400
+        
+        # Calculate sizes based on visibility
+        if ai_visible and narrative_visible:
+            # Both panels visible
+            main_height = max(main_min_height, total_height - ai_min_height - narrative_min_height)
+            ai_height = ai_min_height
+            narrative_height = narrative_min_height
+        elif ai_visible:
+            # Only AI panel visible
+            main_height = max(main_min_height, total_height - ai_min_height)
+            ai_height = ai_min_height
+            narrative_height = 0
+        elif narrative_visible:
+            # Only narrative panel visible
+            main_height = max(main_min_height, total_height - narrative_min_height)
+            ai_height = 0
+            narrative_height = narrative_min_height
+        else:
+            # No panels visible
+            main_height = total_height
+            ai_height = 0
+            narrative_height = 0
+        
+        # Set the new sizes
+        self.main_splitter.setSizes([main_height, ai_height, narrative_height])
+        
+        self.logger.debug(f"Updated splitter sizes: main={main_height}, ai={ai_height}, narrative={narrative_height}")
+    
     def toggle_narrative_context(self):
         """Toggle Narrative Context panel visibility."""
         is_visible = self.narrative_context_panel.isVisible()
         self.narrative_context_panel.setVisible(not is_visible)
         self.narrative_context_action.setChecked(not is_visible)
         
-        # Update splitter sizes when showing/hiding the panel
-        if not is_visible:
-            # Panel is being shown - allocate proper space
-            current_sizes = self.main_splitter.sizes()
-            if len(current_sizes) >= 2:
-                # Reserve 350px for the narrative context panel
-                total_height = sum(current_sizes)
-                self.main_splitter.setSizes([total_height - 350, 350])
-        else:
-            # Panel is being hidden - give all space back to main area
-            current_sizes = self.main_splitter.sizes()
-            if len(current_sizes) >= 2:
-                total_height = sum(current_sizes)
-                self.main_splitter.setSizes([total_height, 0])
+        # Update splitter sizes to properly show/hide the panel
+        self._update_splitter_sizes()
         
         # Update button state in workspace
         self.workspace.set_narrative_context_state(not is_visible)

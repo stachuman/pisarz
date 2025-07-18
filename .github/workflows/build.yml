@@ -20,7 +20,7 @@ jobs:
             name: Windows
             artifact_name: pisarz-windows
             executable_name: pisarz.exe
-          - os: macos-latest
+          - os: macos-13-large
             name: macOS
             artifact_name: pisarz-macos
             executable_name: pisarz

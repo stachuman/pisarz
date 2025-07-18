@@ -1,65 +1,82 @@
-metadata:
-  name: "Enhance Dialogue"
-  template_id: "dialogue_enhancement"
-  description: "Improve existing dialogue with better character voice and natural flow"
-  category: "dialogue"
-  version: "2.0"
-  author: "System"
-  tags: ["dialogue", "characters", "enhancement"]
-
 context_config:
-  use_selection: true
-  selection_priority: true
-  default_context_length: 800
-  scene_summary_length: 600
-  scene_summary_source: "selection"
+  default_context_length: 44800
   include_characters: true
   include_locations: false
   include_project_info: false
-  max_context_chars: 2200
+  max_context_chars: 64000
+  scene_summary_length: 19200
+  scene_summary_source: selection
+  selection_priority: true
+  use_selection: true
   word_boundary_trim: true
-
+format_version: '2.0'
 llm_params:
-  max_tokens: 1000
-  temperature: 0.75
-  top_p: 0.88
-  top_k: 35
-  repeat_penalty: 1.12
   custom_params: {}
+  max_tokens: 32000
+  repeat_penalty: 1.12
+  temperature: 0.75
+  top_k: 35
+  top_p: 0.88
+metadata:
+  author: System
+  category: writing
+  created_date: null
+  description: Improve existing dialogue with better character voice and natural flow
+  modified_date: null
+  name: Enhance Dialogue
+  tags:
+  - dialogue
+  - characters
+  - enhancement
+  template_id: dialogue_enhancement
+  version: '2.0'
+template_content: 'Popraw następujący dialog, czyniąc go bardziej naturalnym i charakterystycznym:
 
-ui_config:
-  show_context_preview: true
-  allow_context_editing: true
-  preview_length: 160
-  show_params_editor: true
-  auto_apply_selection: true
-  confirm_before_execution: true
-
-format_version: "2.0"
-
-template_content: |
-  Popraw następujący dialog, czyniąc go bardziej naturalnym i charakterystycznym:
 
   Oryginalny dialog:
+
   {{ selected_text }}
 
+
   {% if scene_summary and scene_summary != selected_text %}
+
   Kontekst sytuacji:
+
   {{ scene_summary }}
+
   {% endif %}
+
 
   {% if characters %}
-  Postacie w dialogu: {{ characters|join(', ') }}
+
+  Postacie w dialogu: {{ characters|join('', '') }}
+
   {% endif %}
 
+
   Popraw dialog przez:
+
   - Nadanie każdej postaci unikalnego sposobu mówienia
+
   - Dodanie naturalnych przerw, wahań i niedokończonych zdań
+
   - Uwzględnienie emocji i nastroju postaci
+
   - Dodanie reakcji niewerbalnych (gesty, mimika)
+
   - Poprawę płynności konwersacji
+
   - Dodanie podtekstów i ukrytych znaczeń
+
 
   Zachowaj główne treści i cel rozmowy.
 
-  Poprawiony dialog:
+
+  Poprawiony dialog:'
+ui_config:
+  allow_context_editing: true
+  auto_apply_selection: true
+  confirm_before_execution: true
+  preview_length: 160
+  show_context_preview: true
+  show_params_editor: true
