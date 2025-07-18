@@ -250,7 +250,13 @@ class EnhancedTemplateConfig:
 
 
 def create_default_template() -> EnhancedTemplateConfig:
-    """Create a default template configuration."""
+    """Create a default template configuration using current LLM provider defaults."""
+    from core.llm.settings import get_llm_settings
+    
+    # Get current LLM settings for defaults
+    llm_settings = get_llm_settings()
+    current_provider = llm_settings.get_current_provider_config()
+    
     metadata = TemplateMetadata(
         name="Continue Scene",
         template_id="continue_scene",
@@ -259,7 +265,19 @@ def create_default_template() -> EnhancedTemplateConfig:
     )
     
     context_config = ContextConfig()
-    llm_params = LLMParams()
+    
+    # Create LLM params using provider defaults
+    if current_provider:
+        llm_params = LLMParams(
+            max_tokens=current_provider.get_setting('max_tokens', 512),
+            temperature=current_provider.get_setting('temperature', 0.7),
+            top_p=current_provider.get_setting('top_p', 0.9),
+            top_k=current_provider.get_setting('top_k', 40),
+            repeat_penalty=current_provider.get_setting('repeat_penalty', 1.1)
+        )
+    else:
+        llm_params = LLMParams()
+    
     ui_config = UIConfig()
     
     template_content = """{% if has_selection %}
@@ -289,6 +307,52 @@ Lokalizacje: {{ locations|join(', ') }}
 {% endif %}
 
 Kontynuuj pisanie w naturalny sposób, zachowując styl i ton tekstu."""
+    
+    return EnhancedTemplateConfig(
+        metadata=metadata,
+        context_config=context_config,
+        llm_params=llm_params,
+        ui_config=ui_config,
+        template_content=template_content
+    )
+
+
+def create_template_from_provider_defaults(name: str, template_id: str, description: str, 
+                                         category: str = "writing") -> EnhancedTemplateConfig:
+    """Create a new template using current LLM provider defaults."""
+    from core.llm.settings import get_llm_settings
+    
+    # Get current LLM settings for defaults
+    llm_settings = get_llm_settings()
+    current_provider = llm_settings.get_current_provider_config()
+    
+    metadata = TemplateMetadata(
+        name=name,
+        template_id=template_id,
+        description=description,
+        category=category
+    )
+    
+    context_config = ContextConfig()
+    
+    # Create LLM params using provider defaults
+    if current_provider:
+        llm_params = LLMParams(
+            max_tokens=current_provider.get_setting('max_tokens', 512),
+            temperature=current_provider.get_setting('temperature', 0.7),
+            top_p=current_provider.get_setting('top_p', 0.9),
+            top_k=current_provider.get_setting('top_k', 40),
+            repeat_penalty=current_provider.get_setting('repeat_penalty', 1.1)
+        )
+    else:
+        llm_params = LLMParams()
+    
+    ui_config = UIConfig()
+    
+    # Basic template content
+    template_content = """{{ current_text }}
+
+Kontynuuj naturalnie..."""
     
     return EnhancedTemplateConfig(
         metadata=metadata,

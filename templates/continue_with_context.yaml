@@ -1,0 +1,76 @@
+metadata:
+  name: "Continue with Narrative Context"
+  template_id: "continue_with_context"
+  description: "Continue scene using maintained narrative context from previous scenes"
+  category: "writing"
+  version: "2.0"
+  author: "System"
+  tags: ["writing", "continuation", "context", "narrative"]
+
+context_config:
+  use_selection: true
+  selection_priority: true
+  default_context_length: 800
+  scene_summary_length: 1200
+  scene_summary_source: "scene_end"
+  include_characters: true
+  include_locations: true
+  include_project_info: true
+  max_context_chars: 4000
+  word_boundary_trim: true
+
+llm_params:
+  max_tokens: 1000
+  temperature: 0.8
+  top_p: 0.95
+  top_k: 50
+  repeat_penalty: 1.05
+  custom_params: {}
+
+ui_config:
+  show_context_preview: true
+  allow_context_editing: false
+  preview_length: 200
+  show_params_editor: true
+  auto_apply_selection: true
+  confirm_before_execution: false
+
+format_version: "2.0"
+
+template_content: |
+  Kontynuuj tę historię z uwzględnieniem pełnego kontekstu narracyjnego:
+
+  {% if has_selection %}
+  Aktualny fragment:
+  "{{ selected_text }}"
+
+  {% if scene_summary and scene_summary != selected_text %}
+  Kontekst aktualnej sceny:
+  {{ scene_summary }}
+  {% endif %}
+  {% else %}
+  Aktualna scena:
+  {{ current_text }}
+  {% endif %}
+
+  {% if characters %}
+  Postacie w scenie: {{ characters|join(', ') }}
+  {% endif %}
+
+  {% if locations %}
+  Lokalizacje: {{ locations|join(', ') }}
+  {% endif %}
+
+  {% if narrative_context %}
+  KONTEKST NARRACYJNY:
+  {{ narrative_context }}
+  {% endif %}
+
+  Kontynuuj pisanie, pamiętając o:
+  - Ciągłości narracyjnej z poprzednimi scenami
+  - Rozwoju postaci zgodnie z ich charakterystyką
+  - Zachowaniu spójności świata przedstawionego
+  - Rozwijaniu wątków fabularnych
+  - Utrzymaniu stylu i tonu narracji
+
+  Napisz naturalną kontynuację (2-4 akapity):

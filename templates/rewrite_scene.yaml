@@ -1,0 +1,71 @@
+metadata:
+  name: "Rewrite Scene"
+  template_id: "rewrite_scene"
+  description: "Rewrite the selected text with improved style and clarity"
+  category: "editing"
+  version: "2.0"
+  author: "System"
+  tags: ["editing", "rewrite", "improvement"]
+
+context_config:
+  use_selection: true
+  selection_priority: true
+  default_context_length: 800
+  scene_summary_length: 600
+  scene_summary_source: "selection"
+  include_characters: true
+  include_locations: true
+  include_project_info: false
+  max_context_chars: 2500
+  word_boundary_trim: true
+
+llm_params:
+  max_tokens: 1200
+  temperature: 0.7
+  top_p: 0.9
+  top_k: 40
+  repeat_penalty: 1.1
+  custom_params: {}
+
+ui_config:
+  show_context_preview: true
+  allow_context_editing: true
+  preview_length: 200
+  show_params_editor: true
+  auto_apply_selection: true
+  confirm_before_execution: true
+
+format_version: "2.0"
+
+template_content: |
+  Przepisz następujący fragment tekstu, poprawiając styl, płynność narracji i klarowność:
+
+  Oryginalny fragment:
+  "{{ selected_text }}"
+
+  {% if scene_summary and scene_summary != selected_text %}
+  Kontekst sceny:
+  {{ scene_summary }}
+  {% endif %}
+
+  {% if characters %}
+  Postacie: {{ characters|join(', ') }}
+  {% endif %}
+
+  {% if locations %}
+  Lokalizacje: {{ locations|join(', ') }}
+  {% endif %}
+
+  Przepisz tekst zachowując:
+  - Główną treść i wydarzenia
+  - Charakter postaci
+  - Klimat sceny
+  - Długość zbliżoną do oryginału
+
+  Popraw:
+  - Styl i płynność
+  - Dialogi (jeśli występują)
+  - Opis akcji i emocji
+  - Gramatykę i składnię
+
+  Przepisany fragment:

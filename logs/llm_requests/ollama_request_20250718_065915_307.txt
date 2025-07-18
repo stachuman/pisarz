@@ -1,0 +1,48 @@
+=== OLLAMA REQUEST LOG ===
+Timestamp: 2025-07-18T06:59:15.307771
+Host: 192.168.1.102:11434
+Model: deepseek-r1:70b
+Payload: {
+  "model": "deepseek-r1:70b",
+  "prompt": "Stw\u00f3rz zwi\u0119z\u0142e streszczenie nast\u0119puj\u0105cej sceny:\n\nTo nie by\u0142a d\u0142uga rozmowo. Spoci\u0142em si\u0119, a by\u0142 to przecie\u017c dopiero pocz\u0105tek. Zanim zd\u0105\u017cy\u0142em zaj\u0105\u0107 miejsce na \u0142awce w oczekiwaniu na kolejnego pacjenta, ju\u017c us\u0142ysza\u0142em dr\u017cenie g\u0142osu pani Kowalskiej opowiadaj\u0105cej o najnowszym problemie z jej synem. Wiedzia\u0142em, \u017ce to nie b\u0119dzie \u0142atwy dzie\u0144. Zmarszczy\u0142em czo\u0142o i spr\u00f3bowa\u0142em skupi\u0107 si\u0119 na s\u0142uchaniu, ale moje my\u015bli wyra\u017anie b\u0142\u0105ka\u0142y si\u0119 gdzie indziej \u2013 poza prac\u0105, do mojego domu, gdzie czeka\u0142a mnie lista rzeczy do zrobienia i sen, kt\u00f3ry nie chcia\u0142 wczoraj przyj\u015b\u0107. Wiedzia\u0142em jednak, \u017ce musz\u0119 by\u0107 teraz tutaj, dla nich.\nKolejna godzina mija\u0142a jak za ma\u0142o wywo\u017cona zim\u0105 \u2013 wolno i pe\u0142na napi\u0119cia. Pacjenci mieli swoje historie, a ja mia\u0142em swoj\u0105 prac\u0119, kt\u00f3ra nieustannie narasta\u0142a jak ci\u0119\u017cki bumerang. Czasem zdawa\u0142 si\u0119 lecie\u0107 w powietrzu, by nast\u0119pnie wr\u00f3ci\u0107 w formie najbardziej brutalnych pyta\u0144 czy oczekiwa\u0144. Wiedzia\u0142em, \u017ce to tylko pocz\u0105tek, a ju\u017c czu\u0142em, jak moja si\u0142a opuszcza mnie w kroplach potu sp\u0142ywaj\u0105cych po plecach.\nNie mia\u0142em jeszcze \u015bniadania i to tylko pogarsza\u0142o wszystko. Czu\u0142em si\u0119 jakby kto\u015b wrzuci\u0142 mnie do pieca zimnego mi\u0119sa \u2013 bez smaku, bez energii. Zerkn\u0105\u0142em na zegarek i pomy\u015bla\u0142em o tym, czy w og\u00f3le mia\u0142em czas na co\u015b tak prostego jak jedzenie. Na szcz\u0119\u015bcie reszt\u0119 dnia mia\u0142o przyj\u015b\u0107 kilku pacjent\u00f3w, kt\u00f3rzy mieli swoje w\u0142asne powody, by nie przerywa\u0107 tego strumienia emocji \u2013 i mojej obecno\u015bci w tym miejscu.\nCzasem my\u015bla\u0142em, \u017ce to tylko kolejny dzie\u0144 jak tysi\u0105ce innych, ale dzi\u015b czu\u0142em, jakby co\u015b by\u0142o inaczej. Mo\u017ce to by\u0142a ta ch\u0142odna ranna mg\u0142a, kt\u00f3ra zasnuwa\u0142a okna mojego pokoju, lub mo\u017ce sam fakt, \u017ce nie spa\u0142em dobrze. Nie wiedzia\u0142em dok\u0142adnie, ale dzi\u015b wszystko wydawa\u0142o si\u0119 ci\u0119\u017csze \u2013 jakby kto\u015b po prostu doda\u0142 do \u015bwiata jeszcze jednej warstwy b\u00f3lu i frustracji.\nKolejny pacjent przyszed\u0142, a ja zmusi\u0142em si\u0119 do u\u015bmiechu. Wiedzia\u0142em, \u017ce to tylko pocz\u0105tek, ale dzi\u015b czu\u0142em, jakby ca\u0142y dzie\u0144 mia\u0142 by\u0107 pe\u0142en wyzwa\u0144, kt\u00f3re nie chcia\u0142y ust\u0105pi\u0107 przed moj\u0105 zm\u0119czon\u0105 dusz\u0105 i cia\u0142em.\nTo by\u0142 tylko pocz\u0105tek... a jeszcze wiele przysz\u0142o do tego dnia. Czasem zastanawia\u0142em si\u0119, czy to warto \u2013 ten ca\u0142y bieg po ludziach, ich historie, ich b\u00f3l, ich nadzieje. Ale dzi\u015b czu\u0142em, \u017ce odpowied\u017a na to pytanie nie by\u0142a jeszcze blisko. By\u0142a gdzie\u015b za horyzontem, ukryta mi\u0119dzy kolejnymi pacjentami i ich opowie\u015bciami. I w\u0142a\u015bnie tam mia\u0142em szuka\u0107 sensu swojej pracy \u2013 w tych niespokojnych momentach, kt\u00f3re wydawa\u0142y si\u0119 nie mie\u0107 ko\u0144ca.\nNie mia\u0142em jeszcze czasu na odpoczynek, a ju\u017c czu\u0142em, jak moje si\u0142y opuszczaj\u0105 mnie powoli. Ka\u017cdy pacjent by\u0142 nowym testem, now\u0105 pr\u00f3b\u0105 przywo\u0142ania energii i nadziei, kt\u00f3re wydawa\u0142y si\u0119 teraz daleko od mojej dotykalno\u015bci. Wiedzia\u0142em jednak, \u017ce musz\u0119 by\u0107 silny \u2013 dla nich, dla siebie, dla tego dnia, kt\u00f3ry zdecydowa\u0142 si\u0119 uprze\u0107 na byciu najtrudniejszym z mo\u017cliwych.\nCzas mija\u0142 powoli, a ja czeka\u0142em na chwil\u0119 odetchnienia. Jednak to nie nast\u0105pi\u0142o. Zamiast tego pojawi\u0142y si\u0119 kolejne historie, kolejne b\u00f3le i kolejne pytania, kt\u00f3re nie dawa\u0142y mi spokoju. Wiedzia\u0142em,\n\n\n\n\n\n\nProjekt: Current Project\n\n\nStreszczenie powinno zawiera\u0107:\n- G\u0142\u00f3wne wydarzenia w scenie\n- Kluczowe interakcje mi\u0119dzy postaciami\n- Wa\u017cne informacje i odkrycia\n- Zmiany w sytuacji lub relacjach\n- Nastr\u00f3j i atmosfer\u0119 sceny\n\nNapisz w formacie 2-3 akapit\u00f3w, koncentruj\u0105c si\u0119 na najwa\u017cniejszych elementach.\n\nStreszczenie sceny:",
+  "stream": false,
+  "options": {
+    "temperature": 0.3,
+    "top_p": 0.8,
+    "top_k": 30,
+    "repeat_penalty": 1.15,
+    "num_predict": 600
+  }
+}
+
+=== FULL PROMPT ===
+Stwórz zwięzłe streszczenie następującej sceny:
+
+To nie była długa rozmowo. Spociłem się, a był to przecież dopiero początek. Zanim zdążyłem zająć miejsce na ławce w oczekiwaniu na kolejnego pacjenta, już usłyszałem drżenie głosu pani Kowalskiej opowiadającej o najnowszym problemie z jej synem. Wiedziałem, że to nie będzie łatwy dzień. Zmarszczyłem czoło i spróbowałem skupić się na słuchaniu, ale moje myśli wyraźnie błąkały się gdzie indziej – poza pracą, do mojego domu, gdzie czekała mnie lista rzeczy do zrobienia i sen, który nie chciał wczoraj przyjść. Wiedziałem jednak, że muszę być teraz tutaj, dla nich.
+Kolejna godzina mijała jak za mało wywożona zimą – wolno i pełna napięcia. Pacjenci mieli swoje historie, a ja miałem swoją pracę, która nieustannie narastała jak ciężki bumerang. Czasem zdawał się lecieć w powietrzu, by następnie wrócić w formie najbardziej brutalnych pytań czy oczekiwań. Wiedziałem, że to tylko początek, a już czułem, jak moja siła opuszcza mnie w kroplach potu spływających po plecach.
+Nie miałem jeszcze śniadania i to tylko pogarszało wszystko. Czułem się jakby ktoś wrzucił mnie do pieca zimnego mięsa – bez smaku, bez energii. Zerknąłem na zegarek i pomyślałem o tym, czy w ogóle miałem czas na coś tak prostego jak jedzenie. Na szczęście resztę dnia miało przyjść kilku pacjentów, którzy mieli swoje własne powody, by nie przerywać tego strumienia emocji – i mojej obecności w tym miejscu.
+Czasem myślałem, że to tylko kolejny dzień jak tysiące innych, ale dziś czułem, jakby coś było inaczej. Może to była ta chłodna ranna mgła, która zasnuwała okna mojego pokoju, lub może sam fakt, że nie spałem dobrze. Nie wiedziałem dokładnie, ale dziś wszystko wydawało się cięższe – jakby ktoś po prostu dodał do świata jeszcze jednej warstwy bólu i frustracji.
+Kolejny pacjent przyszedł, a ja zmusiłem się do uśmiechu. Wiedziałem, że to tylko początek, ale dziś czułem, jakby cały dzień miał być pełen wyzwań, które nie chciały ustąpić przed moją zmęczoną duszą i ciałem.
+To był tylko początek... a jeszcze wiele przyszło do tego dnia. Czasem zastanawiałem się, czy to warto – ten cały bieg po ludziach, ich historie, ich ból, ich nadzieje. Ale dziś czułem, że odpowiedź na to pytanie nie była jeszcze blisko. Była gdzieś za horyzontem, ukryta między kolejnymi pacjentami i ich opowieściami. I właśnie tam miałem szukać sensu swojej pracy – w tych niespokojnych momentach, które wydawały się nie mieć końca.
+Nie miałem jeszcze czasu na odpoczynek, a już czułem, jak moje siły opuszczają mnie powoli. Każdy pacjent był nowym testem, nową próbą przywołania energii i nadziei, które wydawały się teraz daleko od mojej dotykalności. Wiedziałem jednak, że muszę być silny – dla nich, dla siebie, dla tego dnia, który zdecydował się uprzeć na byciu najtrudniejszym z możliwych.
+Czas mijał powoli, a ja czekałem na chwilę odetchnienia. Jednak to nie nastąpiło. Zamiast tego pojawiły się kolejne historie, kolejne bóle i kolejne pytania, które nie dawały mi spokoju. Wiedziałem,
+
+
+
+
+
+
+Projekt: Current Project
+
+
+Streszczenie powinno zawierać:
+- Główne wydarzenia w scenie
+- Kluczowe interakcje między postaciami
+- Ważne informacje i odkrycia
+- Zmiany w sytuacji lub relacjach
+- Nastrój i atmosferę sceny
+
+Napisz w formacie 2-3 akapitów, koncentrując się na najważniejszych elementach.
+
+Streszczenie sceny:
+=== END PROMPT ===

@@ -1,0 +1,73 @@
+metadata:
+  name: "Expand Scene"
+  template_id: "expand_scene"
+  description: "Expand a scene with more detail, dialogue, and description"
+  category: "writing"
+  version: "2.0"
+  author: "System"
+  tags: ["writing", "expansion", "detail"]
+
+context_config:
+  use_selection: true
+  selection_priority: true
+  default_context_length: 600
+  scene_summary_length: 1000
+  scene_summary_source: "scene_beginning"
+  include_characters: true
+  include_locations: true
+  include_project_info: false
+  max_context_chars: 2800
+  word_boundary_trim: true
+
+llm_params:
+  max_tokens: 1500
+  temperature: 0.85
+  top_p: 0.92
+  top_k: 45
+  repeat_penalty: 1.08
+  custom_params: {}
+
+ui_config:
+  show_context_preview: true
+  allow_context_editing: false
+  preview_length: 180
+  show_params_editor: true
+  auto_apply_selection: true
+  confirm_before_execution: false
+
+format_version: "2.0"
+
+template_content: |
+  Rozbuduj następujący fragment sceny, dodając więcej szczegółów, dialogów i opisów:
+
+  {% if has_selection %}
+  Fragment do rozbudowy:
+  "{{ selected_text }}"
+
+  {% if scene_summary and scene_summary != selected_text %}
+  Kontekst sceny:
+  {{ scene_summary }}
+  {% endif %}
+  {% else %}
+  Scena do rozbudowy:
+  {{ current_text }}
+  {% endif %}
+
+  {% if characters %}
+  Postacie w scenie: {{ characters|join(', ') }}
+  {% endif %}
+
+  {% if locations %}
+  Lokalizacje: {{ locations|join(', ') }}
+  {% endif %}
+
+  Rozbuduj scenę przez:
+  - Dodanie szczegółowych opisów miejsc i osób
+  - Wzbogacenie dialogów o emocje i podteksty
+  - Opisanie gestów, mimiki i zachowań postaci
+  - Dodanie sensualnych detali (dźwięki, zapachy, faktury)
+  - Pogłębienie atmosfery i nastroju
+
+  Zachowaj naturalny przepływ narracji i nie zmieniaj głównych wydarzeń.
+
+  Rozbudowana scena:

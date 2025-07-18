@@ -18,8 +18,10 @@ from pathlib import Path
 from core.logging_config import get_logger
 from core.llm.templates.config import (
     EnhancedTemplateConfig, TemplateMetadata, ContextConfig, 
-    LLMParams, UIConfig, ContextSource, create_default_template
+    LLMParams, UIConfig, ContextSource, create_default_template,
+    create_template_from_provider_defaults
 )
+from core.llm.settings import get_llm_settings
 from i18n import _
 
 
@@ -36,8 +38,13 @@ class TemplateEditorDialog(QDialog):
         self.template_config = template_config or create_default_template()
         self.is_new_template = template_config is None
         
+        # Get LLM settings for reference values
+        self.llm_settings = get_llm_settings()
+        self.current_provider_config = self.llm_settings.get_current_provider_config()
+        
         self.setup_ui()
         self.load_template_data()
+        self.update_reference_values()
         
         # Set window properties
         title = _("New Template") if self.is_new_template else _("Edit Template")
@@ -172,13 +179,13 @@ class TemplateEditorDialog(QDialog):
         context_layout = QFormLayout(context_group)
         
         self.default_context_spin = QSpinBox()
-        self.default_context_spin.setRange(50, 5000)
+        self.default_context_spin.setRange(50, 300000)
         self.default_context_spin.setValue(500)
         self.default_context_spin.setSuffix(" " + _("characters"))
         context_layout.addRow(_("Default Context Length:"), self.default_context_spin)
         
         self.scene_summary_spin = QSpinBox()
-        self.scene_summary_spin.setRange(50, 2000)
+        self.scene_summary_spin.setRange(50, 100000)
         self.scene_summary_spin.setValue(300)
         self.scene_summary_spin.setSuffix(" " + _("characters"))
         context_layout.addRow(_("Scene Summary Length:"), self.scene_summary_spin)
@@ -189,7 +196,7 @@ class TemplateEditorDialog(QDialog):
         context_layout.addRow(_("Summary Source:"), self.summary_source_combo)
         
         self.max_context_spin = QSpinBox()
-        self.max_context_spin.setRange(100, 10000)
+        self.max_context_spin.setRange(100, 500000)
         self.max_context_spin.setValue(2000)
         self.max_context_spin.setSuffix(" " + _("characters"))
         context_layout.addRow(_("Max Context Length:"), self.max_context_spin)
@@ -225,40 +232,114 @@ class TemplateEditorDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
+        # Reference settings info
+        self.setup_reference_settings_info(layout)
+        
         # Generation parameters group
-        params_group = QGroupBox(_("Generation Parameters"))
+        params_group = QGroupBox(_("Template LLM Parameters"))
         params_layout = QFormLayout(params_group)
         
+        # Max tokens with reference
+        tokens_layout = QHBoxLayout()
         self.max_tokens_spin = QSpinBox()
-        self.max_tokens_spin.setRange(1, 4096)
+        self.max_tokens_spin.setRange(1, 100000)
         self.max_tokens_spin.setValue(512)
-        params_layout.addRow(_("Max Tokens:"), self.max_tokens_spin)
+        self.max_tokens_spin.valueChanged.connect(self.update_character_estimate)
+        self.max_tokens_spin.valueChanged.connect(self.update_context_suggestions)
+        tokens_layout.addWidget(self.max_tokens_spin)
         
+        self.char_estimate_label = QLabel(_("≈ 2048 characters"))
+        self.char_estimate_label.setStyleSheet("color: #666; font-size: 11px;")
+        tokens_layout.addWidget(self.char_estimate_label)
+        
+        self.max_tokens_default_btn = QPushButton(_("Use Default"))
+        self.max_tokens_default_btn.clicked.connect(lambda: self.use_default_parameter('max_tokens'))
+        tokens_layout.addWidget(self.max_tokens_default_btn)
+        
+        self.max_tokens_ref_label = QLabel()
+        self.max_tokens_ref_label.setStyleSheet("color: #666; font-size: 10px;")
+        tokens_layout.addWidget(self.max_tokens_ref_label)
+        tokens_layout.addStretch()
+        
+        params_layout.addRow(_("Max Tokens:"), tokens_layout)
+        
+        # Temperature with reference
+        temp_layout = QHBoxLayout()
         self.temperature_spin = QDoubleSpinBox()
         self.temperature_spin.setRange(0.0, 2.0)
         self.temperature_spin.setSingleStep(0.1)
         self.temperature_spin.setDecimals(2)
         self.temperature_spin.setValue(0.7)
-        params_layout.addRow(_("Temperature:"), self.temperature_spin)
+        temp_layout.addWidget(self.temperature_spin)
         
+        self.temperature_default_btn = QPushButton(_("Use Default"))
+        self.temperature_default_btn.clicked.connect(lambda: self.use_default_parameter('temperature'))
+        temp_layout.addWidget(self.temperature_default_btn)
+        
+        self.temperature_ref_label = QLabel()
+        self.temperature_ref_label.setStyleSheet("color: #666; font-size: 10px;")
+        temp_layout.addWidget(self.temperature_ref_label)
+        temp_layout.addStretch()
+        
+        params_layout.addRow(_("Temperature:"), temp_layout)
+        
+        # Top P with reference
+        topp_layout = QHBoxLayout()
         self.top_p_spin = QDoubleSpinBox()
         self.top_p_spin.setRange(0.0, 1.0)
         self.top_p_spin.setSingleStep(0.1)
         self.top_p_spin.setDecimals(2)
         self.top_p_spin.setValue(0.9)
-        params_layout.addRow(_("Top P:"), self.top_p_spin)
+        topp_layout.addWidget(self.top_p_spin)
         
+        self.top_p_default_btn = QPushButton(_("Use Default"))
+        self.top_p_default_btn.clicked.connect(lambda: self.use_default_parameter('top_p'))
+        topp_layout.addWidget(self.top_p_default_btn)
+        
+        self.top_p_ref_label = QLabel()
+        self.top_p_ref_label.setStyleSheet("color: #666; font-size: 10px;")
+        topp_layout.addWidget(self.top_p_ref_label)
+        topp_layout.addStretch()
+        
+        params_layout.addRow(_("Top P:"), topp_layout)
+        
+        # Top K with reference
+        topk_layout = QHBoxLayout()
         self.top_k_spin = QSpinBox()
         self.top_k_spin.setRange(1, 100)
         self.top_k_spin.setValue(40)
-        params_layout.addRow(_("Top K:"), self.top_k_spin)
+        topk_layout.addWidget(self.top_k_spin)
         
+        self.top_k_default_btn = QPushButton(_("Use Default"))
+        self.top_k_default_btn.clicked.connect(lambda: self.use_default_parameter('top_k'))
+        topk_layout.addWidget(self.top_k_default_btn)
+        
+        self.top_k_ref_label = QLabel()
+        self.top_k_ref_label.setStyleSheet("color: #666; font-size: 10px;")
+        topk_layout.addWidget(self.top_k_ref_label)
+        topk_layout.addStretch()
+        
+        params_layout.addRow(_("Top K:"), topk_layout)
+        
+        # Repeat penalty with reference
+        penalty_layout = QHBoxLayout()
         self.repeat_penalty_spin = QDoubleSpinBox()
         self.repeat_penalty_spin.setRange(0.5, 2.0)
         self.repeat_penalty_spin.setSingleStep(0.1)
         self.repeat_penalty_spin.setDecimals(2)
         self.repeat_penalty_spin.setValue(1.1)
-        params_layout.addRow(_("Repeat Penalty:"), self.repeat_penalty_spin)
+        penalty_layout.addWidget(self.repeat_penalty_spin)
+        
+        self.repeat_penalty_default_btn = QPushButton(_("Use Default"))
+        self.repeat_penalty_default_btn.clicked.connect(lambda: self.use_default_parameter('repeat_penalty'))
+        penalty_layout.addWidget(self.repeat_penalty_default_btn)
+        
+        self.repeat_penalty_ref_label = QLabel()
+        self.repeat_penalty_ref_label.setStyleSheet("color: #666; font-size: 10px;")
+        penalty_layout.addWidget(self.repeat_penalty_ref_label)
+        penalty_layout.addStretch()
+        
+        params_layout.addRow(_("Repeat Penalty:"), penalty_layout)
         
         layout.addWidget(params_group)
         
@@ -454,6 +535,10 @@ class TemplateEditorDialog(QDialog):
             # Template content
             self.template_editor.setPlainText(self.template_config.template_content)
             
+            # Update character estimate and context suggestions
+            self.update_character_estimate()
+            self.update_context_suggestions()
+            
             self.logger.debug("Template data loaded into UI")
             
         except Exception as e:
@@ -633,3 +718,106 @@ class TemplateEditorDialog(QDialog):
     def get_template_config(self) -> EnhancedTemplateConfig:
         """Get the current template configuration."""
         return self.template_config
+    
+    def setup_reference_settings_info(self, layout):
+        """Setup reference settings information display."""
+        ref_group = QGroupBox(_("Current LLM Provider Reference"))
+        ref_layout = QVBoxLayout(ref_group)
+        
+        provider_name = self.llm_settings.get_current_provider()
+        provider_display = self.llm_settings.get_provider_display_name(provider_name)
+        
+        ref_info = QLabel(_("Current Provider: {}").format(provider_display))
+        ref_info.setStyleSheet("font-weight: bold; color: #333;")
+        ref_layout.addWidget(ref_info)
+        
+        help_text = QLabel(_("Template parameters override provider defaults. Click 'Use Default' to apply current provider settings."))
+        help_text.setStyleSheet("color: #666; font-size: 11px;")
+        help_text.setWordWrap(True)
+        ref_layout.addWidget(help_text)
+        
+        layout.addWidget(ref_group)
+    
+    def update_character_estimate(self):
+        """Update character estimate based on token count."""
+        tokens = self.max_tokens_spin.value()
+        # Estimate: 1 token ≈ 3-4 characters for most languages
+        # Polish might be slightly different, but this is a good approximation
+        estimated_chars = tokens * 4
+        self.char_estimate_label.setText(_("≈ {} characters").format(estimated_chars))
+    
+    def update_context_suggestions(self):
+        """Update context length suggestions based on max_tokens."""
+        tokens = self.max_tokens_spin.value()
+        
+        # For large token counts, suggest reasonable context lengths
+        if tokens >= 10000:  # Large context window
+            # Suggest using 30-40% of available tokens for context
+            suggested_context_chars = int(tokens * 0.35 * 4)  # 35% of tokens * 4 chars/token
+            suggested_summary_chars = int(tokens * 0.15 * 4)  # 15% of tokens * 4 chars/token
+            
+            # Auto-update if current values are too small
+            if self.default_context_spin.value() < suggested_context_chars:
+                self.default_context_spin.setValue(suggested_context_chars)
+            
+            if self.scene_summary_spin.value() < suggested_summary_chars:
+                self.scene_summary_spin.setValue(suggested_summary_chars)
+                
+            # Set max_context to be larger than default_context
+            max_context_chars = int(tokens * 0.5 * 4)  # 50% of tokens * 4 chars/token
+            if self.max_context_spin.value() < max_context_chars:
+                self.max_context_spin.setValue(max_context_chars)
+    
+    def use_default_parameter(self, param_name: str):
+        """Apply default LLM parameter from current provider."""
+        if not self.current_provider_config:
+            QMessageBox.warning(self, _("Warning"), _("No provider configuration available"))
+            return
+        
+        try:
+            if param_name == 'max_tokens':
+                default_value = self.current_provider_config.get_setting('max_tokens', 512)
+                self.max_tokens_spin.setValue(default_value)
+            elif param_name == 'temperature':
+                default_value = self.current_provider_config.get_setting('temperature', 0.7)
+                self.temperature_spin.setValue(default_value)
+            elif param_name == 'top_p':
+                default_value = self.current_provider_config.get_setting('top_p', 0.9)
+                self.top_p_spin.setValue(default_value)
+            elif param_name == 'top_k':
+                default_value = self.current_provider_config.get_setting('top_k', 40)
+                self.top_k_spin.setValue(default_value)
+            elif param_name == 'repeat_penalty':
+                default_value = self.current_provider_config.get_setting('repeat_penalty', 1.1)
+                self.repeat_penalty_spin.setValue(default_value)
+                
+            self.logger.debug(f"Applied default {param_name}: {default_value}")
+            
+        except Exception as e:
+            self.logger.error(f"Error applying default parameter {param_name}: {e}")
+            QMessageBox.warning(self, _("Error"), _("Failed to apply default parameter"))
+    
+    def update_reference_values(self):
+        """Update reference value labels with current provider settings."""
+        if not self.current_provider_config:
+            return
+        
+        try:
+            # Update reference labels
+            max_tokens_ref = self.current_provider_config.get_setting('max_tokens', 512)
+            self.max_tokens_ref_label.setText(f"(default: {max_tokens_ref})")
+            
+            temperature_ref = self.current_provider_config.get_setting('temperature', 0.7)
+            self.temperature_ref_label.setText(f"(default: {temperature_ref})")
+            
+            top_p_ref = self.current_provider_config.get_setting('top_p', 0.9)
+            self.top_p_ref_label.setText(f"(default: {top_p_ref})")
+            
+            top_k_ref = self.current_provider_config.get_setting('top_k', 40)
+            self.top_k_ref_label.setText(f"(default: {top_k_ref})")
+            
+            repeat_penalty_ref = self.current_provider_config.get_setting('repeat_penalty', 1.1)
+            self.repeat_penalty_ref_label.setText(f"(default: {repeat_penalty_ref})")
+            
+        except Exception as e:
+            self.logger.error(f"Error updating reference values: {e}")

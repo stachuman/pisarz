@@ -21,7 +21,7 @@ from controllers.app_focus_controller import AppFocusController
 from controllers.app_llm_controller import AppLLMController
 from ui.widgets import (ProjectsView, ProjectTreeView, Workspace, SettingsDialog,
                        CharactersGridView, CharacterEditorDialog, ProjectPropertiesDialog,
-                       LLMAssistantPanel)
+                       LLMAssistantPanel, NarrativeContextPanel)
 from i18n import _
 
 
@@ -84,8 +84,8 @@ class PisarzApp(QMainWindow):
         project_layout.setContentsMargins(0, 0, 0, 0)
         
         # Główny splitter pionowy (góra: nawigacja+workspace, dół: AI assistant)
-        main_splitter = QSplitter(Qt.Orientation.Vertical)
-        project_layout.addWidget(main_splitter)
+        self.main_splitter = QSplitter(Qt.Orientation.Vertical)
+        project_layout.addWidget(self.main_splitter)
         
         # Górny widget zawierający nawigację i workspace
         top_widget = QWidget()
@@ -108,16 +108,22 @@ class PisarzApp(QMainWindow):
         horizontal_splitter.setSizes([300, 900])
         
         # Dodaj górny widget do głównego splitteru
-        main_splitter.addWidget(top_widget)
+        self.main_splitter.addWidget(top_widget)
         
         # LLM Assistant Panel (teraz na dole)
         self.llm_panel = LLMAssistantPanel()
-        self.llm_panel.setMaximumHeight(300)
+        self.llm_panel.setMinimumHeight(250)  # Minimum height for usability
         self.llm_panel.setVisible(False)  # Hidden by default
-        main_splitter.addWidget(self.llm_panel)
+        self.main_splitter.addWidget(self.llm_panel)
+        
+        # Narrative Context Panel
+        self.narrative_context_panel = NarrativeContextPanel()
+        self.narrative_context_panel.setMinimumHeight(300)  # Minimum height for usability
+        self.narrative_context_panel.setVisible(False)  # Hidden by default
+        self.main_splitter.addWidget(self.narrative_context_panel)
         
         # Proporcje głównego splitteru (góra vs dół)
-        main_splitter.setSizes([700, 300])
+        self.main_splitter.setSizes([700, 300])
         
         self.main_stack.addWidget(self.project_widget)
         
@@ -164,6 +170,14 @@ class PisarzApp(QMainWindow):
         self.ai_assistant_action.triggered.connect(self.toggle_ai_assistant)
         tools_menu.addAction(self.ai_assistant_action)
         
+        # Narrative Context toggle action
+        self.narrative_context_action = QAction(_("Narrative Context"), self)
+        self.narrative_context_action.setCheckable(True)
+        self.narrative_context_action.setChecked(False)
+        self.narrative_context_action.setShortcut(QKeySequence("Ctrl+Alt+N"))
+        self.narrative_context_action.triggered.connect(self.toggle_narrative_context)
+        tools_menu.addAction(self.narrative_context_action)
+        
         # Settings action (if not already present)
         if not hasattr(self, 'settings_action'):
             tools_menu.addSeparator()
@@ -191,6 +205,38 @@ class PisarzApp(QMainWindow):
             self.status_bar.showMessage(_("AI Assistant panel closed"))
         
         self.logger.info(f"AI Assistant panel {'opened' if not is_visible else 'closed'}")
+    
+    def toggle_narrative_context(self):
+        """Toggle Narrative Context panel visibility."""
+        is_visible = self.narrative_context_panel.isVisible()
+        self.narrative_context_panel.setVisible(not is_visible)
+        self.narrative_context_action.setChecked(not is_visible)
+        
+        # Update splitter sizes when showing/hiding the panel
+        if not is_visible:
+            # Panel is being shown - allocate proper space
+            current_sizes = self.main_splitter.sizes()
+            if len(current_sizes) >= 2:
+                # Reserve 350px for the narrative context panel
+                total_height = sum(current_sizes)
+                self.main_splitter.setSizes([total_height - 350, 350])
+        else:
+            # Panel is being hidden - give all space back to main area
+            current_sizes = self.main_splitter.sizes()
+            if len(current_sizes) >= 2:
+                total_height = sum(current_sizes)
+                self.main_splitter.setSizes([total_height, 0])
+        
+        # Update button state in workspace
+        self.workspace.set_narrative_context_state(not is_visible)
+        
+        # Update status message
+        if not is_visible:
+            self.status_bar.showMessage(_("Narrative Context panel opened"))
+        else:
+            self.status_bar.showMessage(_("Narrative Context panel closed"))
+        
+        self.logger.info(f"Narrative Context panel {'opened' if not is_visible else 'closed'}")
         
     def _connect_controller_signals(self) -> None:
         """Connect signals from controllers."""
@@ -270,6 +316,7 @@ class PisarzApp(QMainWindow):
         self.workspace.sceneRenameRequestedFromGrid.connect(self.on_scene_rename_requested)
         self.workspace.focusModeRequested.connect(self.toggle_focus_mode)
         self.workspace.aiAssistantToggled.connect(self.toggle_ai_assistant)
+        self.workspace.narrativeContextToggled.connect(self.toggle_narrative_context)
         self.workspace.textSelectionChanged.connect(self.on_text_selection_changed)
         
         # Scene context panel signals
@@ -349,6 +396,9 @@ class PisarzApp(QMainWindow):
         
         # Update LLM context with project info
         self.llm_controller.update_project_context(project_name, project_path)
+        
+        # Initialize narrative context panel with current project
+        self.narrative_context_panel.set_project(Path(project_path))
         
     def _on_project_created(self, project_name: str):
         """Handle project created signal."""

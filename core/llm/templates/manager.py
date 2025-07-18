@@ -295,6 +295,14 @@ class EnhancedTemplateManager:
             context['project_name'] = scene_data.get('project_name', 'Current Project')
             context['scene_id'] = scene_data.get('scene_id', '')
         
+        # Narrative context (for templates that use it)
+        project_path = scene_data.get('project_path')
+        if project_path and hasattr(config, 'include_narrative_context') and config.include_narrative_context:
+            context['narrative_context'] = self._build_narrative_context(project_path)
+        elif 'narrative_context' in scene_data:
+            # Allow manual narrative context injection
+            context['narrative_context'] = scene_data['narrative_context']
+        
         return context
     
     def _extract_context_text(self, content: str, length: int, word_boundary: bool = True) -> str:
@@ -456,6 +464,24 @@ class EnhancedTemplateManager:
         content = re.sub(r'\n{3,}', '\n\n', content)
         
         return content
+    
+    def _build_narrative_context(self, project_path) -> str:
+        """Build narrative context summary from project data."""
+        try:
+            from pathlib import Path
+            from core.llm.context.narrative_context import get_narrative_context_manager
+            
+            # Get narrative context manager
+            manager = get_narrative_context_manager(Path(project_path))
+            
+            # Build context summary
+            narrative_summary = manager.build_context_summary(max_length=1500)
+            
+            return narrative_summary if narrative_summary else ""
+            
+        except Exception as e:
+            self.logger.error(f"Failed to build narrative context: {e}")
+            return ""
 
 
 # Global template manager instance
@@ -466,5 +492,9 @@ def get_template_manager() -> EnhancedTemplateManager:
     """Get the global template manager instance."""
     global _template_manager
     if _template_manager is None:
-        _template_manager = EnhancedTemplateManager()
+        # Use project templates directory
+        from pathlib import Path
+        project_dir = Path(__file__).parent.parent.parent.parent  # Go up to project root
+        templates_dir = project_dir / "templates"
+        _template_manager = EnhancedTemplateManager(templates_dir)
     return _template_manager

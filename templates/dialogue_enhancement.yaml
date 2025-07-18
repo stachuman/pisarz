@@ -1,0 +1,65 @@
+metadata:
+  name: "Enhance Dialogue"
+  template_id: "dialogue_enhancement"
+  description: "Improve existing dialogue with better character voice and natural flow"
+  category: "dialogue"
+  version: "2.0"
+  author: "System"
+  tags: ["dialogue", "characters", "enhancement"]
+
+context_config:
+  use_selection: true
+  selection_priority: true
+  default_context_length: 800
+  scene_summary_length: 600
+  scene_summary_source: "selection"
+  include_characters: true
+  include_locations: false
+  include_project_info: false
+  max_context_chars: 2200
+  word_boundary_trim: true
+
+llm_params:
+  max_tokens: 1000
+  temperature: 0.75
+  top_p: 0.88
+  top_k: 35
+  repeat_penalty: 1.12
+  custom_params: {}
+
+ui_config:
+  show_context_preview: true
+  allow_context_editing: true
+  preview_length: 160
+  show_params_editor: true
+  auto_apply_selection: true
+  confirm_before_execution: true
+
+format_version: "2.0"
+
+template_content: |
+  Popraw następujący dialog, czyniąc go bardziej naturalnym i charakterystycznym:
+
+  Oryginalny dialog:
+  {{ selected_text }}
+
+  {% if scene_summary and scene_summary != selected_text %}
+  Kontekst sytuacji:
+  {{ scene_summary }}
+  {% endif %}
+
+  {% if characters %}
+  Postacie w dialogu: {{ characters|join(', ') }}
+  {% endif %}
+
+  Popraw dialog przez:
+  - Nadanie każdej postaci unikalnego sposobu mówienia
+  - Dodanie naturalnych przerw, wahań i niedokończonych zdań
+  - Uwzględnienie emocji i nastroju postaci
+  - Dodanie reakcji niewerbalnych (gesty, mimika)
+  - Poprawę płynności konwersacji
+  - Dodanie podtekstów i ukrytych znaczeń
+
+  Zachowaj główne treści i cel rozmowy.
+
+  Poprawiony dialog:

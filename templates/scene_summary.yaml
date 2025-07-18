@@ -1,0 +1,83 @@
+context_config:
+  default_context_length: 89600
+  include_characters: true
+  include_locations: true
+  include_project_info: true
+  max_context_chars: 128000
+  scene_summary_length: 38400
+  scene_summary_source: full_scene
+  selection_priority: false
+  use_selection: false
+  word_boundary_trim: true
+format_version: '2.0'
+llm_params:
+  custom_params: {}
+  max_tokens: 64000
+  repeat_penalty: 1.15
+  temperature: 0.3
+  top_k: 30
+  top_p: 0.8
+metadata:
+  author: System
+  category: analysis
+  created_date: null
+  description: Generate a concise summary of the scene for reference
+  modified_date: null
+  name: Create Scene Summary
+  tags:
+  - summary
+  - analysis
+  - reference
+  template_id: scene_summary
+  version: '2.0'
+template_content: 'Stwórz zwięzłe streszczenie następującej sceny w języku Polskim:
+
+
+  {{ scene_summary }}
+
+
+  {% if characters %}
+
+  Postacie: {{ characters|join('', '') }}
+
+  {% endif %}
+
+
+  {% if locations %}
+
+  Lokalizacje: {{ locations|join('', '') }}
+
+  {% endif %}
+
+
+  {% if project_name %}
+
+  Projekt: {{ project_name }}
+
+  {% endif %}
+
+
+  Streszczenie powinno zawierać:
+
+  - Główne wydarzenia w scenie
+
+  - Kluczowe interakcje między postaciami
+
+  - Ważne informacje i odkrycia
+
+  - Zmiany w sytuacji lub relacjach
+
+  - Nastrój i atmosferę sceny
+
+
+  Napisz w formacie 2-3 akapitów, koncentrując się na najważniejszych elementach.
+
+
+  Streszczenie sceny:'
+ui_config:
+  allow_context_editing: false
+  auto_apply_selection: false
+  confirm_before_execution: false
+  preview_length: 100
+  show_context_preview: false
+  show_params_editor: false

@@ -38,6 +38,7 @@ class Workspace(QWidget):
     characterSelectedFromScene = Signal(int)     # character_id
     locationSelectedFromScene = Signal(int)      # location_id
     aiAssistantToggled = Signal()                # AI assistant toggle from editor
+    narrativeContextToggled = Signal()           # Narrative context toggle from editor
     textSelectionChanged = Signal(str, str)      # selected_text, current_text from editor
     
     # Search view signals
@@ -210,6 +211,7 @@ class Workspace(QWidget):
         self.current_editor.autoSaveRequested.connect(self.autoSaveRequested.emit)
         self.current_editor.focusModeRequested.connect(self.focusModeRequested.emit)
         self.current_editor.aiAssistantToggled.connect(self.aiAssistantToggled.emit)
+        self.current_editor.narrativeContextToggled.connect(self.narrativeContextToggled.emit)
         self.current_editor.textSelectionChanged.connect(self.textSelectionChanged.emit)
         
         # Connect context panel signals
@@ -236,3 +238,8 @@ class Workspace(QWidget):
         """Set the AI assistant button state in the current editor."""
         if self.current_editor:
             self.current_editor.set_ai_assistant_state(visible)
+    
+    def set_narrative_context_state(self, visible: bool):
+        """Set the narrative context button state in the current editor."""
+        if self.current_editor:
+            self.current_editor.set_narrative_context_state(visible)

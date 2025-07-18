@@ -22,6 +22,7 @@ class EmbeddedRichTextWidget(QWidget):
     focusModeRequested = Signal()
     contextPanelToggled = Signal(bool)  # New signal for context panel toggle
     aiAssistantToggled = Signal()       # New signal for AI assistant toggle
+    narrativeContextToggled = Signal()  # New signal for narrative context toggle
     textSelectionChanged = Signal(str, str)  # selected_text, current_text
     
     # Context panel signals
@@ -131,6 +132,7 @@ class EmbeddedRichTextWidget(QWidget):
         self.toolbar_manager.focusModeRequested.connect(self.focusModeRequested.emit)
         self.toolbar_manager.contextPanelToggled.connect(self.context_panel_manager.toggle_context_panel)
         self.toolbar_manager.aiAssistantToggled.connect(self.aiAssistantToggled.emit)
+        self.toolbar_manager.narrativeContextToggled.connect(self.narrativeContextToggled.emit)
         
         # Connect context panel manager signals
         self.context_panel_manager.contextPanelToggled.connect(self.contextPanelToggled.emit)
@@ -371,6 +373,11 @@ class EmbeddedRichTextWidget(QWidget):
         """Set the AI assistant button state in the toolbar."""
         if self.toolbar_manager:
             self.toolbar_manager.set_ai_assistant_state(visible)
+    
+    def set_narrative_context_state(self, visible: bool):
+        """Set the narrative context button state in the toolbar."""
+        if self.toolbar_manager:
+            self.toolbar_manager.set_narrative_context_state(visible)
     
     def _on_cursor_position_changed(self):
         """Handle cursor position changes."""

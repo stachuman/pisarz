@@ -10,7 +10,6 @@ from .providers.base_provider import BaseLLMProvider
 from .providers.mock_provider import MockLLMProvider
 from .providers.llamacpp_provider import LlamaCppProvider
 from .tasks.registry import TaskRegistry
-from .cache.simple_cache import SimpleCache
 from .settings import get_llm_settings
 from .context.manager import ContextManager
 from .templates.engine import TemplateEngine
@@ -23,7 +22,6 @@ class LLMService:
         self.logger = get_logger("llm.service")
         self.provider: Optional[BaseLLMProvider] = None
         self.task_registry = TaskRegistry()
-        self.cache = SimpleCache()
         self.settings_manager = get_llm_settings()
         self.context_manager = ContextManager()
         self.template_engine = TemplateEngine()
@@ -64,7 +62,21 @@ class LLMService:
             
             # Initialize the provider
             if not self.provider.initialize():
-                raise RuntimeError(f"Failed to initialize {provider_name} provider")
+                self.logger.warning(f"Failed to initialize {provider_name} provider, falling back to mock")
+                if provider_name != "mock":
+                    # Fall back to mock provider
+                    self.provider = MockLLMProvider()
+                    if self.provider.initialize():
+                        provider_name = "mock"
+                        self.logger.info("Successfully initialized with mock provider fallback")
+                    else:
+                        self.logger.error("Even mock provider failed to initialize")
+                        self._initialized = False
+                        return
+                else:
+                    self.logger.error("Mock provider failed to initialize")
+                    self._initialized = False
+                    return
             
             # Update current provider in settings
             self.settings_manager.set_current_provider(provider_name)
@@ -74,7 +86,8 @@ class LLMService:
             
         except Exception as e:
             self.logger.error(f"Failed to initialize LLM service: {e}")
-            raise
+            # Don't raise - allow application to continue without LLM
+            self._initialized = False
     
     def is_initialized(self) -> bool:
         """Check if service is initialized."""
@@ -101,15 +114,6 @@ class LLMService:
             enhanced_context = template_manager.build_enhanced_context(task_id, context)
             self.logger.debug("Enhanced context built using template configuration")
             
-            # Build cache key
-            cache_key = self._build_cache_key(task_id, enhanced_context)
-            
-            # Check cache first
-            cached_response = self.cache.get(cache_key)
-            if cached_response:
-                self.logger.info(f"Cache hit for task {task_id}")
-                return cached_response
-            
             # Generate prompt using enhanced template system
             prompt = self._generate_enhanced_prompt(task_id, enhanced_context)
             self.logger.debug(f"Generated prompt: {prompt[:200]}...")
@@ -120,29 +124,12 @@ class LLMService:
             # Generate response with template-specific parameters
             response = self.provider.generate(prompt, **llm_params)
             
-            # Return raw response without cleaning
-            # response = self._clean_response(response, task_id)
-            
-            # Cache response
-            self.cache.set(cache_key, response)
-            
             self.logger.info(f"Task {task_id} completed successfully")
             return response
             
         except Exception as e:
             self.logger.error(f"Error executing task {task_id}: {e}")
             raise
-    
-    def _build_cache_key(self, task_id: str, context: Dict[str, Any]) -> str:
-        """Build cache key from task and context."""
-        import hashlib
-        import json
-        
-        # Create deterministic string from context
-        context_str = json.dumps(context, sort_keys=True)
-        context_hash = hashlib.md5(context_str.encode()).hexdigest()
-        
-        return f"{task_id}:{context_hash}"
     
     def _generate_enhanced_prompt(self, task_id: str, context: Dict[str, Any]) -> str:
         """
@@ -261,11 +248,6 @@ Please continue the text in a natural way:"""
             'parameters': [param.to_dict() for param in task_def.parameters]
         }
     
-    def clear_cache(self):
-        """Clear the response cache."""
-        self.cache.clear()
-        self.logger.info("LLM cache cleared")
-    
 
     def get_service_info(self) -> Dict[str, Any]:
         """Get service status information."""
@@ -273,7 +255,6 @@ Please continue the text in a natural way:"""
             'initialized': self.is_initialized(),
             'provider': self.provider.__class__.__name__ if self.provider else None,
             'available_tasks': len(self.task_registry.get_task_ids()),
-            'cache_size': self.cache.size(),
             'available_templates': len(self.template_engine.list_templates()),
             'current_context': self.context_manager.get_context_summary()
         }

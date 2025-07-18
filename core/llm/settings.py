@@ -81,7 +81,7 @@ class LLMSettingsManager:
                 'host': 'localhost',
                 'port': 8080,
                 'model_path': '',
-                'max_tokens': 4000,
+                'max_tokens': 10000,
                 'temperature': 0.7,
                 'top_p': 0.9,
                 'top_k': 40,
@@ -103,7 +103,7 @@ class LLMSettingsManager:
             settings={
                 'api_key': '',
                 'model': 'gpt-4',
-                'max_tokens': 512,
+                'max_tokens': 10000,
                 'temperature': 0.7,
                 'top_p': 1.0,
                 'presence_penalty': 0.0,
@@ -137,7 +137,7 @@ class LLMSettingsManager:
                 'host': '192.168.1.102',
                 'port': 11434,
                 'model': 'tom_himanen/deepseek-r1-roo-cline-tools:70b',
-                'max_tokens': 512,
+                'max_tokens': 10000,
                 'temperature': 0.7,
                 'top_p': 0.9,
                 'top_k': 40,
@@ -155,7 +155,7 @@ class LLMSettingsManager:
                 self.global_settings.update(global_settings)
             
             # Load current provider
-            current_provider = self.settings.value('llm/current_provider', 'mock')
+            current_provider = self.settings.value('llm/current_provider', 'llamacpp')
             self.set_current_provider(current_provider)
             
             # Load provider configurations

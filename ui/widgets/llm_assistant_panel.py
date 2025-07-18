@@ -306,6 +306,30 @@ class EnhancedResponseArea(QWidget):
         """)
         actions_layout.addWidget(self.insert_button)
         
+        # Add to Narrative Context button
+        self.add_to_narrative_button = QPushButton(_("📚"))
+        self.add_to_narrative_button.setEnabled(False)
+        self.add_to_narrative_button.setToolTip(_("Add response to Narrative Context"))
+        self.add_to_narrative_button.setFixedSize(70, 30)
+        self.add_to_narrative_button.setStyleSheet("""
+            QPushButton {
+                background-color: #fd7e14;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 12pt;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #e8680a;
+            }
+            QPushButton:disabled {
+                background-color: #e0e0e0;
+                color: #888888;
+            }
+        """)
+        actions_layout.addWidget(self.add_to_narrative_button)
+        
         # Clear button
         self.clear_button = QPushButton(_("🗑️"))
         self.clear_button.setEnabled(False)
@@ -339,6 +363,7 @@ class EnhancedResponseArea(QWidget):
         self.copy_button.setEnabled(True)
         self.select_all_button.setEnabled(True)
         self.insert_button.setEnabled(True)
+        self.add_to_narrative_button.setEnabled(True)
         self.clear_button.setEnabled(True)
         self.update_word_count()
     
@@ -348,6 +373,7 @@ class EnhancedResponseArea(QWidget):
         self.copy_button.setEnabled(False)
         self.select_all_button.setEnabled(False)
         self.insert_button.setEnabled(False)
+        self.add_to_narrative_button.setEnabled(False)
         self.clear_button.setEnabled(False)
         self.update_word_count()
     
@@ -446,8 +472,7 @@ class LLMAssistantPanel(QWidget):
         # Task dropdown
         from PySide6.QtWidgets import QComboBox
         self.task_combo = QComboBox()
-        self.task_combo.addItem(_("📝 Continue Scene"), "continue_scene")
-        self.task_combo.addItem(_("🛠️ Edit Templates"), "edit_templates")
+        self._load_available_templates()
         self.task_combo.setStyleSheet("""
             QComboBox {
                 padding: 6px;
@@ -457,6 +482,26 @@ class LLMAssistantPanel(QWidget):
             }
         """)
         controls_layout.addWidget(self.task_combo)
+        
+        # Edit template button
+        self.edit_template_button = QPushButton(_("🛠️ Edit"))
+        self.edit_template_button.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 60px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        self.edit_template_button.setToolTip(_("Edit selected template"))
+        self.edit_template_button.clicked.connect(self.edit_selected_template)
+        controls_layout.addWidget(self.edit_template_button)
         
         # Execute button
         self.execute_button = QPushButton(_("Execute"))
@@ -606,7 +651,7 @@ class LLMAssistantPanel(QWidget):
                 background-color: #7d3c98;
             }
         """)
-        self.template_editor_btn.clicked.connect(self.open_template_editor)
+        self.template_editor_btn.clicked.connect(self.edit_selected_template)
         tasks_layout.addWidget(self.template_editor_btn)
         
         # Placeholder for future tasks with better styling
@@ -637,6 +682,7 @@ class LLMAssistantPanel(QWidget):
         self.response_area.copy_button.clicked.connect(self.copy_response)
         self.response_area.clear_button.clicked.connect(self.clear_response)
         self.response_area.insert_button.clicked.connect(self.insert_response)
+        self.response_area.add_to_narrative_button.clicked.connect(self.add_to_narrative_context)
     
     def set_llm_controller(self, controller: AppLLMController):
         """Set the LLM controller."""
@@ -700,10 +746,10 @@ class LLMAssistantPanel(QWidget):
     def execute_selected_task(self):
         """Execute the selected task from dropdown."""
         selected_data = self.task_combo.currentData()
-        if selected_data == "edit_templates":
-            self.open_template_editor()
-        else:
+        if selected_data:
             self.execute_task(selected_data)
+        else:
+            self.show_error(_("No Template Selected"), _("Please select a template to execute."))
     
     def _clean_html_css(self, content: str) -> str:
         """Clean HTML tags and CSS from content to produce plain text."""
@@ -931,30 +977,131 @@ class LLMAssistantPanel(QWidget):
             self.insertTextRequested.emit(text)
             self.update_status(_("📄 Text insertion requested"), "success")
     
-    def open_template_editor(self):
-        """Open template editor dialog."""
+    def add_to_narrative_context(self):
+        """Add response to Narrative Context."""
+        text = self.response_area.response_text.toPlainText()
+        if text:
+            # Get the main window to access the narrative context panel
+            from PySide6.QtWidgets import QApplication
+            main_window = QApplication.instance().activeWindow()
+            if hasattr(main_window, 'narrative_context_panel'):
+                # Add the text as a new context entry
+                success = main_window.narrative_context_panel.add_context_from_text(text)
+                if success:
+                    self.update_status(_("📚 Added to Narrative Context"), "success")
+                    # Show the narrative context panel if it's hidden
+                    if not main_window.narrative_context_panel.isVisible():
+                        main_window.toggle_narrative_context()
+                else:
+                    self.update_status(_("❌ Failed to add to Narrative Context"), "error")
+            else:
+                self.update_status(_("❌ Narrative Context panel not available"), "error")
+    
+    def _load_available_templates(self):
+        """Load available templates from template manager into dropdown."""
         try:
-            from ui.widgets.template_editor_dialog import TemplateEditorDialog
-            from core.llm.templates.config import create_default_template
+            from core.llm.templates import get_template_manager
             
-            # Create dialog with default template
-            default_template = create_default_template()
-            dialog = TemplateEditorDialog(default_template, self)
+            template_manager = get_template_manager()
+            template_list = template_manager.get_template_list()
+            
+            # Remember current selection
+            current_template_id = self.task_combo.currentData()
+            
+            # Clear existing templates (but keep edit templates option that will be added later)
+            self.task_combo.clear()
+            
+            # Add templates to dropdown
+            for template_info in template_list:
+                template_id = template_info['id']
+                template_name = template_info['name']
+                template_description = template_info['description']
+                category = template_info.get('category', '')
+                
+                # Create display name with emoji based on category
+                category_icons = {
+                    'writing': '📝',
+                    'dialogue': '💬', 
+                    'editing': '✏️',
+                    'scene': '🎬',
+                    'character': '👤',
+                    'summary': '📊'
+                }
+                
+                icon = category_icons.get(category, '📄')
+                display_name = f"{icon} {template_name}"
+                
+                self.task_combo.addItem(display_name, template_id)
+                
+                # Set tooltip with description
+                if template_description:
+                    self.task_combo.setItemData(
+                        self.task_combo.count() - 1,
+                        template_description,
+                        Qt.ItemDataRole.ToolTipRole
+                    )
+            
+            # Restore previous selection if it exists
+            if current_template_id:
+                for i in range(self.task_combo.count()):
+                    if self.task_combo.itemData(i) == current_template_id:
+                        self.task_combo.setCurrentIndex(i)
+                        break
+            
+            self.logger.info(f"Loaded {len(template_list)} templates into dropdown")
+            
+        except Exception as e:
+            self.logger.error(f"Error loading templates: {e}")
+            # Fallback to default option
+            self.task_combo.addItem(_("📝 Continue Scene"), "continue_scene")
+    
+    def edit_selected_template(self):
+        """Edit the currently selected template."""
+        try:
+            selected_template_id = self.task_combo.currentData()
+            if not selected_template_id:
+                self.show_error(_("No Template Selected"), _("Please select a template to edit."))
+                return
+            
+            from core.llm.templates import get_template_manager
+            template_manager = get_template_manager()
+            template_config = template_manager.get_template(selected_template_id)
+            
+            if not template_config:
+                self.show_error(_("Template Not Found"), _("The selected template could not be found."))
+                return
+            
+            # Open template editor with selected template
+            from ui.widgets.template_editor_dialog import TemplateEditorDialog
+            dialog = TemplateEditorDialog(template_config, self)
             
             # Connect to template saved signal
             dialog.template_saved.connect(self.on_template_saved)
             
             # Show dialog
             if dialog.exec():
-                self.logger.info("Template editor completed successfully")
+                # Get updated template config from dialog
+                updated_template_config = dialog.get_template_config()
+                
+                # Save to template manager
+                from core.llm.templates import get_template_manager
+                template_manager = get_template_manager()
+                success = template_manager.add_template(updated_template_config, save_to_file=True)
+                
+                if success:
+                    self.logger.info(f"Template editor completed and saved for template: {selected_template_id}")
+                else:
+                    self.show_error(_("Save Error"), _("Failed to save template to file."))
             
         except Exception as e:
             self.logger.error(f"Error opening template editor: {e}")
+            self.show_error(_("Error"), _("Failed to open template editor: {}").format(str(e)))
     
     def on_template_saved(self, template_id: str):
         """Handle template saved signal."""
         self.logger.info(f"Template saved: {template_id}")
-        # TODO: Refresh available templates or update UI as needed
+        # Refresh available templates
+        self._load_available_templates()
     
     def show_error(self, title: str, message: str):
         """Show error message dialog."""

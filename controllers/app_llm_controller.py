@@ -37,19 +37,25 @@ class AppLLMController(QObject):
             # Initialize LLM service
             self.llm_service.initialize(provider_name)
             
-            # Connect context manager signals
-            context_manager = self.llm_service.get_context_manager()
-            context_manager.context_updated.connect(self._on_context_updated)
-            context_manager.context_ready.connect(self._on_context_ready)
-            
-            self._initialized = True
-            self.llm_status_changed.emit("LLM system initialized")
-            self.logger.info("LLM controller initialized successfully")
+            if self.llm_service.is_initialized():
+                # Connect context manager signals
+                context_manager = self.llm_service.get_context_manager()
+                context_manager.context_updated.connect(self._on_context_updated)
+                context_manager.context_ready.connect(self._on_context_ready)
+                
+                self._initialized = True
+                self.llm_status_changed.emit("LLM system initialized")
+                self.logger.info("LLM controller initialized successfully")
+            else:
+                self._initialized = False
+                self.llm_status_changed.emit("LLM system unavailable")
+                self.logger.warning("LLM controller initialized without LLM provider")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize LLM controller: {e}")
             self.llm_error.emit("initialization", str(e))
-            raise
+            self._initialized = False
+            # Don't raise - allow application to continue
     
     def is_initialized(self) -> bool:
         """Check if controller is initialized."""
@@ -94,15 +100,6 @@ class AppLLMController(QObject):
             return None
         
         return self.llm_service.get_task_info(task_id)
-    
-    def clear_cache(self):
-        """Clear the LLM response cache."""
-        if not self.is_initialized():
-            return
-        
-        self.llm_service.clear_cache()
-        self.llm_status_changed.emit("Cache cleared")
-        self.logger.info("LLM cache cleared")
     
     def get_service_info(self) -> Dict[str, Any]:
         """Get LLM service information."""

@@ -300,16 +300,44 @@ class LLMSettingsWidget(QWidget):
         
         layout.addWidget(server_group)
         
+        # Connection test for Ollama
+        connection_group = QGroupBox(_("Connection"))
+        connection_layout = QHBoxLayout(connection_group)
+        
+        self.ollama_test_btn = QPushButton(_("Test Connection & Fetch Models"))
+        self.ollama_test_btn.clicked.connect(self.test_ollama_connection)
+        self.ollama_test_btn.setToolTip(_("Test connection to Ollama server and automatically fetch available models"))
+        connection_layout.addWidget(self.ollama_test_btn)
+        
+        self.ollama_connection_status = QLabel(_("Not connected"))
+        self.ollama_connection_status.setStyleSheet("color: #666;")
+        connection_layout.addWidget(self.ollama_connection_status)
+        connection_layout.addStretch()
+        
+        layout.addWidget(connection_group)
+        
         # Model settings
         model_group = QGroupBox(_("Model Configuration"))
         model_layout = QFormLayout(model_group)
         model_layout.setSpacing(8)
         
-        self.ollama_model = QLineEdit()
-        self.ollama_model.setPlaceholderText("tom_himanen/deepseek-r1-roo-cline-tools:70b")
+        # Model selection with dropdown and refresh
+        model_row_layout = QHBoxLayout()
+        self.ollama_model = QComboBox()
         self.ollama_model.setMinimumWidth(300)
-        self.ollama_model.setToolTip(_("Ollama model name (e.g., llama2, mistral, codellama)"))
-        model_layout.addRow(_("Model:"), self.ollama_model)
+        self.ollama_model.setEditable(False)  # Non-editable dropdown only
+        self.ollama_model.setToolTip(_("Select Ollama model from dropdown"))
+        # Add placeholder item to ensure dropdown appearance
+        self.ollama_model.addItem(_("(No models loaded - click Refresh Models)"))
+        model_row_layout.addWidget(self.ollama_model)
+        
+        self.ollama_refresh_models_btn = QPushButton(_("Refresh Models"))
+        self.ollama_refresh_models_btn.setMaximumWidth(120)
+        self.ollama_refresh_models_btn.clicked.connect(self.refresh_ollama_models)
+        self.ollama_refresh_models_btn.setToolTip(_("Fetch available models from Ollama server"))
+        model_row_layout.addWidget(self.ollama_refresh_models_btn)
+        
+        model_layout.addRow(_("Model:"), model_row_layout)
         
         layout.addWidget(model_group)
         
@@ -359,7 +387,8 @@ class LLMSettingsWidget(QWidget):
         # Help text
         help_text = QLabel(_(
             "Configure your Ollama server. Make sure Ollama is running and accessible "
-            "at the specified host and port. Use 'ollama list' command to see available models."
+            "at the specified host and port. Click 'Refresh Models' to fetch available models "
+            "from the server, or type the model name manually if not in the list."
         ))
         help_text.setWordWrap(True)
         help_text.setStyleSheet("color: #666666; font-style: italic; margin-top: 10px; padding: 10px;")
@@ -605,12 +634,30 @@ class LLMSettingsWidget(QWidget):
             self.ollama_host.setText(provider.get_setting('host', '192.168.1.102'))
             self.ollama_port.setValue(provider.get_setting('port', 11434))
             self.ollama_timeout.setValue(provider.get_setting('timeout', 30))
-            self.ollama_model.setText(provider.get_setting('model', 'tom_himanen/deepseek-r1-roo-cline-tools:70b'))
+            
+            # Handle model selection for combo box
+            model = provider.get_setting('model', 'tom_himanen/deepseek-r1-roo-cline-tools:70b')
+            index = self.ollama_model.findText(model)
+            if index >= 0:
+                self.ollama_model.setCurrentIndex(index)
+            else:
+                # Add model to dropdown if not present
+                self.ollama_model.addItem(model)
+                self.ollama_model.setCurrentIndex(self.ollama_model.count() - 1)
+            
             self.ollama_max_tokens.setValue(provider.get_setting('max_tokens', 512))
             self.ollama_temperature.setValue(provider.get_setting('temperature', 0.7))
             self.ollama_top_p.setValue(provider.get_setting('top_p', 0.9))
             self.ollama_top_k.setValue(provider.get_setting('top_k', 40))
             self.ollama_repeat_penalty.setValue(provider.get_setting('repeat_penalty', 1.1))
+            
+            # Try to quietly load available models if dropdown only has placeholder
+            if self.ollama_model.count() <= 1:
+                try:
+                    self._quietly_load_ollama_models()
+                except Exception as e:
+                    self.logger.debug(f"Could not auto-load Ollama models: {e}")
+                    # If auto-loading fails, just keep the editable text
     
     def load_openai_settings(self):
         """Load OpenAI specific settings."""
@@ -710,7 +757,7 @@ class LLMSettingsWidget(QWidget):
             'host': self.ollama_host.text().strip() or '192.168.1.102',
             'port': self.ollama_port.value(),
             'timeout': self.ollama_timeout.value(),
-            'model': self.ollama_model.text().strip() or 'tom_himanen/deepseek-r1-roo-cline-tools:70b',
+            'model': self.ollama_model.currentText().strip() if not self.ollama_model.currentText().startswith("(No models loaded") else '',
             'max_tokens': self.ollama_max_tokens.value(),
             'temperature': self.ollama_temperature.value(),
             'top_p': self.ollama_top_p.value(),
@@ -806,3 +853,233 @@ class LLMSettingsWidget(QWidget):
             self.settings_manager._initialize_default_providers()
             self.load_settings()
             self.logger.info("LLM settings reset to defaults")
+    
+    def _quietly_load_ollama_models(self):
+        """Quietly load Ollama models without showing messages."""
+        try:
+            # Apply current host/port settings first
+            host = self.ollama_host.text().strip() or "192.168.1.102"
+            port = self.ollama_port.value()
+            timeout = self.ollama_timeout.value()
+            
+            # Store current selection
+            current_model = self.ollama_model.currentText()
+            
+            # Fetch models
+            models = self._fetch_ollama_models(host, port, timeout)
+            
+            # Update combo box
+            self.ollama_model.clear()
+            
+            if models:
+                for model in models:
+                    # Add model with name and additional info as tooltip
+                    model_name = model.get('name', '')
+                    model_size = model.get('size', 0)
+                    model_modified = model.get('modified_at', '')
+                    
+                    self.ollama_model.addItem(model_name)
+                    
+                    # Set tooltip with additional info
+                    if model_size > 0:
+                        size_gb = model_size / (1024**3)
+                        tooltip = f"Size: {size_gb:.1f}GB"
+                        if model_modified:
+                            tooltip += f"\nModified: {model_modified[:10]}"
+                        self.ollama_model.setItemData(
+                            self.ollama_model.count() - 1, 
+                            tooltip, 
+                            Qt.ItemDataRole.ToolTipRole
+                        )
+                
+                # Restore previous selection if it exists
+                if current_model and not current_model.startswith("(No models loaded"):
+                    index = self.ollama_model.findText(current_model)
+                    if index >= 0:
+                        self.ollama_model.setCurrentIndex(index)
+                    else:
+                        # Add the current model to dropdown
+                        self.ollama_model.addItem(current_model)
+                        self.ollama_model.setCurrentIndex(self.ollama_model.count() - 1)
+                
+                self.logger.debug(f"Quietly loaded {len(models)} Ollama models")
+            else:
+                # No models found, add placeholder and current model
+                self.ollama_model.addItem(_("(No models loaded - click Refresh Models)"))
+                if current_model and not current_model.startswith("(No models loaded"):
+                    self.ollama_model.addItem(current_model)
+                    self.ollama_model.setCurrentIndex(self.ollama_model.count() - 1)
+                
+        except Exception as e:
+            self.logger.debug(f"Could not quietly load Ollama models: {e}")
+            # Silent failure, add placeholder and keep current model
+            self.ollama_model.addItem(_("(No models loaded - click Refresh Models)"))
+            if current_model and not current_model.startswith("(No models loaded"):
+                self.ollama_model.addItem(current_model)
+                self.ollama_model.setCurrentIndex(self.ollama_model.count() - 1)
+
+    def refresh_ollama_models(self):
+        """Fetch available models from Ollama server."""
+        try:
+            # Apply current host/port settings first
+            host = self.ollama_host.text().strip() or "192.168.1.102"
+            port = self.ollama_port.value()
+            timeout = self.ollama_timeout.value()
+            
+            self.ollama_refresh_models_btn.setEnabled(False)
+            self.ollama_refresh_models_btn.setText(_("Fetching..."))
+            
+            # Store current selection
+            current_model = self.ollama_model.currentText()
+            
+            # Fetch models
+            models = self._fetch_ollama_models(host, port, timeout)
+            
+            # Update combo box
+            self.ollama_model.clear()
+            
+            if models:
+                for model in models:
+                    # Add model with name and additional info as tooltip
+                    model_name = model.get('name', '')
+                    model_size = model.get('size', 0)
+                    model_modified = model.get('modified_at', '')
+                    
+                    self.ollama_model.addItem(model_name)
+                    
+                    # Set tooltip with additional info
+                    if model_size > 0:
+                        size_gb = model_size / (1024**3)
+                        tooltip = f"Size: {size_gb:.1f}GB"
+                        if model_modified:
+                            tooltip += f"\nModified: {model_modified[:10]}"
+                        self.ollama_model.setItemData(
+                            self.ollama_model.count() - 1, 
+                            tooltip, 
+                            Qt.ItemDataRole.ToolTipRole
+                        )
+                
+                # Restore previous selection if it exists
+                if current_model and not current_model.startswith("(No models loaded"):
+                    index = self.ollama_model.findText(current_model)
+                    if index >= 0:
+                        self.ollama_model.setCurrentIndex(index)
+                    else:
+                        # Add the current model to dropdown
+                        self.ollama_model.addItem(current_model)
+                        self.ollama_model.setCurrentIndex(self.ollama_model.count() - 1)
+                
+                self.logger.info(f"Loaded {len(models)} Ollama models")
+                QMessageBox.information(
+                    self, 
+                    _("Success"), 
+                    _("Loaded {} models from Ollama server").format(len(models))
+                )
+            else:
+                self.logger.warning("No models found on Ollama server")
+                QMessageBox.warning(
+                    self, 
+                    _("Warning"), 
+                    _("No models found on Ollama server. Make sure models are installed.")
+                )
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching Ollama models: {e}")
+            QMessageBox.critical(
+                self, 
+                _("Error"), 
+                _("Failed to fetch models from Ollama server:\n{}").format(str(e))
+            )
+        finally:
+            self.ollama_refresh_models_btn.setEnabled(True)
+            self.ollama_refresh_models_btn.setText(_("Refresh Models"))
+    
+    def _fetch_ollama_models(self, host: str, port: int, timeout: int) -> list:
+        """Fetch models from Ollama server."""
+        import requests
+        from urllib.parse import urljoin
+        
+        try:
+            base_url = f"http://{host}:{port}"
+            response = requests.get(
+                urljoin(base_url, "/api/tags"),
+                timeout=timeout
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return data.get('models', [])
+            else:
+                raise Exception(f"HTTP {response.status_code}: {response.text}")
+                
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Connection error: {e}")
+        except Exception as e:
+            raise Exception(f"Failed to fetch models: {e}")
+    
+    def test_ollama_connection(self):
+        """Test Ollama connection and fetch models automatically."""
+        try:
+            # Update connection status
+            self.ollama_connection_status.setText(_("Testing..."))
+            self.ollama_connection_status.setStyleSheet("color: #666;")
+            self.ollama_test_btn.setEnabled(False)
+            
+            # Get connection parameters
+            host = self.ollama_host.text().strip() or "192.168.1.102"
+            port = self.ollama_port.value()
+            timeout = self.ollama_timeout.value()
+            
+            # Test connection first
+            models = self._fetch_ollama_models(host, port, timeout)
+            
+            # Connection successful - update status
+            self.ollama_connection_status.setText(_("Connected - {} models found").format(len(models)))
+            self.ollama_connection_status.setStyleSheet("color: #27ae60; font-weight: bold;")
+            
+            # Update model dropdown
+            current_model = self.ollama_model.currentText()
+            self.ollama_model.clear()
+            
+            if models:
+                for model in models:
+                    model_name = model.get('name', '')
+                    model_size = model.get('size', 0)
+                    model_modified = model.get('modified_at', '')
+                    
+                    self.ollama_model.addItem(model_name)
+                    
+                    # Set tooltip with additional info
+                    if model_size > 0:
+                        size_gb = model_size / (1024**3)
+                        tooltip = f"Size: {size_gb:.1f}GB"
+                        if model_modified:
+                            tooltip += f"\nModified: {model_modified[:10]}"
+                        self.ollama_model.setItemData(
+                            self.ollama_model.count() - 1, 
+                            tooltip, 
+                            Qt.ItemDataRole.ToolTipRole
+                        )
+                
+                # Restore previous selection
+                if current_model and not current_model.startswith("(No models loaded"):
+                    index = self.ollama_model.findText(current_model)
+                    if index >= 0:
+                        self.ollama_model.setCurrentIndex(index)
+                    else:
+                        self.ollama_model.setEditText(current_model)
+            
+            self.logger.info(f"Successfully connected to Ollama at {host}:{port}")
+            
+        except Exception as e:
+            self.logger.error(f"Ollama connection test failed: {e}")
+            self.ollama_connection_status.setText(_("Connection failed"))
+            self.ollama_connection_status.setStyleSheet("color: #e74c3c; font-weight: bold;")
+            
+            QMessageBox.warning(
+                self,
+                _("Connection Failed"),
+                _("Failed to connect to Ollama server:\n{}").format(str(e))
+            )
+        finally:
+            self.ollama_test_btn.setEnabled(True)

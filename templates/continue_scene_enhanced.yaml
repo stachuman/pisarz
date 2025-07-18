@@ -1,0 +1,67 @@
+metadata:
+  name: "Continue Scene (Enhanced)"
+  template_id: "continue_scene"
+  description: "Continue writing the current scene with enhanced context and parameters"
+  category: "writing"
+  version: "2.0"
+  author: "System"
+  tags: ["writing", "continuation", "scene"]
+
+context_config:
+  use_selection: true
+  selection_priority: true
+  default_context_length: 1000
+  scene_summary_length: 800
+  scene_summary_source: "scene_beginning"
+  include_characters: true
+  include_locations: true
+  include_project_info: false
+  max_context_chars: 3000
+  word_boundary_trim: true
+
+llm_params:
+  max_tokens: 800
+  temperature: 0.8
+  top_p: 0.95
+  top_k: 50
+  repeat_penalty: 1.05
+  custom_params: {}
+
+ui_config:
+  show_context_preview: true
+  allow_context_editing: false
+  preview_length: 150
+  show_params_editor: true
+  auto_apply_selection: true
+  confirm_before_execution: false
+
+format_version: "2.0"
+
+template_content: |
+  {% if has_selection %}
+  Kontynuuj tę historię na podstawie zaznaczonego fragmentu:
+  "{{ selected_text }}"
+
+  {% if scene_summary and scene_summary != selected_text %}
+  Kontekst sceny:
+  {{ scene_summary }}
+  {% endif %}
+  {% else %}
+  Kontynuuj tę scenę:
+  {{ current_text }}
+
+  {% if scene_summary and scene_summary != current_text %}
+  Pełny kontekst sceny:
+  {{ scene_summary }}
+  {% endif %}
+  {% endif %}
+
+  {% if characters %}
+  Postacie w scenie: {{ characters|join(', ') }}
+  {% endif %}
+
+  {% if locations %}
+  Lokalizacje: {{ locations|join(', ') }}
+  {% endif %}
+
+  Napisz naturalną kontynuację (2-3 akapity), zachowując styl i ton tekstu:
