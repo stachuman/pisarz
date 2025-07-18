@@ -65,9 +65,49 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Build with PyInstaller
+    - name: Debug - List files (Unix)
+      if: matrix.os != 'windows-latest'
       run: |
-        pyinstaller pisarz.spec --clean --noconfirm
+        pwd
+        ls -la
+        echo "Checking for spec file..."
+        if [ -f "pisarz.spec" ]; then
+          echo "pisarz.spec found"
+        else
+          echo "pisarz.spec NOT found"
+        fi
+
+    - name: Debug - List files (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        pwd
+        dir
+        echo "Checking for spec file..."
+        if (Test-Path "pisarz.spec") {
+          Write-Host "pisarz.spec found"
+        } else {
+          Write-Host "pisarz.spec NOT found"
+        }
+
+    - name: Build with PyInstaller (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        if [ -f "pisarz.spec" ]; then
+          pyinstaller pisarz.spec --clean --noconfirm
+        else
+          echo "Spec file not found, building with main.py"
+          pyinstaller main.py --onefile --windowed --name pisarz --clean --noconfirm
+        fi
+
+    - name: Build with PyInstaller (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        if (Test-Path "pisarz.spec") {
+          pyinstaller pisarz.spec --clean --noconfirm
+        } else {
+          Write-Host "Spec file not found, building with main.py"
+          pyinstaller main.py --onefile --windowed --name pisarz --clean --noconfirm
+        }
 
     - name: Test executable (Linux/macOS)
       if: matrix.os != 'windows-latest'
