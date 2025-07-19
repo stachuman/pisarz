@@ -337,6 +337,16 @@ class PisarzApp(QMainWindow):
         self.project_tree.backToProjectsRequested.connect(self.show_projects_view)
         self.project_tree.projectPropertiesRequested.connect(self.show_project_properties)
         
+        # Context menu signals
+        self.project_tree.generateContextRequested.connect(self.on_generate_context_requested)
+        self.project_tree.editTemplateRequested.connect(self.on_edit_template_requested)
+        self.project_tree.refreshContextRequested.connect(self.on_refresh_context_requested)
+        self.project_tree.viewContextRequested.connect(self.on_view_context_requested)
+        self.project_tree.editContextRequested.connect(self.on_edit_context_requested)
+        
+        # LLM Assistant signals for context auto-save
+        self.llm_panel.contextAutoSaved.connect(self.on_context_auto_saved)
+        
         # Workspace
         self.workspace.saveRequested.connect(self.save_scene_content)
         self.workspace.autoSaveRequested.connect(self.auto_save_scene_content)
@@ -433,6 +443,14 @@ class PisarzApp(QMainWindow):
         # Initialize narrative context panel with current project
         self.narrative_context_panel.set_project(Path(project_path))
         
+        # Set up narrative context manager for project tree
+        from core.llm.context.narrative_context import get_narrative_context_manager
+        try:
+            narrative_manager = get_narrative_context_manager(Path(project_path))
+            self.project_tree.set_narrative_context_manager(narrative_manager)
+        except Exception as e:
+            self.logger.warning(f"Failed to set up narrative context manager: {e}")
+        
     def _on_project_created(self, project_name: str):
         """Handle project created signal."""
         self.show_projects_view()
@@ -441,7 +459,7 @@ class PisarzApp(QMainWindow):
         """Handle scene opened signal."""
         # Get project managers
         managers = self.project_controller.get_current_managers()
-        project_path, _ = self.project_controller.get_current_project_info()
+        project_path, _project_name = self.project_controller.get_current_project_info()
         
         if project_path:
             project_data = self.project_controller.get_project_data(Path(project_path))
@@ -528,7 +546,7 @@ class PisarzApp(QMainWindow):
         if not managers['scene_manager']:
             return
             
-        project_path, _ = self.project_controller.get_current_project_info()
+        project_path, _project_name = self.project_controller.get_current_project_info()
         if not project_path:
             return
             
@@ -606,7 +624,7 @@ class PisarzApp(QMainWindow):
         if not managers['character_manager']:
             return
             
-        project_path, _ = self.project_controller.get_current_project_info()
+        project_path, _project_name = self.project_controller.get_current_project_info()
         if project_path:
             project_data = self.project_controller.get_project_data(Path(project_path))
             characters = self.character_controller.get_characters_list(project_data['id'])
@@ -614,7 +632,7 @@ class PisarzApp(QMainWindow):
     
     def _refresh_locations_data(self):
         """Odśwież dane lokacji zachowując selekcję."""
-        project_path, _ = self.project_controller.get_current_project_info()
+        project_path, _project_name = self.project_controller.get_current_project_info()
         if project_path:
             project_data = self.project_controller.get_project_data(Path(project_path))
             locations = self.location_controller.get_locations_list(project_data['id'])
@@ -894,7 +912,7 @@ class PisarzApp(QMainWindow):
     
     def show_project_properties(self):
         """Show project properties dialog."""
-        project_path, _ = self.project_controller.get_current_project_info()
+        project_path, _project_name = self.project_controller.get_current_project_info()
         if not project_path:
             return
             
@@ -913,7 +931,7 @@ class PisarzApp(QMainWindow):
     
     def on_project_properties_saved(self, properties):
         """Handle project properties being saved."""
-        project_path, _ = self.project_controller.get_current_project_info()
+        project_path, _project_name = self.project_controller.get_current_project_info()
         if not project_path:
             return
             
@@ -1088,6 +1106,393 @@ class PisarzApp(QMainWindow):
             from core.logging_config import get_logger
             logger = get_logger("main.text_insertion")
             logger.error(error_msg)
+    
+    def on_generate_context_requested(self, scene_id: int, template_name: str):
+        """Handle request to generate narrative context using a template."""
+        try:
+            # Get scene data
+            managers = self.project_controller.get_current_managers()
+            scene_manager = managers.get('scene_manager')
+            if not scene_manager:
+                self.status_bar.showMessage(_("No scene manager available"))
+                return
+            
+            scene = scene_manager.get_scene(scene_id)
+            if not scene:
+                self.status_bar.showMessage(_("Scene not found"))
+                return
+            
+            # Get project info for template context
+            project_path, project_name = self.project_controller.get_current_project_info()
+            if not project_path:
+                self.status_bar.showMessage(_("No project loaded"))
+                return
+            
+            # Get linked characters and locations for the scene
+            character_manager = managers.get('character_manager')
+            location_manager = managers.get('location_manager')
+            
+            scene_characters = []
+            scene_locations = []
+            
+            if character_manager:
+                try:
+                    # Get characters with roles for this scene
+                    character_role_pairs = character_manager.get_characters_for_scene_with_roles(scene_id)
+                    scene_characters = [
+                        {
+                            "id": char_dict["id"],
+                            "name": char_dict["name"],
+                            "description": char_dict.get("description", ""),
+                            "notes": char_dict.get("notes", ""),
+                            "role": role or "participant"
+                        }
+                        for char_dict, role in character_role_pairs
+                    ]
+                except Exception as e:
+                    self.logger.warning(f"Failed to get characters for scene {scene_id}: {e}")
+            
+            if location_manager:
+                try:
+                    # Get locations with roles for this scene
+                    location_role_pairs = location_manager.get_scene_locations(scene_id)
+                    scene_locations = [
+                        {
+                            "id": location.id,
+                            "name": location.name,
+                            "description": location.description or "",
+                            "notes": location.notes or "",
+                            "location_type": location.type or "",
+                            "role": role or "setting"
+                        }
+                        for location, role in location_role_pairs
+                    ]
+                except Exception as e:
+                    self.logger.warning(f"Failed to get locations for scene {scene_id}: {e}")
+            
+            # Build context for template
+            context_data = {
+                "scene_id": scene_id,
+                "scene_title": scene.get("title", ""),
+                "scene_content": scene.get("content_rtf", ""),
+                "project_name": project_name,
+                "template_type": template_name,
+                "characters": scene_characters,
+                "locations": scene_locations,
+                "character_count": len(scene_characters),
+                "location_count": len(scene_locations)
+            }
+            
+            # Show AI Assistant panel if not visible
+            if not self.llm_panel.isVisible():
+                self.toggle_ai_assistant()
+            
+            # Set context and execute the appropriate task
+            self.llm_panel.set_scene_context(scene_id, scene.get("content_rtf", ""))
+            self.llm_panel.set_additional_context(context_data)
+            
+            # Set auto-save context info for automatic linking
+            self.logger.info(f"Setting auto-save info: scene_id={scene_id}, template_name={template_name}")
+            self.llm_panel.set_auto_save_context_info(scene_id, template_name)
+            
+            # Use template name directly if it exists, otherwise fallback to scene_summary
+            # Template IDs should match the .yaml files in templates/ directory
+            available_templates = ["scene_summary", "continue_with_context", "dialogue_enhancement", 
+                                 "expand_scene", "rewrite_scene", "continue_scene_enhanced"]
+            
+            template_id = template_name if template_name in available_templates else "scene_summary"
+            self.llm_panel.execute_task(template_id)
+            
+            self.status_bar.showMessage(_("Generating narrative context with template: {}").format(template_name))
+            self.logger.info(f"Generating context for scene {scene_id} with template {template_name}")
+            
+        except Exception as e:
+            from core.error_handler import ErrorCategory
+            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
+                                       context=f"Generating context for scene {scene_id}",
+                                       show_to_user=True, parent_widget=self)
+    
+    def on_edit_template_requested(self, template_name: str):
+        """Handle request to edit a template."""
+        try:
+            from ui.widgets.template_editor_dialog import TemplateEditorDialog
+            
+            # Open template editor
+            dialog = TemplateEditorDialog(template_name, self)
+            dialog.exec()
+            
+            self.status_bar.showMessage(_("Template editor opened"))
+            
+        except Exception as e:
+            from core.error_handler import ErrorCategory
+            self.error_handler.log_error(e, ErrorCategory.UI,
+                                       context=f"Opening template editor for {template_name}",
+                                       show_to_user=True, parent_widget=self)
+    
+    def on_refresh_context_requested(self, scene_id: int):
+        """Handle request to refresh narrative context for a scene."""
+        try:
+            # Get narrative context manager
+            project_path, _project_name = self.project_controller.get_current_project_info()
+            if not project_path:
+                self.status_bar.showMessage(_("No project loaded"))
+                return
+            
+            from core.llm.context.narrative_context import get_narrative_context_manager
+            narrative_manager = get_narrative_context_manager(Path(project_path))
+            
+            # Get existing context for the scene
+            existing_context = narrative_manager.get_context_for_scene(scene_id)
+            
+            if not existing_context:
+                self.status_bar.showMessage(_("No context to refresh"))
+                return
+            
+            # Show confirmation dialog
+            from PySide6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self,
+                _("Refresh Context"),
+                _("This will regenerate narrative context for this scene. Continue?"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # Trigger regeneration of the most recent context type
+                latest_context = max(existing_context, key=lambda x: x.get("updated_at", ""))
+                context_type = latest_context.get("context_type", "scene_summary")
+                
+                self.on_generate_context_requested(scene_id, context_type)
+                
+        except Exception as e:
+            from core.error_handler import ErrorCategory
+            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
+                                       context=f"Refreshing context for scene {scene_id}",
+                                       show_to_user=True, parent_widget=self)
+    
+    def on_view_context_requested(self, scene_id: int):
+        """Handle request to view generated context for a scene."""
+        try:
+            # Get narrative context manager
+            project_path, _project_name = self.project_controller.get_current_project_info()
+            if not project_path:
+                self.status_bar.showMessage(_("No project loaded"))
+                return
+            
+            from core.llm.context.narrative_context import get_narrative_context_manager
+            narrative_manager = get_narrative_context_manager(Path(project_path))
+            
+            # Get existing context for the scene
+            existing_context = narrative_manager.get_context_for_scene(scene_id)
+            
+            if not existing_context:
+                self.status_bar.showMessage(_("No context found for this scene"))
+                return
+            
+            # Show context in a dialog
+            from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QLabel, QDialogButtonBox
+            
+            dialog = QDialog(self)
+            dialog.setWindowTitle(_("Generated Context for Scene"))
+            dialog.setModal(True)
+            dialog.resize(600, 500)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Get scene info for title
+            managers = self.project_controller.get_current_managers()
+            scene_manager = managers.get('scene_manager')
+            scene = scene_manager.get_scene(scene_id) if scene_manager else None
+            scene_title = scene.get("title", _("Scene")) if scene else _("Scene")
+            
+            title_label = QLabel(f"📄 {_('Context for')}: {scene_title}")
+            title_label.setStyleSheet("font-weight: bold; font-size: 14pt; margin-bottom: 10px;")
+            layout.addWidget(title_label)
+            
+            # Context display area
+            context_text = QTextEdit()
+            context_text.setReadOnly(True)
+            
+            # Format and display all context entries
+            context_display = ""
+            for i, context in enumerate(existing_context):
+                context_type = context.get("context_type", _("Unknown"))
+                title = context.get("title", _("Untitled"))
+                content = context.get("content", "")
+                updated_at = context.get("updated_at", "")
+                
+                context_display += f"## {title}\n"
+                context_display += f"**{_('Type')}:** {context_type.replace('_', ' ').title()}\n"
+                if updated_at:
+                    context_display += f"**{_('Updated')}:** {updated_at}\n"
+                context_display += f"\n{content}\n"
+                
+                if i < len(existing_context) - 1:
+                    context_display += "\n" + "="*50 + "\n\n"
+            
+            context_text.setPlainText(context_display)
+            layout.addWidget(context_text)
+            
+            # Buttons
+            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+            button_box.rejected.connect(dialog.reject)
+            layout.addWidget(button_box)
+            
+            dialog.exec()
+            
+        except Exception as e:
+            from core.error_handler import ErrorCategory
+            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
+                                       context=f"Viewing context for scene {scene_id}",
+                                       show_to_user=True, parent_widget=self)
+    
+    def on_edit_context_requested(self, scene_id: int):
+        """Handle request to edit generated context for a scene."""
+        try:
+            # Get narrative context manager
+            project_path, _project_name = self.project_controller.get_current_project_info()
+            if not project_path:
+                self.status_bar.showMessage(_("No project loaded"))
+                return
+            
+            from core.llm.context.narrative_context import get_narrative_context_manager
+            narrative_manager = get_narrative_context_manager(Path(project_path))
+            
+            # Get existing context for the scene
+            existing_context = narrative_manager.get_context_for_scene(scene_id)
+            
+            if not existing_context:
+                self.status_bar.showMessage(_("No context found for this scene"))
+                return
+            
+            # Import the dialog class
+            from ui.widgets.narrative_context_panel import NarrativeContextDialog
+            
+            if len(existing_context) == 1:
+                # Single context entry - edit it directly
+                context_entry = existing_context[0]
+                dialog = NarrativeContextDialog(context_entry, self)
+                
+                if dialog.exec() == dialog.DialogCode.Accepted:
+                    # Get updated data from dialog
+                    updated_data = dialog.get_data()
+                    
+                    # Update the context entry
+                    success = narrative_manager.update_narrative_context(
+                        context_entry["id"],
+                        title=updated_data["title"],
+                        content=updated_data["content"],
+                        metadata=updated_data.get("metadata")
+                    )
+                    
+                    if success:
+                        # Handle active/inactive state
+                        if updated_data["is_active"] != context_entry.get("is_active", 1):
+                            if updated_data["is_active"]:
+                                narrative_manager.reactivate_context(context_entry["id"])
+                            else:
+                                narrative_manager.deactivate_context(context_entry["id"])
+                        
+                        # Refresh UI
+                        self.on_context_auto_saved(scene_id)  # Refresh scene tree
+                        if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
+                            self.narrative_context_panel.refresh_contexts()
+                        
+                        self.status_bar.showMessage(_("✓ Context updated successfully"))
+                    else:
+                        self.status_bar.showMessage(_("❌ Failed to update context"))
+                        
+            else:
+                # Multiple context entries - show selection dialog first
+                from PySide6.QtWidgets import QDialog, QVBoxLayout, QListWidget, QDialogButtonBox, QLabel
+                
+                selection_dialog = QDialog(self)
+                selection_dialog.setWindowTitle(_("Select Context to Edit"))
+                selection_dialog.setModal(True)
+                selection_dialog.resize(400, 300)
+                
+                layout = QVBoxLayout(selection_dialog)
+                layout.addWidget(QLabel(_("Multiple contexts found for this scene. Select one to edit:")))
+                
+                context_list = QListWidget()
+                for context in existing_context:
+                    title = context.get("title", _("Untitled"))
+                    context_type = context.get("context_type", "")
+                    item_text = f"{title} ({context_type})"
+                    context_list.addItem(item_text)
+                    context_list.item(context_list.count() - 1).setData(1, context)  # Store context data
+                
+                layout.addWidget(context_list)
+                
+                buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+                buttons.accepted.connect(selection_dialog.accept)
+                buttons.rejected.connect(selection_dialog.reject)
+                layout.addWidget(buttons)
+                
+                if selection_dialog.exec() == QDialog.DialogCode.Accepted and context_list.currentItem():
+                    selected_context = context_list.currentItem().data(1)
+                    
+                    # Open edit dialog for selected context
+                    dialog = NarrativeContextDialog(selected_context, self)
+                    
+                    if dialog.exec() == dialog.DialogCode.Accepted:
+                        # Get updated data from dialog
+                        updated_data = dialog.get_data()
+                        
+                        # Update the context entry
+                        success = narrative_manager.update_narrative_context(
+                            selected_context["id"],
+                            title=updated_data["title"],
+                            content=updated_data["content"],
+                            metadata=updated_data.get("metadata")
+                        )
+                        
+                        if success:
+                            # Handle active/inactive state
+                            if updated_data["is_active"] != selected_context.get("is_active", 1):
+                                if updated_data["is_active"]:
+                                    narrative_manager.reactivate_context(selected_context["id"])
+                                else:
+                                    narrative_manager.deactivate_context(selected_context["id"])
+                            
+                            # Refresh UI
+                            self.on_context_auto_saved(scene_id)  # Refresh scene tree
+                            if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
+                                self.narrative_context_panel.refresh_contexts()
+                            
+                            self.status_bar.showMessage(_("✓ Context updated successfully"))
+                        else:
+                            self.status_bar.showMessage(_("❌ Failed to update context"))
+            
+        except Exception as e:
+            from core.error_handler import ErrorCategory
+            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
+                                       context=f"Editing context for scene {scene_id}",
+                                       show_to_user=True, parent_widget=self)
+    
+    def on_context_auto_saved(self, scene_id: int):
+        """Handle auto-saved context to refresh scene tree icons."""
+        try:
+            # Refresh the specific scene in the project tree
+            managers = self.project_controller.get_current_managers()
+            scene_manager = managers.get('scene_manager')
+            if scene_manager:
+                scenes = scene_manager.list_scenes()
+                self.project_tree.load_scenes(scenes)
+            
+            # Also refresh the narrative context panel
+            if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
+                self.narrative_context_panel.refresh_contexts()
+            
+            self.status_bar.showMessage(_("✓ Context automatically saved and linked to scene"))
+            self.logger.info(f"Context auto-saved for scene {scene_id}")
+            
+        except Exception as e:
+            from core.error_handler import ErrorCategory
+            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
+                                       context=f"Auto-saving context for scene {scene_id}",
+                                       show_to_user=True, parent_widget=self)
 
 
 def main():

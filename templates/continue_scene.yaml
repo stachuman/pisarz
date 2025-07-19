@@ -1,0 +1,87 @@
+context_config:
+  default_context_length: 44800
+  include_characters: true
+  include_locations: true
+  include_project_info: false
+  max_context_chars: 64000
+  scene_summary_length: 19200
+  scene_summary_source: scene_beginning
+  selection_priority: true
+  use_selection: true
+  word_boundary_trim: true
+format_version: '2.0'
+llm_params:
+  custom_params: {}
+  max_tokens: 32000
+  repeat_penalty: 1.05
+  temperature: 0.8
+  top_k: 50
+  top_p: 0.95
+metadata:
+  author: System
+  category: writing
+  created_date: null
+  description: Continue writing the current scene with enhanced context and parameters
+  modified_date: null
+  name: Continue Scene (Enhanced)
+  tags:
+  - writing
+  - continuation
+  - scene
+  template_id: continue_scene
+  version: '2.0'
+template_content: '{% if has_selection %}
+
+  Kontynuuj tę historię na podstawie zaznaczonego fragmentu:
+
+  "{{ selected_text }}"
+
+
+  {% if scene_summary and scene_summary != selected_text %}
+
+  Kontekst sceny:
+
+  {{ scene_summary }}
+
+  {% endif %}
+
+  {% else %}
+
+  Kontynuuj tę scenę:
+
+  {{ current_text }}
+
+
+  {% if scene_summary and scene_summary != current_text %}
+
+  Pełny kontekst sceny:
+
+  {{ scene_summary }}
+
+  {% endif %}
+
+  {% endif %}
+
+
+  {% if characters %}
+
+  Postacie w scenie: {{ characters|join('', '') }}
+
+  {% endif %}
+
+
+  {% if locations %}
+
+  Lokalizacje: {{ locations|join('', '') }}
+
+  {% endif %}
+
+
+  Napisz naturalną kontynuację (2-3 akapity), zachowując styl i ton tekstu:'
+ui_config:
+  allow_context_editing: false
+  auto_apply_selection: true
+  confirm_before_execution: false
+  preview_length: 150
+  show_context_preview: true
+  show_params_editor: true

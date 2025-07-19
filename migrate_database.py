@@ -21,13 +21,14 @@ from contextlib import contextmanager
 
 
 # Database schema versions and migration steps
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 6
 MIGRATION_STEPS = {
     1: "Add comprehensive character fields",
     2: "Add scene_characters role column and performance indexes",
     3: "Add locations and plot threads with tri-directional linking",
     4: "Add FTS5 full-text search tables and triggers",
-    5: "Add project attributes and metadata fields"
+    5: "Add project attributes and metadata fields",
+    6: "Add scene timestamp tracking for narrative context freshness"
 }
 
 
@@ -543,6 +544,53 @@ def migrate_to_version_5(db_path: Path) -> bool:
         return False
 
 
+def migrate_to_version_6(db_path: Path) -> bool:
+    """Migrate database to version 6: Add scene timestamp tracking for narrative context freshness."""
+    print(f"  Migrating to version 6: Adding scene timestamp tracking...")
+    
+    try:
+        with get_db_connection(db_path) as conn:
+            # Get existing columns in scenes table
+            existing_columns = get_table_columns(conn, 'scenes')
+            print(f"    Existing scenes columns: {sorted(existing_columns)}")
+            
+            # Define new timestamp columns for scenes
+            new_columns = {
+                'created_at': 'TEXT DEFAULT (datetime(\'now\'))',
+                'modified_at': 'TEXT DEFAULT (datetime(\'now\'))'
+            }
+            
+            # Add missing timestamp columns
+            columns_added = 0
+            for column_name, column_type in new_columns.items():
+                if column_name not in existing_columns:
+                    try:
+                        alter_query = f"ALTER TABLE scenes ADD COLUMN {column_name} {column_type}"
+                        conn.execute(alter_query)
+                        print(f"    ✓ Added column '{column_name}' to scenes table")
+                        columns_added += 1
+                    except sqlite3.OperationalError as e:
+                        print(f"    ✗ Failed to add column '{column_name}' to scenes: {e}")
+                        return False
+            
+            if columns_added == 0:
+                print(f"    All scene timestamp columns already exist")
+            else:
+                print(f"    Added {columns_added} new timestamp columns to scenes table")
+            
+            # Set created_at and modified_at to current time for existing scenes that don't have timestamps
+            conn.execute("UPDATE scenes SET created_at = datetime('now') WHERE created_at IS NULL")
+            conn.execute("UPDATE scenes SET modified_at = datetime('now') WHERE modified_at IS NULL")
+            print(f"    ✓ Initialized timestamps for existing scenes")
+            
+            conn.commit()
+            return True
+            
+    except sqlite3.Error as e:
+        print(f"    Error during version 6 migration: {e}")
+        return False
+
+
 def validate_schema_integrity(db_path: Path) -> bool:
     """Validate that the database schema matches its reported version."""
     try:
@@ -587,6 +635,16 @@ def validate_schema_integrity(db_path: Path) -> bool:
                     missing_columns = [col for col in required_project_columns if col not in projects_columns]
                     if missing_columns:
                         print(f"  ⚠ Schema validation failed: Missing project columns {missing_columns} for version {version}")
+                        return False
+            
+            # For version 6+, scenes table must have timestamp columns
+            if version >= 6:
+                if table_exists(conn, 'scenes'):
+                    scenes_columns = get_table_columns(conn, 'scenes')
+                    required_scene_columns = ['created_at', 'modified_at']
+                    missing_columns = [col for col in required_scene_columns if col not in scenes_columns]
+                    if missing_columns:
+                        print(f"  ⚠ Schema validation failed: Missing scene timestamp columns {missing_columns} for version {version}")
                         return False
             
             return True
@@ -648,6 +706,8 @@ def migrate_database(db_path: Path, force: bool = False) -> bool:
             success = migrate_to_version_4(db_path)
         elif version == 5:
             success = migrate_to_version_5(db_path)
+        elif version == 6:
+            success = migrate_to_version_6(db_path)
         else:
             print(f"    Error: Unknown migration version {version}")
             success = False

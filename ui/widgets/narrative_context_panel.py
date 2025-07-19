@@ -377,7 +377,7 @@ class NarrativeContextPanel(QWidget):
                     _("Failed to add context: {}").format(str(e))
                 )
     
-    def add_context_from_text(self, text: str) -> bool:
+    def add_context_from_text(self, text: str, context_type: str = "ai_response", scene_id: Optional[int] = None) -> bool:
         """Add a new context entry from AI response text."""
         if not self.context_manager:
             return False
@@ -389,11 +389,12 @@ class NarrativeContextPanel(QWidget):
             if len(title) > 50:
                 title = title[:47] + "..."
             
-            # Create the context entry
+            # Create the context entry with proper type and scene linkage
             context_id = self.context_manager.create_narrative_context(
-                context_type="ai_response",
+                context_type=context_type,
                 title=title,
-                content=text
+                content=text,
+                scene_id=scene_id
             )
             
             self.refresh_contexts()

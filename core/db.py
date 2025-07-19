@@ -82,6 +82,8 @@ def _ensure_all_tables(db_path: Path) -> None:
                 title      TEXT NOT NULL,
                 content_rtf TEXT,
                 ord        INTEGER,
+                created_at TEXT DEFAULT (datetime('now')),
+                modified_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY(project_id) REFERENCES projects(id)
             );
             
@@ -246,6 +248,28 @@ def _ensure_all_tables(db_path: Path) -> None:
             CREATE INDEX IF NOT EXISTS idx_llm_cache_expires ON llm_cache (expires_at);
             CREATE INDEX IF NOT EXISTS idx_llm_conversations_project ON llm_conversations (project_id);
             CREATE INDEX IF NOT EXISTS idx_llm_conversations_scene ON llm_conversations (scene_id);
+            
+            -- Narrative context table for story continuity
+            CREATE TABLE IF NOT EXISTS narrative_context (
+                id INTEGER PRIMARY KEY,
+                project_id INTEGER NOT NULL,
+                scene_id INTEGER,
+                context_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                metadata TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now')),
+                is_active INTEGER DEFAULT 1,
+                FOREIGN KEY(project_id) REFERENCES projects(id),
+                FOREIGN KEY(scene_id) REFERENCES scenes(id)
+            );
+            
+            -- Indexes for narrative context
+            CREATE INDEX IF NOT EXISTS idx_narrative_context_project_id ON narrative_context(project_id);
+            CREATE INDEX IF NOT EXISTS idx_narrative_context_type ON narrative_context(context_type);
+            CREATE INDEX IF NOT EXISTS idx_narrative_context_active ON narrative_context(is_active);
+            CREATE INDEX IF NOT EXISTS idx_narrative_context_scene ON narrative_context(scene_id);
         """)
         
         # Create FTS5 virtual tables for search functionality
@@ -255,7 +279,7 @@ def _ensure_all_tables(db_path: Path) -> None:
 
 
 # Current schema version - increment when making schema changes
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 6
 
 def _set_initial_schema_version(db_path: Path) -> None:
     """Set the schema version for a newly created database."""

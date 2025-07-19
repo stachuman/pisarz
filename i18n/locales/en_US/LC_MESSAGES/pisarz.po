@@ -1033,5 +1033,66 @@ msgstr "No editor active"
 msgid "Execute"
 msgstr "Execute"
 
-msgid "Processing..."
-msgstr "Processing..."
+# Narrative Context Features
+msgid "Generated Context for Scene"
+msgstr "Generated Context for Scene"
+
+msgid "No context found for this scene"
+msgstr "No context found for this scene"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Updated"
+msgstr "Updated"
+
+msgid "Scene Summary"
+msgstr "Scene Summary"
+
+msgid "Context Continuation"
+msgstr "Context Continuation"
+
+msgid "Scene Expansion"
+msgstr "Scene Expansion"
+
+msgid "Dialogue Enhancement"
+msgstr "Dialogue Enhancement"
+
+msgid "Scene Rewrite"
+msgstr "Scene Rewrite"
+
+msgid "AI Generated Context"
+msgstr "AI Generated Context"
+
+msgid "Last modified"
+msgstr "Last modified"
+
+msgid "Narrative context is up to date"
+msgstr "Narrative context is up to date"
+
+msgid "Narrative context needs refresh"
+msgstr "Narrative context needs refresh"
+
+msgid "No narrative context available"
+msgstr "No narrative context available"
+
+msgid "Continue with Context"
+msgstr "Continue with Context"
+
+msgid "Expand Scene"
+msgstr "Expand Scene"
+
+msgid "Rewrite Scene"
+msgstr "Rewrite Scene"
+
+msgid "📄 View Generated Context"
+msgstr "📄 View Generated Context"
+
+msgid "✓ Context automatically saved and linked"
+msgstr "✓ Context automatically saved and linked"
+
+msgid "✅ Context automatically saved and linked to scene"
+msgstr "✅ Context automatically saved and linked to scene"
+
+msgid "Context for"
+msgstr "Context for"

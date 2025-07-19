@@ -122,7 +122,8 @@ class LLMService:
             llm_params = template_manager.get_template_llm_params(task_id)
             
             # Generate response with template-specific parameters
-            response = self.provider.generate(prompt, **llm_params)
+            raw_response = self.provider.generate(prompt, **llm_params)
+            response = self._clean_response(raw_response)
             
             self.logger.info(f"Task {task_id} completed successfully")
             return response
@@ -130,6 +131,26 @@ class LLMService:
         except Exception as e:
             self.logger.error(f"Error executing task {task_id}: {e}")
             raise
+    
+    def _clean_response(self, response: str) -> str:
+        """Clean LLM response by removing think tags and formatting artifacts."""
+        import re
+        
+        # Remove <think>...</think> blocks (case insensitive, multiline)
+        response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Remove any remaining think tag artifacts
+        response = re.sub(r'</?think[^>]*>', '', response, flags=re.IGNORECASE)
+        
+        # Remove excessive whitespace and normalize line breaks
+        response = re.sub(r'\n\s*\n\s*\n+', '\n\n', response)
+        response = response.strip()
+        
+        # If response is empty after cleaning, return a placeholder
+        if not response:
+            response = _("Generated response was empty after processing.")
+        
+        return response
     
     def _generate_enhanced_prompt(self, task_id: str, context: Dict[str, Any]) -> str:
         """

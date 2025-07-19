@@ -396,6 +396,9 @@ class LLMAssistantPanel(QWidget):
     # Signal for requesting text insertion into document
     insertTextRequested = Signal(str)
     
+    # Signal for context auto-save completion
+    contextAutoSaved = Signal(int)  # scene_id
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.logger = get_logger("llm.assistant_panel")
@@ -403,6 +406,11 @@ class LLMAssistantPanel(QWidget):
         self.task_thread: Optional[LLMTaskThread] = None
         self.current_scene_id: Optional[int] = None
         self.current_scene_content: str = ""
+        self.additional_context: Dict[str, Any] = {}
+        
+        # Auto-save context info
+        self.auto_save_scene_id: Optional[int] = None
+        self.auto_save_template_name: Optional[str] = None
         
         self.setup_ui()
         self.setup_connections()
@@ -708,6 +716,7 @@ class LLMAssistantPanel(QWidget):
         """Set the current scene context."""
         self.current_scene_id = scene_id
         self.current_scene_content = content
+        self.additional_context = {}  # Reset additional context when scene changes
         self.logger.debug(f"Scene context set: ID={scene_id}, content length={len(content)}")
         
         # Update status to show context is available
@@ -716,8 +725,22 @@ class LLMAssistantPanel(QWidget):
         else:
             self.update_status(_("Ready - No scene content"), "warning")
     
+    def set_additional_context(self, context_data: dict):
+        """Set additional context data (characters, locations, etc.)."""
+        self.additional_context = context_data or {}
+        self.logger.debug(f"Additional context set: {list(self.additional_context.keys())}")
+    
+    def set_auto_save_context_info(self, scene_id: int, template_name: str):
+        """Set auto-save context info for automatic saving after task completion."""
+        self.auto_save_scene_id = scene_id
+        self.auto_save_template_name = template_name
+        self.logger.info(f"Auto-save context info set: scene_id={scene_id}, template={template_name}")
+        self.logger.info(f"Current auto-save state: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+    
     def execute_task(self, task_id: str):
         """Execute an LLM task."""
+        self.logger.info(f"Starting execute_task with task_id='{task_id}', current auto-save: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+        
         if not self.llm_controller:
             self.show_error(_("Error"), _("LLM controller not initialized"))
             return
@@ -838,13 +861,20 @@ class LLMAssistantPanel(QWidget):
             'selected_text': selected_text,
             'current_text': current_selection_text,
             'scene_id': self.current_scene_id,
-            'project_name': 'Current Project',  # TODO: Get actual project name
+            'project_name': self.additional_context.get('project_name', 'Current Project'),
             'has_selection': bool(selected_text.strip()),
-            'characters': [],  # TODO: Get actual characters from scene
-            'locations': []    # TODO: Get actual locations from scene
+            'characters': self.additional_context.get('characters', []),
+            'locations': self.additional_context.get('locations', []),
+            'character_count': self.additional_context.get('character_count', 0),
+            'location_count': self.additional_context.get('location_count', 0)
         }
         
-        self.logger.debug(f"Built basic context: scene_content={len(text_content)} chars, has_selection={context['has_selection']}")
+        # Add any other additional context data
+        for key, value in self.additional_context.items():
+            if key not in context:  # Don't override existing keys
+                context[key] = value
+        
+        self.logger.debug(f"Built enhanced context: scene_content={len(text_content)} chars, has_selection={context['has_selection']}, characters={len(context['characters'])}, locations={len(context['locations'])}")
         return context
     
     def set_task_executing(self, task_id: str, executing: bool):
@@ -910,14 +940,26 @@ class LLMAssistantPanel(QWidget):
     def on_response_ready(self, task_id: str, response: str):
         """Handle LLM response ready."""
         self.logger.info(f"Response ready for task: {task_id}")
+        self.logger.info(f"Response length: {len(response)} characters")
+        self.logger.info(f"Auto-save state when response ready: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
         
         # Update response area
         self.response_area.set_response(response)
+        
+        # Auto-save to narrative context if context info is set
+        self.logger.debug(f"Checking auto-save conditions: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+        if self.auto_save_scene_id is not None and self.auto_save_template_name is not None:
+            self.logger.info("Auto-save conditions met, starting auto-save process")
+            self._auto_save_to_narrative_context(response)
+        else:
+            self.logger.warning(f"Auto-save conditions not met: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
         
         # Reset task state
         self.set_task_executing(task_id, False)
         self.update_status(_("✅ Response ready"), "success")
         self.progress_bar.setVisible(False)
+        
+        self.logger.info(f"Task {task_id} completed. Final auto-save state: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
     
     def on_error(self, task_id: str, error_message: str):
         """Handle LLM error."""
@@ -957,6 +999,84 @@ class LLMAssistantPanel(QWidget):
         """Handle task thread error."""
         self.on_error(task_id, error_message)
     
+    def _auto_save_to_narrative_context(self, response: str):
+        """Automatically save response to narrative context with scene linkage."""
+        try:
+            self.logger.info(f"Starting auto-save: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+            
+            # Get the narrative context manager directly
+            from PySide6.QtWidgets import QApplication
+            from core.llm.context.narrative_context import get_narrative_context_manager
+            from pathlib import Path
+            
+            # Get main window for project path
+            main_window = QApplication.instance().activeWindow()
+            if not main_window:
+                self.logger.error("No active window found for auto-save")
+                return
+                
+            # Get project path from main window
+            if not hasattr(main_window, 'project_controller'):
+                self.logger.error("No project controller found for auto-save")
+                return
+                
+            project_path, _project_name = main_window.project_controller.get_current_project_info()
+            if not project_path:
+                self.logger.error("No current project path for auto-save")
+                return
+                
+            # Get narrative context manager directly
+            context_manager = get_narrative_context_manager(Path(project_path))
+            if not context_manager:
+                self.logger.error("Failed to get narrative context manager for auto-save")
+                return
+            
+            # Generate a title based on template name and first line of response
+            template_title_map = {
+                "scene_summary": _("Scene Summary"),
+                "continue_with_context": _("Context Continuation"), 
+                "expand_scene": _("Scene Expansion"),
+                "dialogue_enhancement": _("Dialogue Enhancement"),
+                "rewrite_scene": _("Scene Rewrite")
+            }
+            
+            base_title = template_title_map.get(self.auto_save_template_name, _("AI Generated Context"))
+            
+            # Create more descriptive title with scene info
+            scene_title = self.additional_context.get("scene_title", _("Scene"))
+            full_title = f"{base_title}: {scene_title}"
+            
+            # Create the context entry with scene linkage, replacing any existing context of this type
+            context_id = context_manager.replace_scene_context(
+                scene_id=self.auto_save_scene_id,
+                context_type=self.auto_save_template_name,
+                title=full_title,
+                content=response,
+                metadata={
+                    "auto_generated": True,
+                    "template_name": self.auto_save_template_name,
+                    "source": "llm_assistant_panel"
+                }
+            )
+            
+            if context_id:
+                self.logger.info(f"Auto-saved context to database: scene_id={self.auto_save_scene_id}, context_id={context_id}")
+                
+                # Emit signal to refresh UI
+                self.contextAutoSaved.emit(self.auto_save_scene_id)
+                
+                # Clear auto-save info to prevent duplicate saves
+                self.auto_save_scene_id = None
+                self.auto_save_template_name = None
+                
+                # Update status
+                self.update_status(_("✅ Context automatically saved and linked"), "success")
+            else:
+                self.logger.error("Failed to auto-save context to database")
+                
+        except Exception as e:
+            self.logger.error(f"Error during auto-save to narrative context: {e}")
+    
     def copy_response(self):
         """Copy response to clipboard."""
         text = self.response_area.response_text.toPlainText()
@@ -985,8 +1105,12 @@ class LLMAssistantPanel(QWidget):
             from PySide6.QtWidgets import QApplication
             main_window = QApplication.instance().activeWindow()
             if hasattr(main_window, 'narrative_context_panel'):
-                # Add the text as a new context entry
-                success = main_window.narrative_context_panel.add_context_from_text(text)
+                # Add the text as a new context entry with proper context type and scene linkage
+                success = main_window.narrative_context_panel.add_context_from_text(
+                    text, 
+                    context_type=self.auto_save_template_name or "ai_response",
+                    scene_id=self.current_scene_id
+                )
                 if success:
                     self.update_status(_("📚 Added to Narrative Context"), "success")
                     # Show the narrative context panel if it's hidden

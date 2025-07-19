@@ -28,59 +28,9 @@ class NarrativeContextManager:
         if not self.db_path.exists():
             raise ValueError(_("Project database not found"))
         
-        # Ensure narrative context table exists
-        self._ensure_narrative_context_table()
+        # Note: narrative_context table is created by the main database schema in db.py
         
         self.logger.info(_("Narrative context manager initialized"))
-    
-    def _ensure_narrative_context_table(self):
-        """Ensure the narrative_context table exists."""
-        try:
-            # Check if table exists
-            existing_tables = execute_query(
-                self.db_path,
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='narrative_context'"
-            )
-            
-            if not existing_tables:
-                # Create narrative context table
-                create_table_sql = """
-                CREATE TABLE narrative_context (
-                    id INTEGER PRIMARY KEY,
-                    project_id INTEGER NOT NULL,
-                    scene_id INTEGER,
-                    context_type TEXT NOT NULL,
-                    title TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    metadata TEXT,
-                    created_at TEXT DEFAULT (datetime('now')),
-                    updated_at TEXT DEFAULT (datetime('now')),
-                    is_active INTEGER DEFAULT 1,
-                    FOREIGN KEY(project_id) REFERENCES projects(id),
-                    FOREIGN KEY(scene_id) REFERENCES scenes(id)
-                )
-                """
-                
-                execute_query(self.db_path, create_table_sql)
-                
-                # Create index for faster queries
-                execute_query(
-                    self.db_path,
-                    "CREATE INDEX idx_narrative_context_project_id ON narrative_context(project_id)"
-                )
-                execute_query(
-                    self.db_path,
-                    "CREATE INDEX idx_narrative_context_type ON narrative_context(context_type)"
-                )
-                execute_query(
-                    self.db_path,
-                    "CREATE INDEX idx_narrative_context_active ON narrative_context(is_active)"
-                )
-                
-                self.logger.info(_("Narrative context table created"))
-            
-        except Exception as e:
-            self.logger.error(_("Failed to ensure narrative context table: {}").format(str(e)))
     
     def create_narrative_context(self, context_type: str, title: str, content: str, 
                                 scene_id: Optional[int] = None, 
@@ -291,6 +241,104 @@ class NarrativeContextManager:
         except Exception as e:
             self.logger.error(_("Failed to get context for scene: {}").format(str(e)))
             return []
+    
+    def deactivate_scene_context(self, scene_id: int, context_type: Optional[str] = None) -> bool:
+        """
+        Deactivate all context entries for a scene, optionally filtered by type.
+        
+        Args:
+            scene_id: ID of the scene
+            context_type: Optional filter by context type
+            
+        Returns:
+            True if successful
+        """
+        try:
+            if context_type:
+                execute_update(
+                    self.db_path,
+                    """UPDATE narrative_context 
+                       SET is_active = 0, updated_at = datetime('now') 
+                       WHERE scene_id = ? AND context_type = ? AND is_active = 1""",
+                    (scene_id, context_type)
+                )
+                self.logger.debug(_("Deactivated context type '{}' for scene {}").format(context_type, scene_id))
+            else:
+                execute_update(
+                    self.db_path,
+                    """UPDATE narrative_context 
+                       SET is_active = 0, updated_at = datetime('now') 
+                       WHERE scene_id = ? AND is_active = 1""",
+                    (scene_id,)
+                )
+                self.logger.debug(_("Deactivated all context for scene {}").format(scene_id))
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(_("Failed to deactivate scene context: {}").format(str(e)))
+            return False
+    
+    def replace_scene_context(self, scene_id: int, context_type: str, title: str, 
+                            content: str, metadata: Optional[Dict[str, Any]] = None) -> int:
+        """
+        Replace all context of a specific type for a scene with new context.
+        
+        Args:
+            scene_id: ID of the scene
+            context_type: Type of context to replace
+            title: Title for new context
+            content: Content for new context
+            metadata: Optional metadata
+            
+        Returns:
+            ID of the newly created context entry
+        """
+        try:
+            # First, deactivate existing context of this type for the scene
+            self.deactivate_scene_context(scene_id, context_type)
+            
+            # Then create new context
+            context_id = self.create_narrative_context(
+                context_type=context_type,
+                title=title,
+                content=content,
+                scene_id=scene_id,
+                metadata=metadata
+            )
+            
+            self.logger.debug(_("Replaced context type '{}' for scene {} with new context {}").format(
+                context_type, scene_id, context_id))
+            
+            return context_id
+            
+        except Exception as e:
+            self.logger.error(_("Failed to replace scene context: {}").format(str(e)))
+            raise
+    
+    def reactivate_context(self, context_id: int) -> bool:
+        """
+        Reactivate a previously deactivated context entry.
+        
+        Args:
+            context_id: ID of the context to reactivate
+            
+        Returns:
+            True if successful
+        """
+        try:
+            execute_update(
+                self.db_path,
+                "UPDATE narrative_context SET is_active = 1, updated_at = datetime('now') WHERE id = ?",
+                (context_id,)
+            )
+            
+            self.logger.debug(_("Reactivated narrative context: {}").format(context_id))
+            return True
+            
+        except Exception as e:
+            self.logger.error(_("Failed to reactivate narrative context: {}").format(str(e)))
+            return False
     
     def build_context_summary(self, max_length: int = 2000) -> str:
         """

@@ -40,10 +40,10 @@ class SceneManager:
         )
         next_ord = max_ord_data[0]["max_ord"] + 1 if max_ord_data else 1
         
-        # Insert new scene
+        # Insert new scene with timestamps
         scene_id = execute_insert(
             self.db_path,
-            "INSERT INTO scenes (project_id, title, content_rtf, ord) VALUES (?, ?, ?, ?)",
+            "INSERT INTO scenes (project_id, title, content_rtf, ord, created_at, modified_at) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))",
             (project_id, title.strip(), content_rtf, next_ord)
         )
         
@@ -53,7 +53,7 @@ class SceneManager:
         """List all scenes in the project ordered by ord."""
         return execute_query(
             self.db_path,
-            """SELECT id, title, content_rtf, ord 
+            """SELECT id, title, content_rtf, ord, created_at, modified_at 
                FROM scenes s 
                WHERE project_id = (SELECT id FROM projects LIMIT 1)
                ORDER BY ord ASC"""
@@ -63,7 +63,7 @@ class SceneManager:
         """Get a specific scene by ID."""
         scenes = execute_query(
             self.db_path,
-            "SELECT id, title, content_rtf, ord FROM scenes WHERE id = ?",
+            "SELECT id, title, content_rtf, ord, created_at, modified_at FROM scenes WHERE id = ?",
             (scene_id,)
         )
         return scenes[0] if scenes else None
@@ -74,20 +74,28 @@ class SceneManager:
         if not scene:
             return False
         
+        updates = []
+        params = []
+        
         if title is not None:
             if not title.strip():
                 raise ValueError(_("Scene title cannot be empty"))
-            execute_update(
-                self.db_path,
-                "UPDATE scenes SET title = ? WHERE id = ?",
-                (title.strip(), scene_id)
-            )
+            updates.append("title = ?")
+            params.append(title.strip())
         
         if content_rtf is not None:
+            updates.append("content_rtf = ?")
+            params.append(content_rtf)
+        
+        # Always update modified_at when making changes
+        if updates:
+            updates.append("modified_at = datetime('now')")
+            params.append(scene_id)
+            
             execute_update(
                 self.db_path,
-                "UPDATE scenes SET content_rtf = ? WHERE id = ?",
-                (content_rtf, scene_id)
+                f"UPDATE scenes SET {', '.join(updates)} WHERE id = ?",
+                tuple(params)
             )
         
         return True

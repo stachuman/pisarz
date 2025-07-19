@@ -2,11 +2,14 @@
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                               QTreeWidget, QTreeWidgetItem, QPushButton, 
-                              QInputDialog, QMessageBox)
+                              QInputDialog, QMessageBox, QMenu)
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QPen
+from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QPen, QAction
+from datetime import datetime
+from typing import Optional
 
 from ..styles.styles import HEADER_COLOR, NEW_SCENE_BUTTON_STYLE
+from core.logging_config import get_logger
 from i18n import _
 
 
@@ -27,10 +30,19 @@ class ProjectTreeView(QWidget):
     backToProjectsRequested = Signal()
     projectPropertiesRequested = Signal()
     
+    # Context menu signals
+    generateContextRequested = Signal(int, str)     # scene_id, template_name
+    editTemplateRequested = Signal(str)             # template_name
+    refreshContextRequested = Signal(int)           # scene_id
+    viewContextRequested = Signal(int)              # scene_id
+    editContextRequested = Signal(int)              # scene_id
+    
     def __init__(self, project_name="", parent=None):
         super().__init__(parent)
         self.project_name = project_name
         self.project_title_label = None
+        self.logger = get_logger(__name__)
+        self.narrative_context_manager = None  # Will be set externally
         self.setup_ui()
         
     def setup_ui(self):
@@ -92,6 +104,8 @@ class ProjectTreeView(QWidget):
         self.tree.setHeaderHidden(True)
         self.tree.setFont(QFont("Arial", 11))  # Większa czcionka dla drzewka
         self.tree.itemClicked.connect(self._on_item_clicked)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._on_context_menu_requested)
         layout.addWidget(self.tree)
         
         # Przyciski akcji
@@ -248,9 +262,20 @@ class ProjectTreeView(QWidget):
             painter.setBrush(text_color)
             painter.drawRect(door_x, door_y, door_width, door_height)
             
-        elif icon_type == "scene":
-            # Strona dokumentu z zagniętym rogiem
-            painter.setBrush(main_color)
+        elif icon_type in ["scene", "scene_fresh", "scene_stale", "scene_no_context"]:
+            # Strona dokumentu z zagniętym rogiem - with context status
+            
+            # Determine color based on context status
+            if icon_type == "scene_fresh":
+                status_color = QColor("#27ae60")  # Green - up to date
+            elif icon_type == "scene_stale":
+                status_color = QColor("#f39c12")  # Orange - needs refresh
+            elif icon_type == "scene_no_context":
+                status_color = QColor("#e74c3c")  # Red - no context
+            else:
+                status_color = main_color  # Default blue
+            
+            painter.setBrush(status_color)
             
             # Główny dokument
             main_doc = rect.adjusted(0, 0, -3, 0)
@@ -273,6 +298,15 @@ class ProjectTreeView(QWidget):
             painter.setPen(QPen(text_color, 1))
             text_y = rect.center().y()
             painter.drawLine(rect.left() + 2, text_y, rect.right() - corner_size - 1, text_y)
+            
+            # Add status indicator dot in bottom right
+            if icon_type != "scene":
+                painter.setBrush(status_color)
+                painter.setPen(QPen(status_color, 1))
+                dot_size = 4
+                dot_x = rect.right() - dot_size - 1
+                dot_y = rect.bottom() - dot_size - 1
+                painter.drawEllipse(dot_x, dot_y, dot_size, dot_size)
             
         elif icon_type == "search":
             # Lupa (magnifying glass)
@@ -348,6 +382,61 @@ class ProjectTreeView(QWidget):
         self.locations_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "category", "category": "locations"})
         self.tree.addTopLevelItem(self.locations_item)
         self.locations_item.setExpanded(True)
+    
+    def set_narrative_context_manager(self, manager):
+        """Set the narrative context manager for checking context freshness."""
+        self.narrative_context_manager = manager
+    
+    def _get_scene_context_status(self, scene: dict) -> str:
+        """Determine the narrative context status for a scene."""
+        if not self.narrative_context_manager:
+            return "scene"  # Default if no context manager
+        
+        scene_id = scene.get("id")
+        scene_modified = scene.get("modified_at")
+        
+        if not scene_id or not scene_modified:
+            return "scene"
+        
+        try:
+            # Check if there's any narrative context for this scene
+            context_entries = self.narrative_context_manager.get_context_for_scene(scene_id)
+            
+            if not context_entries:
+                return "scene_no_context"  # No context exists
+            
+            # Parse scene modified time (SQLite format: 'YYYY-MM-DD HH:MM:SS')
+            try:
+                if 'T' in scene_modified:
+                    scene_modified_dt = datetime.fromisoformat(scene_modified.replace('Z', '+00:00'))
+                else:
+                    # SQLite datetime format
+                    scene_modified_dt = datetime.strptime(scene_modified, '%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                self.logger.warning(f"Invalid scene modified_at format: {scene_modified}")
+                return "scene"
+            
+            # Check if any context is newer than scene modification
+            for entry in context_entries:
+                if entry.get("updated_at"):
+                    try:
+                        context_updated_str = entry["updated_at"]
+                        if 'T' in context_updated_str:
+                            context_updated = datetime.fromisoformat(context_updated_str.replace('Z', '+00:00'))
+                        else:
+                            # SQLite datetime format
+                            context_updated = datetime.strptime(context_updated_str, '%Y-%m-%d %H:%M:%S')
+                    except (ValueError, TypeError):
+                        self.logger.warning(f"Invalid context updated_at format: {context_updated_str}")
+                        continue
+                    if context_updated >= scene_modified_dt:
+                        return "scene_fresh"  # Context is up to date
+            
+            return "scene_stale"  # Context exists but is stale
+            
+        except Exception as e:
+            self.logger.warning(f"Error checking scene context status: {e}")
+            return "scene"  # Default on error
         
     def load_scenes(self, scenes, preserve_selection=True):
         """Załaduj sceny do drzewka."""
@@ -360,12 +449,32 @@ class ProjectTreeView(QWidget):
         self.scenes_item.takeChildren()
         
         for scene in scenes:
+            # Determine context status and appropriate icon
+            context_status = self._get_scene_context_status(scene)
+            
             scene_item = QTreeWidgetItem([scene.get("title", "Bez tytułu")])
-            scene_item.setIcon(0, self._create_icon("scene"))
+            scene_item.setIcon(0, self._create_icon(context_status))
+            
+            # Enhanced tooltip with context information
+            tooltip = f"{_('Scene')}: {scene.get('title', _('Untitled'))}"
+            if scene.get("modified_at"):
+                tooltip += f"\n{_('Last modified')}: {scene['modified_at']}"
+            
+            if context_status == "scene_fresh":
+                tooltip += f"\n✓ {_('Narrative context is up to date')}"
+            elif context_status == "scene_stale":
+                tooltip += f"\n⚠ {_('Narrative context needs refresh')}"
+            elif context_status == "scene_no_context":
+                tooltip += f"\n⚠ {_('No narrative context available')}"
+                
+            scene_item.setToolTip(0, tooltip)
+            
             scene_item.setData(0, Qt.ItemDataRole.UserRole, {
                 "type": "scene", 
                 "id": scene["id"], 
-                "title": scene.get("title", "Scena")
+                "title": scene.get("title", "Scena"),
+                "context_status": context_status,
+                "modified_at": scene.get("modified_at")
             })
             self.scenes_item.addChild(scene_item)
             
@@ -502,6 +611,79 @@ class ProjectTreeView(QWidget):
             self.characterSelected.emit(data["id"], data["name"])
         elif data.get("type") == "location":
             self.locationSelected.emit(data["id"], data["name"])
+    
+    def _on_context_menu_requested(self, position):
+        """Handle right-click context menu requests."""
+        item = self.tree.itemAt(position)
+        if not item:
+            return
+        
+        data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not data or data.get("type") != "scene":
+            return
+        
+        scene_id = data.get("id")
+        scene_title = data.get("title", "Scene")
+        context_status = data.get("context_status", "scene")
+        
+        # Re-check the context status in real-time to get the most current status
+        if self.narrative_context_manager:
+            # Get fresh scene data for status check
+            fresh_scene_data = {"id": scene_id, "title": scene_title, "modified_at": data.get("modified_at")}
+            context_status = self._get_scene_context_status(fresh_scene_data)
+        
+        # Create context menu
+        menu = QMenu(self)
+        
+        # Generate Context submenu
+        generate_menu = QMenu(_("Generate Context with Template"), self)
+        
+        # Add common narrative context templates (using actual template files)
+        templates = [
+            ("scene_summary", _("Scene Summary")),
+            ("continue_with_context", _("Continue with Context")),
+            ("expand_scene", _("Expand Scene")), 
+            ("dialogue_enhancement", _("Dialogue Enhancement")),
+            ("rewrite_scene", _("Rewrite Scene"))
+        ]
+        
+        for template_key, template_name in templates:
+            action = QAction(template_name, self)
+            action.triggered.connect(lambda checked, tid=scene_id, tname=template_key: 
+                                   self.generateContextRequested.emit(tid, tname))
+            generate_menu.addAction(action)
+        
+        menu.addMenu(generate_menu)
+        
+        # Refresh Context action (if context exists but is stale)
+        if context_status in ["scene_stale", "scene_fresh"]:
+            menu.addSeparator()
+            refresh_action = QAction(_("Refresh Narrative Context"), self)
+            refresh_action.triggered.connect(lambda checked, sid=scene_id: 
+                                           self.refreshContextRequested.emit(sid))
+            menu.addAction(refresh_action)
+        
+        # View Context action (if context exists)
+        if context_status in ["scene_stale", "scene_fresh"]:
+            view_context_action = QAction(_("📄 View Generated Context"), self)
+            view_context_action.triggered.connect(lambda checked, sid=scene_id: 
+                                                self.viewContextRequested.emit(sid))
+            menu.addAction(view_context_action)
+            
+            # Edit Context action (if context exists)
+            edit_context_action = QAction(_("✏️ Edit Generated Context"), self)
+            edit_context_action.triggered.connect(lambda checked, sid=scene_id: 
+                                                self.editContextRequested.emit(sid))
+            menu.addAction(edit_context_action)
+        
+        # Edit Templates action
+        menu.addSeparator()
+        edit_templates_action = QAction(_("Edit Templates..."), self)
+        edit_templates_action.triggered.connect(lambda: self.editTemplateRequested.emit("scene_summary"))
+        menu.addAction(edit_templates_action)
+        
+        # Show the menu
+        menu.exec(self.tree.mapToGlobal(position))
             
     def _on_new_scene_clicked(self):
         """Obsługa kliknięcia przycisku nowa scena."""

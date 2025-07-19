@@ -1034,5 +1034,66 @@ msgstr "Brak aktywnego edytora"
 msgid "Execute"
 msgstr "Wykonaj"
 
-msgid "Processing..."
-msgstr "Przetwarzanie..."
+# Narrative Context Features
+msgid "Generated Context for Scene"
+msgstr "Wygenerowany Kontekst Sceny"
+
+msgid "No context found for this scene"
+msgstr "Nie znaleziono kontekstu dla tej sceny"
+
+msgid "Type"
+msgstr "Typ"
+
+msgid "Updated"
+msgstr "Aktualizacja"
+
+msgid "Scene Summary"
+msgstr "Podsumowanie Sceny"
+
+msgid "Context Continuation"
+msgstr "Kontynuacja Kontekstu"
+
+msgid "Scene Expansion"
+msgstr "Rozszerzenie Sceny"
+
+msgid "Dialogue Enhancement"
+msgstr "Ulepszenie Dialogu"
+
+msgid "Scene Rewrite"
+msgstr "Przepisanie Sceny"
+
+msgid "AI Generated Context"
+msgstr "Kontekst Wygenerowany przez AI"
+
+msgid "Last modified"
+msgstr "Ostatnia modyfikacja"
+
+msgid "Narrative context is up to date"
+msgstr "Kontekst narracyjny jest aktualny"
+
+msgid "Narrative context needs refresh"
+msgstr "Kontekst narracyjny wymaga odświeżenia"
+
+msgid "No narrative context available"
+msgstr "Brak dostępnego kontekstu narracyjnego"
+
+msgid "Continue with Context"
+msgstr "Kontynuuj z Kontekstem"
+
+msgid "Expand Scene"
+msgstr "Rozszerz Scenę"
+
+msgid "Rewrite Scene"
+msgstr "Przepisz Scenę"
+
+msgid "📄 View Generated Context"
+msgstr "📄 Zobacz Wygenerowany Kontekst"
+
+msgid "✓ Context automatically saved and linked"
+msgstr "✓ Kontekst automatycznie zapisany i połączony"
+
+msgid "✅ Context automatically saved and linked to scene"
+msgstr "✅ Kontekst automatycznie zapisany i połączony ze sceną"
+
+msgid "Context for"
+msgstr "Kontekst dla"
