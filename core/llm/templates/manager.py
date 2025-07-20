@@ -274,19 +274,68 @@ class EnhancedTemplateManager:
         """Build additional context data based on configuration."""
         context = {}
         
-        # Characters
+        # Characters - create full descriptions from character objects
         if config.include_characters:
             characters = scene_data.get('characters', [])
             if isinstance(characters, list):
-                context['characters'] = characters
+                character_descriptions = []
+                for char in characters:
+                    if isinstance(char, dict):
+                        # Build full character description for LLM
+                        name = char.get('name', 'Nieznana postać')
+                        description = char.get('description', '').strip()
+                        notes = char.get('notes', '').strip()
+                        role = char.get('role', '').strip()
+                        
+                        char_desc = f"{name}"
+                        if role and role != "participant":
+                            char_desc += f" ({role})"
+                        
+                        if description:
+                            char_desc += f" - {description}"
+                        
+                        if notes:
+                            char_desc += f" | Notatki: {notes}"
+                        
+                        character_descriptions.append(char_desc)
+                    else:
+                        # Handle simple string names as fallback
+                        character_descriptions.append(str(char))
+                context['characters'] = character_descriptions
             else:
                 context['characters'] = []
         
-        # Locations
+        # Locations - create full descriptions from location objects
         if config.include_locations:
             locations = scene_data.get('locations', [])
             if isinstance(locations, list):
-                context['locations'] = locations
+                location_descriptions = []
+                for loc in locations:
+                    if isinstance(loc, dict):
+                        # Build full location description for LLM
+                        name = loc.get('name', 'Nieznana lokalizacja')
+                        description = loc.get('description', '').strip()
+                        notes = loc.get('notes', '').strip()
+                        location_type = loc.get('location_type', '').strip()
+                        role = loc.get('role', '').strip()
+                        
+                        loc_desc = f"{name}"
+                        if location_type:
+                            loc_desc += f" ({location_type})"
+                        elif role and role != "setting":
+                            loc_desc += f" ({role})"
+                        
+                        if description:
+                            loc_desc += f" - {description}"
+                        
+                        if notes:
+                            loc_desc += f" | Notatki: {notes}"
+                        
+                        location_descriptions.append(loc_desc)
+                    else:
+                        # Handle simple string names as fallback
+                        location_descriptions.append(str(loc))
+                context['locations'] = location_descriptions
             else:
                 context['locations'] = []
         
@@ -348,6 +397,49 @@ class EnhancedTemplateManager:
         
         ui_config = asdict(template.ui_config)
         return ui_config
+    
+    def refresh_templates(self):
+        """Refresh templates by reloading from disk."""
+        self.logger.info("Refreshing templates from disk")
+        # Clear existing user templates but keep defaults
+        default_templates = {
+            template_id: template 
+            for template_id, template in self.templates.items()
+            if template.metadata.author == "System"
+        }
+        self.templates = default_templates
+        
+        # Reload user templates
+        self._load_user_templates()
+        self.logger.info(f"Templates refreshed: {len(self.templates)} total templates loaded")
+    
+    def reload_template(self, template_id: str) -> bool:
+        """Reload a specific template from disk."""
+        try:
+            # Find the template file
+            template_files = (
+                list(self.templates_dir.glob(f"{template_id}.yaml")) +
+                list(self.templates_dir.glob(f"{template_id}.yml")) +
+                list(self.templates_dir.glob(f"{template_id}.json"))
+            )
+            
+            if not template_files:
+                self.logger.warning(f"Template file not found for {template_id}")
+                return False
+            
+            # Load the template
+            template_file = template_files[0]
+            template = self._load_template_file(template_file)
+            if template:
+                self.templates[template_id] = template
+                self.logger.info(f"Template {template_id} reloaded successfully")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"Error reloading template {template_id}: {e}")
+            return False
     
     def export_template(self, template_id: str, filepath: Union[str, Path]) -> bool:
         """Export template to file."""

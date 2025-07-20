@@ -4,7 +4,7 @@ Provides core functionality for AI-powered writing assistance.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 from core.logging_config import get_logger
 from .providers.base_provider import BaseLLMProvider
 from .providers.mock_provider import MockLLMProvider
@@ -120,6 +120,7 @@ class LLMService:
             
             # Get template-specific LLM parameters
             llm_params = template_manager.get_template_llm_params(task_id)
+            self.logger.debug(f"Template LLM params for {task_id}: {llm_params}")
             
             # Generate response with template-specific parameters
             raw_response = self.provider.generate(prompt, **llm_params)
@@ -130,6 +131,60 @@ class LLMService:
             
         except Exception as e:
             self.logger.error(f"Error executing task {task_id}: {e}")
+            raise
+    
+    def execute_task_streaming(self, task_id: str, chunk_callback: Callable[[str], None], context: Optional[Dict[str, Any]] = None) -> str:
+        """Execute a task with streaming output, calling chunk_callback for each chunk."""
+        if not self.is_initialized():
+            raise RuntimeError("LLM service not initialized")
+        
+        # Check if provider supports streaming
+        if not hasattr(self.provider, 'generate_streaming'):
+            self.logger.warning(f"Provider {self.provider.__class__.__name__} does not support streaming, falling back to blocking mode")
+            # Fallback to regular execution for non-streaming providers
+            response = self.execute_task(task_id, context)
+            chunk_callback(response)  # Send entire response as one chunk
+            return response
+        
+        try:
+            self.logger.info(f"Executing streaming task: {task_id}")
+            
+            # Use enhanced template system for context building
+            from core.llm.templates import get_template_manager
+            template_manager = get_template_manager()
+            
+            # Use current context if none provided
+            if context is None:
+                context = self.context_manager.get_current_context()
+                self.logger.debug("Using current context from context manager")
+            
+            # Build enhanced context based on template configuration
+            enhanced_context = template_manager.build_enhanced_context(task_id, context)
+            self.logger.debug("Enhanced context built using template configuration")
+            
+            # Generate prompt using enhanced template system
+            prompt = self._generate_enhanced_prompt(task_id, enhanced_context)
+            self.logger.debug(f"Generated prompt: {prompt[:200]}...")
+            
+            # Get template-specific LLM parameters
+            llm_params = template_manager.get_template_llm_params(task_id)
+            self.logger.debug(f"Template LLM params for streaming {task_id}: {llm_params}")
+            
+            # Create a wrapper callback that cleans chunks
+            def clean_chunk_callback(chunk: str):
+                # For streaming, we don't clean individual chunks as they may be incomplete
+                # Just pass them through to the UI
+                chunk_callback(chunk)
+            
+            # Generate response with streaming callback
+            raw_response = self.provider.generate_streaming(prompt, clean_chunk_callback, **llm_params)
+            response = self._clean_response(raw_response)
+            
+            self.logger.info(f"Streaming task {task_id} completed successfully")
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Error executing streaming task {task_id}: {e}")
             raise
     
     def _clean_response(self, response: str) -> str:
@@ -301,3 +356,8 @@ Please continue the text in a natural way:"""
     def update_text_selection(self, selected_text: str, current_text: str = ""):
         """Update current text selection context."""
         self.context_manager.set_text_selection(selected_text, current_text)
+    
+    def cancel_current_request(self):
+        """Cancel the currently running request if the provider supports it."""
+        if self.provider and hasattr(self.provider, 'cancel_current_request'):
+            self.provider.cancel_current_request()

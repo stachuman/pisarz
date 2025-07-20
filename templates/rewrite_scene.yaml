@@ -38,23 +38,7 @@ ui_config:
 format_version: "2.0"
 
 template_content: |
-  Przepisz następujący fragment tekstu, poprawiając styl, płynność narracji i klarowność:
-
-  Oryginalny fragment:
-  "{{ selected_text }}"
-
-  {% if scene_summary and scene_summary != selected_text %}
-  Kontekst sceny:
-  {{ scene_summary }}
-  {% endif %}
-
-  {% if characters %}
-  Postacie: {{ characters|join(', ') }}
-  {% endif %}
-
-  {% if locations %}
-  Lokalizacje: {{ locations|join(', ') }}
-  {% endif %}
+  Przepisz następujący fragment tekstu, poprawiając styl, płynność narracji i klarowność.
 
   Przepisz tekst zachowując:
   - Główną treść i wydarzenia
@@ -68,4 +52,26 @@ template_content: |
   - Opis akcji i emocji
   - Gramatykę i składnię
 
-  Przepisany fragment:
+  {% if characters %}
+  Postacie:
+  {% for character in characters %}
+  - {{ character }}
+  {% endfor %}
+  {% endif %}
+
+  {% if locations %}
+  Lokalizacje:
+  {% for location in locations %}
+  - {{ location }}
+  {% endfor %}
+  {% endif %}
+
+  --- ORYGINALNY FRAGMENT ---
+
+  {{ selected_text }}
+
+  {% if scene_summary and scene_summary != selected_text %}
+
+  Kontekst sceny:
+  {{ scene_summary }}
+  {% endif %}

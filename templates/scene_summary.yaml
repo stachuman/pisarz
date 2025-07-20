@@ -30,50 +30,39 @@ metadata:
   - reference
   template_id: scene_summary
   version: '2.0'
-template_content: 'Stwórz zwięzłe streszczenie następującej sceny w języku Polskim:
+template_content: |
+  Stwórz zwięzłe streszczenie następującej sceny w języku Polskim.
 
+  Streszczenie powinno zawierać:
+  - Główne wydarzenia w scenie
+  - Kluczowe interakcje między postaciami
+  - Ważne informacje i odkrycia
+  - Zmiany w sytuacji lub relacjach
+  - Nastrój i atmosferę sceny
+
+  {% if characters %}
+  Postacie:
+  {% for character in characters %}
+  - {{ character }}
+  {% endfor %}
+  {% endif %}
+
+  {% if locations %}
+  Lokalizacje:
+  {% for location in locations %}
+  - {{ location }}
+  {% endfor %}
+  {% endif %}
+
+  {% if project_name %}
+  Projekt: {{ project_name }}
+  {% endif %}
+
+  --- SCENA DO STRESZCZENIA ---
 
   {{ scene_summary }}
 
-
-  {% if characters %}
-
-  Postacie: {{ characters|join('', '') }}
-
-  {% endif %}
-
-
-  {% if locations %}
-
-  Lokalizacje: {{ locations|join('', '') }}
-
-  {% endif %}
-
-
-  {% if project_name %}
-
-  Projekt: {{ project_name }}
-
-  {% endif %}
-
-
-  Streszczenie powinno zawierać:
-
-  - Główne wydarzenia w scenie
-
-  - Kluczowe interakcje między postaciami
-
-  - Ważne informacje i odkrycia
-
-  - Zmiany w sytuacji lub relacjach
-
-  - Nastrój i atmosferę sceny
-
-
   Napisz w formacie 2-3 akapitów, koncentrując się na najważniejszych elementach.
-
-
-  Streszczenie sceny:'
 ui_config:
   allow_context_editing: false
   auto_apply_selection: false

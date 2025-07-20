@@ -30,65 +30,47 @@ metadata:
   - detail
   template_id: expand_scene
   version: '2.0'
-template_content: 'Rozbuduj następujący fragment sceny, dodając więcej szczegółów,
-  dialogów i opisów. Pisz tylko w języku Polskim.
+template_content: |
+  Rozbuduj następujący fragment sceny, dodając więcej szczegółów, dialogów i opisów. Pisz tylko w języku Polskim.
 
+  Rozbuduj scenę przez:
+  - Dodanie szczegółowych opisów miejsc i osób
+  - Wzbogacenie dialogów o emocje i podteksty
+  - Opisanie gestów, mimiki i zachowań postaci
+  - Dodanie sensualnych detali (dźwięki, zapachy, faktury)
+  - Pogłębienie atmosfery i nastroju
+
+  Zachowaj naturalny przepływ narracji i nie zmieniaj głównych wydarzeń.
+
+  {% if characters %}
+  Postacie w scenie:
+  {% for character in characters %}
+  - {{ character }}
+  {% endfor %}
+  {% endif %}
+
+  {% if locations %}
+  Lokalizacje:
+  {% for location in locations %}
+  - {{ location }}
+  {% endfor %}
+  {% endif %}
+
+  --- FRAGMENT DO ROZBUDOWY ---
 
   {% if has_selection %}
-
-  Fragment do rozbudowy:
-
-  "{{ selected_text }}"
-
+  {{ selected_text }}
 
   {% if scene_summary and scene_summary != selected_text %}
 
   Kontekst sceny:
-
   {{ scene_summary }}
-
   {% endif %}
 
   {% else %}
-
-  Scena do rozbudowy:
-
   {{ current_text }}
 
   {% endif %}
-
-
-  {% if characters %}
-
-  Postacie w scenie: {{ characters|join('', '') }}
-
-  {% endif %}
-
-
-  {% if locations %}
-
-  Lokalizacje: {{ locations|join('', '') }}
-
-  {% endif %}
-
-
-  Rozbuduj scenę przez:
-
-  - Dodanie szczegółowych opisów miejsc i osób
-
-  - Wzbogacenie dialogów o emocje i podteksty
-
-  - Opisanie gestów, mimiki i zachowań postaci
-
-  - Dodanie sensualnych detali (dźwięki, zapachy, faktury)
-
-  - Pogłębienie atmosfery i nastroju
-
-
-  Zachowaj naturalny przepływ narracji i nie zmieniaj głównych wydarzeń.
-
-
-  Rozbudowana scena:'
 ui_config:
   allow_context_editing: false
   auto_apply_selection: true

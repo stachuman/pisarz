@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QTextEdit, QScrollArea, QFrame, QSplitter, QProgressBar,
     QMessageBox, QApplication, QSizePolicy, QGroupBox, QToolButton,
-    QSpacerItem
+    QSpacerItem, QDialog
 )
 from PySide6.QtCore import Qt, Signal, QTimer, QThread, QSize
 from PySide6.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon
@@ -377,6 +377,29 @@ class EnhancedResponseArea(QWidget):
         self.clear_button.setEnabled(False)
         self.update_word_count()
     
+    def append_chunk(self, chunk: str):
+        """Append streaming chunk to response text."""
+        # Move cursor to end and insert text
+        cursor = self.response_text.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        cursor.insertText(chunk)
+        self.response_text.setTextCursor(cursor)
+        
+        # Enable buttons on first chunk
+        if self.response_text.toPlainText().strip():
+            self.copy_button.setEnabled(True)
+            self.select_all_button.setEnabled(True)
+            self.insert_button.setEnabled(True)
+            self.add_to_narrative_button.setEnabled(True)
+            self.clear_button.setEnabled(True)
+        
+        # Update word count
+        self.update_word_count()
+        
+        # Auto-scroll to bottom
+        scrollbar = self.response_text.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+    
     def select_all_text(self):
         """Select all text in response area."""
         self.response_text.selectAll()
@@ -477,7 +500,9 @@ class LLMAssistantPanel(QWidget):
         self.progress_bar.setMaximumHeight(4)
         controls_layout.addWidget(self.progress_bar)
         
-        # Task dropdown
+        # Task dropdown with refresh button
+        template_layout = QHBoxLayout()
+        
         from PySide6.QtWidgets import QComboBox
         self.task_combo = QComboBox()
         self._load_available_templates()
@@ -489,7 +514,31 @@ class LLMAssistantPanel(QWidget):
                 background-color: white;
             }
         """)
-        controls_layout.addWidget(self.task_combo)
+        template_layout.addWidget(self.task_combo)
+        
+        # Refresh templates button
+        self.refresh_templates_button = QPushButton("🔄")
+        self.refresh_templates_button.setFixedSize(24, 24)
+        self.refresh_templates_button.setToolTip(_("Refresh templates from disk"))
+        self.refresh_templates_button.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                font-size: 10pt;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+            QPushButton:pressed {
+                background-color: #4e555b;
+            }
+        """)
+        self.refresh_templates_button.clicked.connect(self.refresh_templates)
+        template_layout.addWidget(self.refresh_templates_button)
+        
+        controls_layout.addLayout(template_layout)
         
         # Edit template button
         self.edit_template_button = QPushButton(_("🛠️ Edit"))
@@ -511,6 +560,9 @@ class LLMAssistantPanel(QWidget):
         self.edit_template_button.clicked.connect(self.edit_selected_template)
         controls_layout.addWidget(self.edit_template_button)
         
+        # Execute buttons layout
+        execute_layout = QHBoxLayout()
+        
         # Execute button
         self.execute_button = QPushButton(_("Execute"))
         self.execute_button.setStyleSheet("""
@@ -518,16 +570,58 @@ class LLMAssistantPanel(QWidget):
                 background-color: #007acc;
                 color: white;
                 border: none;
-                padding: 8px 16px;
+                padding: 8px 12px;
                 border-radius: 4px;
                 font-weight: bold;
+                font-size: 9pt;
             }
             QPushButton:hover {
                 background-color: #0056b3;
             }
         """)
         self.execute_button.clicked.connect(self.execute_selected_task)
-        controls_layout.addWidget(self.execute_button)
+        execute_layout.addWidget(self.execute_button)
+        
+        # Streaming Execute button
+        self.execute_streaming_button = QPushButton(_("🔄 Stream"))
+        self.execute_streaming_button.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 9pt;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
+        self.execute_streaming_button.clicked.connect(self.execute_selected_task_streaming)
+        execute_layout.addWidget(self.execute_streaming_button)
+        
+        controls_layout.addLayout(execute_layout)
+        
+        # Stop button (initially hidden)
+        self.stop_button = QPushButton(_("⏹️ Stop"))
+        self.stop_button.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 9pt;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
+        self.stop_button.clicked.connect(self.stop_streaming_task)
+        self.stop_button.setVisible(False)
+        controls_layout.addWidget(self.stop_button)
         
         # Keep compatibility with old buttons
         self.continue_button = self.execute_button  # For backward compatibility
@@ -698,7 +792,9 @@ class LLMAssistantPanel(QWidget):
         
         # Connect controller signals
         controller.llm_response_ready.connect(self.on_response_ready)
+        controller.llm_response_chunk.connect(self.on_response_chunk)
         controller.llm_error.connect(self.on_error)
+        controller.llm_cancelled.connect(self.on_cancelled)
         controller.llm_status_changed.connect(self.on_status_changed)
         
         # Initialize controller if not already done
@@ -728,7 +824,9 @@ class LLMAssistantPanel(QWidget):
     def set_additional_context(self, context_data: dict):
         """Set additional context data (characters, locations, etc.)."""
         self.additional_context = context_data or {}
-        self.logger.debug(f"Additional context set: {list(self.additional_context.keys())}")
+        self.logger.info(f"DEBUG set_additional_context - keys: {list(self.additional_context.keys())}")
+        self.logger.info(f"DEBUG set_additional_context - characters: {self.additional_context.get('characters', 'NOT FOUND')}")
+        self.logger.info(f"DEBUG set_additional_context - locations: {self.additional_context.get('locations', 'NOT FOUND')}")
     
     def set_auto_save_context_info(self, scene_id: int, template_name: str):
         """Set auto-save context info for automatic saving after task completion."""
@@ -766,13 +864,71 @@ class LLMAssistantPanel(QWidget):
         
         self.logger.info(f"Started LLM task: {task_id}")
     
+    def execute_task_streaming(self, task_id: str):
+        """Execute an LLM task with streaming output."""
+        self.logger.info(f"Starting execute_task_streaming with task_id='{task_id}', current auto-save: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+        
+        if not self.llm_controller:
+            self.show_error(_("Error"), _("LLM controller not initialized"))
+            return
+        
+        if not self.llm_controller.is_initialized():
+            self.show_error(_("Error"), _("LLM system not initialized"))
+            return
+        
+        # Build context from current scene
+        context = self.build_context()
+        
+        # Update UI state
+        self._is_streaming_task = True  # Mark as streaming task
+        self.set_task_executing(task_id, True)
+        self.update_status(_("🔄 Starting streaming..."), "processing")
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setRange(0, 0)  # Indeterminate progress
+        
+        # Clear response area for new streaming content
+        self.response_area.clear_response()
+        
+        # Execute streaming task directly (no thread needed as controller handles threading)
+        success = self.llm_controller.execute_task_streaming(task_id, context)
+        
+        if not success:
+            self.on_error(task_id, "Failed to start streaming task")
+        
+        self.logger.info(f"Started streaming LLM task: {task_id}")
+    
     def execute_selected_task(self):
         """Execute the selected task from dropdown."""
         selected_data = self.task_combo.currentData()
-        if selected_data:
+        if selected_data == "custom_prompt":
+            self.open_custom_prompt_dialog()
+        elif selected_data:
             self.execute_task(selected_data)
         else:
             self.show_error(_("No Template Selected"), _("Please select a template to execute."))
+    
+    def execute_selected_task_streaming(self):
+        """Execute the selected task from dropdown with streaming."""
+        selected_data = self.task_combo.currentData()
+        if selected_data == "custom_prompt":
+            self.open_custom_prompt_dialog(streaming=True)
+        elif selected_data:
+            self.execute_task_streaming(selected_data)
+        else:
+            self.show_error(_("No Template Selected"), _("Please select a template to execute."))
+    
+    def stop_streaming_task(self):
+        """Stop the currently running streaming task."""
+        if not self.llm_controller:
+            return
+        
+        self.logger.info("User requested to stop streaming task")
+        success = self.llm_controller.stop_streaming()
+        
+        if success:
+            self.update_status(_("⏹️ Stopping streaming..."), "warning")
+        else:
+            self.update_status(_("❌ No streaming task to stop"), "error")
     
     def _clean_html_css(self, content: str) -> str:
         """Clean HTML tags and CSS from content to produce plain text."""
@@ -880,10 +1036,20 @@ class LLMAssistantPanel(QWidget):
     def set_task_executing(self, task_id: str, executing: bool):
         """Set task execution state."""
         self.execute_button.setEnabled(not executing)
+        self.execute_streaming_button.setEnabled(not executing)
+        
         if executing:
             self.execute_button.setText(_("Processing..."))
+            self.execute_streaming_button.setText(_("🔄 Streaming..."))
+            # Show stop button only for streaming tasks
+            if hasattr(self, '_is_streaming_task') and self._is_streaming_task:
+                self.stop_button.setVisible(True)
         else:
             self.execute_button.setText(_("Execute"))
+            self.execute_streaming_button.setText(_("🔄 Stream"))
+            self.stop_button.setVisible(False)
+            if hasattr(self, '_is_streaming_task'):
+                self._is_streaming_task = False
     
     def update_status(self, message: str, status_type: str = "info"):
         """Update status with styling based on type."""
@@ -943,7 +1109,7 @@ class LLMAssistantPanel(QWidget):
         self.logger.info(f"Response length: {len(response)} characters")
         self.logger.info(f"Auto-save state when response ready: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
         
-        # Update response area
+        # Update response area (for non-streaming, or final response for streaming)
         self.response_area.set_response(response)
         
         # Auto-save to narrative context if context info is set
@@ -960,6 +1126,30 @@ class LLMAssistantPanel(QWidget):
         self.progress_bar.setVisible(False)
         
         self.logger.info(f"Task {task_id} completed. Final auto-save state: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+    
+    def on_response_chunk(self, task_id: str, chunk: str):
+        """Handle streaming response chunk."""
+        # Append chunk to response area in real-time
+        self.response_area.append_chunk(chunk)
+        self.update_status(_("🔄 Streaming response..."), "processing")
+    
+    def on_cancelled(self, task_id: str):
+        """Handle LLM task cancellation."""
+        self.logger.info(f"Task cancelled: {task_id}")
+        
+        # Add cancellation notice to response area
+        current_text = self.response_area.response_text.toPlainText()
+        if current_text:
+            cancellation_notice = f"\n\n--- {_('Task cancelled by user')} ---"
+            self.response_area.response_text.append(cancellation_notice)
+        else:
+            self.response_area.response_text.setPlainText(_("❌ Task cancelled by user"))
+        
+        # Reset task state
+        self.set_task_executing(task_id, False)
+        self.update_status(_("⏹️ Task cancelled"), "warning")
+        self.progress_bar.setVisible(False)
+        self.stop_button.setVisible(False)
     
     def on_error(self, task_id: str, error_message: str):
         """Handle LLM error."""
@@ -1135,6 +1325,17 @@ class LLMAssistantPanel(QWidget):
             # Clear existing templates (but keep edit templates option that will be added later)
             self.task_combo.clear()
             
+            # Add custom prompt option first
+            self.task_combo.addItem("🎯 " + _("Custom Prompt..."), "custom_prompt")
+            self.task_combo.setItemData(
+                self.task_combo.count() - 1,
+                _("Create a custom prompt with configurable context and parameters"),
+                Qt.ItemDataRole.ToolTipRole
+            )
+            
+            # Add separator
+            self.task_combo.insertSeparator(self.task_combo.count())
+            
             # Add templates to dropdown
             for template_info in template_list:
                 template_id = template_info['id']
@@ -1226,6 +1427,362 @@ class LLMAssistantPanel(QWidget):
         self.logger.info(f"Template saved: {template_id}")
         # Refresh available templates
         self._load_available_templates()
+    
+    def refresh_templates(self):
+        """Refresh templates from disk."""
+        try:
+            from core.llm.templates import get_template_manager
+            
+            # Refresh templates in the manager
+            template_manager = get_template_manager()
+            template_manager.refresh_templates()
+            
+            # Reload UI
+            self._load_available_templates()
+            
+            self.update_status(_("✅ Templates refreshed"), "success")
+            self.logger.info("Templates refreshed successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error refreshing templates: {e}")
+            self.update_status(_("❌ Failed to refresh templates"), "error")
+    
+    def open_custom_prompt_dialog(self, streaming: bool = False):
+        """Open custom prompt dialog."""
+        try:
+            from .custom_prompt_dialog import CustomPromptDialog
+            
+            # Populate additional context with current scene data before opening dialog
+            self._populate_additional_context()
+            
+            # Get current scene content
+            scene_content = self.current_scene_content or ""
+            selected_text = ""
+            
+            # Try to get selected text from main window
+            if hasattr(self.parent(), 'get_selected_text'):
+                selected_text = self.parent().get_selected_text() or ""
+            
+            dialog = CustomPromptDialog(scene_content, selected_text, self)
+            result = dialog.exec()
+            
+            # Check if dialog was accepted and get config
+            if result == QDialog.DialogCode.Accepted:
+                config = dialog.get_config()
+                if config:
+                    self.execute_custom_prompt(config, streaming)
+            
+        except Exception as e:
+            self.logger.error(f"Error opening custom prompt dialog: {e}")
+            self.show_error(_("Error"), _("Failed to open custom prompt dialog: {}").format(str(e)))
+    
+    def _populate_additional_context(self):
+        """Populate additional context with current scene's characters and locations."""
+        try:
+            if not self.current_scene_id:
+                self.logger.debug("No current scene ID, cannot populate additional context")
+                return
+            
+            # Access main window to get managers
+            main_window = self.parent()
+            if not main_window or not hasattr(main_window, 'managers'):
+                self.logger.debug("No main window or managers found")
+                return
+            
+            managers = main_window.managers
+            character_manager = managers.get('character_manager')
+            location_manager = managers.get('location_manager')
+            
+            scene_characters = []
+            scene_locations = []
+            
+            # Get characters for this scene
+            if character_manager:
+                try:
+                    character_role_pairs = character_manager.get_characters_for_scene_with_roles(self.current_scene_id)
+                    scene_characters = [
+                        {
+                            "id": char_dict["id"],
+                            "name": char_dict["name"],
+                            "description": char_dict.get("description", ""),
+                            "notes": char_dict.get("notes", ""),
+                            "role": char_dict.get("role", "participant")
+                        }
+                        for char_dict in character_role_pairs
+                    ]
+                    self.logger.debug(f"Found {len(scene_characters)} characters for scene {self.current_scene_id}")
+                except Exception as e:
+                    self.logger.error(f"Error getting characters for scene {self.current_scene_id}: {e}")
+            
+            # Get locations for this scene  
+            if location_manager:
+                try:
+                    scene_location_ids = location_manager.get_locations_for_scene(self.current_scene_id)
+                    for location_id in scene_location_ids:
+                        location = location_manager.get_location(location_id)
+                        if location:
+                            scene_locations.append({
+                                "id": location["id"],
+                                "name": location.get("name", ""),
+                                "description": location.get("description", ""),
+                                "notes": location.get("notes", "")
+                            })
+                    self.logger.debug(f"Found {len(scene_locations)} locations for scene {self.current_scene_id}")
+                except Exception as e:
+                    self.logger.error(f"Error getting locations for scene {self.current_scene_id}: {e}")
+            
+            # Update additional context
+            context_data = {
+                "characters": scene_characters,
+                "locations": scene_locations,
+                "project_name": getattr(main_window, 'project_name', ''),
+                "scene_title": f"Scene {self.current_scene_id}",
+                "character_count": len(scene_characters),
+                "location_count": len(scene_locations)
+            }
+            
+            self.set_additional_context(context_data)
+            self.logger.debug(f"Additional context populated for scene {self.current_scene_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error populating additional context: {e}")
+    
+    def execute_custom_prompt(self, config: dict, streaming: bool = False):
+        """Execute a custom prompt configuration."""
+        try:
+            # DEBUG: Log additional context
+            self.logger.info(f"DEBUG Custom Prompt - additional_context keys: {list(self.additional_context.keys())}")
+            self.logger.info(f"DEBUG Custom Prompt - characters in context: {self.additional_context.get('characters', 'NOT FOUND')}")
+            self.logger.info(f"DEBUG Custom Prompt - locations in context: {self.additional_context.get('locations', 'NOT FOUND')}")
+            self.logger.info(f"DEBUG Custom Prompt - config include_characters: {config.get('include_characters', False)}")
+            self.logger.info(f"DEBUG Custom Prompt - config include_locations: {config.get('include_locations', False)}")
+            
+            # Extract context text based on configuration
+            context_text = self._extract_custom_context(config)
+            
+            # Build context for LLM
+            context = {
+                'current_text': context_text,
+                'scene_content': config['scene_content'],
+                'selected_text': config.get('selected_text', ''),
+                'has_selection': bool(config.get('selected_text', '')),
+                'scene_summary': context_text,  # Use same as current_text for custom prompts
+                'characters': self._extract_character_names(self.additional_context.get('characters', [])) if config['include_characters'] else [],
+                'locations': self._extract_location_names(self.additional_context.get('locations', [])) if config['include_locations'] else [],
+                'project_name': self.additional_context.get('project_name', ''),
+                'scene_title': self.additional_context.get('scene_title', ''),
+                'scene_id': self.current_scene_id,
+                'word_count': len(context_text.split()) if context_text else 0,
+                'scene_length': len(config['scene_content']) if config['scene_content'] else 0
+            }
+            
+            # Create a dynamic prompt
+            prompt = self._build_custom_prompt(config, context)
+            
+            # LLM parameters from config
+            llm_params = {
+                'temperature': config['temperature'],
+                'max_tokens': config['max_tokens'],
+                'repeat_penalty': config['repetition_penalty']
+            }
+            
+            # Execute directly with provider
+            if streaming:
+                self._execute_custom_prompt_streaming(prompt, llm_params)
+            else:
+                self._execute_custom_prompt_blocking(prompt, llm_params)
+                
+        except Exception as e:
+            self.logger.error(f"Error executing custom prompt: {e}")
+            self.show_error(_("Error"), _("Failed to execute custom prompt: {}").format(str(e)))
+    
+    def _extract_custom_context(self, config: dict) -> str:
+        """Extract context text based on custom prompt configuration."""
+        scene_content = config['scene_content']
+        selected_text = config.get('selected_text', '')
+        text_portion = config['text_portion']
+        custom_length = config['custom_length']
+        
+        # Clean HTML/CSS from scene content and selected text (reuse existing cleaning)
+        clean_scene_content = self._clean_html_css(scene_content) if scene_content else ""
+        clean_selected_text = self._clean_html_css(selected_text) if selected_text else ""
+        
+        self.logger.debug(f"Extracting custom context: portion='{text_portion}', scene_len={len(clean_scene_content)}, selected_len={len(clean_selected_text)}")
+        
+        # Use exact text matching instead of substring matching to fix selection bug
+        if text_portion == _("🎯 Selected text only") and clean_selected_text:
+            self.logger.debug("Using selected text only")
+            return clean_selected_text
+        elif text_portion == _("📄 Full scene"):
+            self.logger.debug("Using full scene")
+            return clean_scene_content
+        elif text_portion == _("⬆️ Beginning of scene"):
+            self.logger.debug(f"Using beginning of scene ({custom_length} chars)")
+            result = clean_scene_content[:custom_length]
+            if len(clean_scene_content) > custom_length:
+                result += "..."
+            return result
+        elif text_portion == _("⬇️ End of scene"):
+            self.logger.debug(f"Using end of scene ({custom_length} chars)")
+            if len(clean_scene_content) > custom_length:
+                return "..." + clean_scene_content[-custom_length:]
+            return clean_scene_content
+        elif text_portion == _("🎚️ Custom length from end"):
+            self.logger.debug(f"Using custom length from end ({custom_length} chars)")
+            return clean_scene_content[-custom_length:] if clean_scene_content else ""
+        elif text_portion == _("🎯 Selection + context") and clean_selected_text:
+            self.logger.debug("Using selection + context")
+            # Return selection plus some context
+            context_length = min(custom_length - len(clean_selected_text), len(clean_scene_content))
+            context_part = clean_scene_content[:context_length]
+            return f"{clean_selected_text}\n\n[Context: {context_part}]"
+        else:
+            self.logger.debug(f"Using fallback: first {custom_length} chars")
+            return clean_scene_content[:custom_length]
+    
+    def _build_custom_prompt(self, config: dict, context: dict) -> str:
+        """Build the custom prompt from configuration."""
+        instruction = config['instruction']
+        context_text = context['current_text']
+        
+        # DEBUG: Log what we're building
+        self.logger.info(f"DEBUG _build_custom_prompt - context['characters']: {context.get('characters', 'NOT FOUND')}")
+        self.logger.info(f"DEBUG _build_custom_prompt - context['locations']: {context.get('locations', 'NOT FOUND')}")
+        self.logger.info(f"DEBUG _build_custom_prompt - config include_characters: {config.get('include_characters', False)}")
+        self.logger.info(f"DEBUG _build_custom_prompt - config include_locations: {config.get('include_locations', False)}")
+        
+        prompt_parts = [instruction]
+        
+        if context_text:
+            prompt_parts.append(f"\n =============== :\n{context_text}")
+        
+        if context['characters'] and config['include_characters']:
+            prompt_parts.append("\nCharacters:")
+            for character in context['characters']:
+                prompt_parts.append(f"- {character}")
+            
+        if context['locations'] and config['include_locations']:
+            prompt_parts.append("\nLocations:")
+            for location in context['locations']:
+                prompt_parts.append(f"- {location}")
+        
+        return "\n".join(prompt_parts)
+    
+    def _extract_character_names(self, characters):
+        """Extract full character descriptions from character objects for LLM context."""
+        self.logger.info(f"DEBUG _extract_character_names - input: {characters}")
+        if not characters:
+            self.logger.info("DEBUG _extract_character_names - no characters, returning empty list")
+            return []
+        
+        character_descriptions = []
+        for char in characters:
+            if isinstance(char, dict):
+                # Build full character description for LLM
+                name = char.get('name', 'Nieznana postać')
+                description = char.get('description', '').strip()
+                notes = char.get('notes', '').strip()
+                role = char.get('role', '').strip()
+                
+                char_desc = f"{name}"
+                if role and role != "participant":
+                    char_desc += f" ({role})"
+                
+                if description:
+                    char_desc += f" - {description}"
+                
+                if notes:
+                    char_desc += f" | Notatki: {notes}"
+                
+                character_descriptions.append(char_desc)
+            else:
+                # Handle simple string names as fallback
+                character_descriptions.append(str(char))
+        return character_descriptions
+    
+    def _extract_location_names(self, locations):
+        """Extract full location descriptions from location objects for LLM context."""
+        if not locations:
+            return []
+        
+        location_descriptions = []
+        for loc in locations:
+            if isinstance(loc, dict):
+                # Build full location description for LLM
+                name = loc.get('name', 'Nieznana lokalizacja')
+                description = loc.get('description', '').strip()
+                notes = loc.get('notes', '').strip()
+                location_type = loc.get('location_type', '').strip()
+                role = loc.get('role', '').strip()
+                
+                loc_desc = f"{name}"
+                if location_type:
+                    loc_desc += f" ({location_type})"
+                elif role and role != "setting":
+                    loc_desc += f" ({role})"
+                
+                if description:
+                    loc_desc += f" - {description}"
+                
+                if notes:
+                    loc_desc += f" | Notatki: {notes}"
+                
+                location_descriptions.append(loc_desc)
+            else:
+                # Handle simple string names as fallback
+                location_descriptions.append(str(loc))
+        return location_descriptions
+    
+    def _execute_custom_prompt_blocking(self, prompt: str, llm_params: dict):
+        """Execute custom prompt in blocking mode using proper threading."""
+        if not self.llm_controller:
+            self.show_error(_("Error"), _("LLM controller not initialized"))
+            return
+        
+        try:
+            # Create a temporary custom prompt task for threading
+            self.logger.debug("Executing custom prompt in background thread")
+            
+            # Use the existing threading mechanism
+            self._current_task_id = "custom_prompt"
+            self._is_streaming_task = False
+            self.set_task_executing("custom_prompt", True)
+            self.response_area.clear_response()
+            
+            # Execute through LLM controller's threading system
+            success = self.llm_controller.execute_custom_prompt_with_params(prompt, llm_params)
+            
+            if not success:
+                self.on_error("custom_prompt", "Failed to start custom prompt execution")
+                
+        except Exception as e:
+            self.logger.error(f"Error in custom prompt execution: {e}")
+            self.on_error("custom_prompt", str(e))
+    
+    def _execute_custom_prompt_streaming(self, prompt: str, llm_params: dict):
+        """Execute custom prompt in streaming mode using proper threading."""
+        if not self.llm_controller:
+            self.show_error(_("Error"), _("LLM controller not initialized"))
+            return
+        
+        try:
+            # Use the existing streaming threading mechanism
+            self.logger.debug("Executing custom prompt streaming in background thread")
+            
+            self._current_task_id = "custom_prompt"
+            self._is_streaming_task = True
+            self.set_task_executing("custom_prompt", True)
+            self.response_area.clear_response()
+            
+            # Execute through LLM controller's streaming system
+            success = self.llm_controller.execute_custom_prompt_streaming_with_params(prompt, llm_params)
+            
+            if not success:
+                self.on_error("custom_prompt", "Failed to start custom prompt streaming")
+                
+        except Exception as e:
+            self.logger.error(f"Error in streaming custom prompt: {e}")
+            self.on_error("custom_prompt", str(e))
     
     def show_error(self, title: str, message: str):
         """Show error message dialog."""

@@ -30,49 +30,35 @@ metadata:
   - enhancement
   template_id: dialogue_enhancement
   version: '2.0'
-template_content: 'Popraw następujący dialog, czyniąc go bardziej naturalnym i charakterystycznym:
+template_content: |
+  Popraw następujący dialog, czyniąc go bardziej naturalnym i charakterystycznym.
 
+  Popraw dialog przez:
+  - Nadanie każdej postaci unikalnego sposobu mówienia
+  - Dodanie naturalnych przerw, wahań i niedokończonych zdań
+  - Uwzględnienie emocji i nastroju postaci
+  - Dodanie reakcji niewerbalnych (gesty, mimika)
+  - Poprawę płynności konwersacji
+  - Dodanie podtekstów i ukrytych znaczeń
 
-  Oryginalny dialog:
+  Zachowaj główne treści i cel rozmowy.
+
+  {% if characters %}
+  Postacie w dialogu:
+  {% for character in characters %}
+  - {{ character }}
+  {% endfor %}
+  {% endif %}
+
+  --- ORYGINALNY DIALOG ---
 
   {{ selected_text }}
-
 
   {% if scene_summary and scene_summary != selected_text %}
 
   Kontekst sytuacji:
-
   {{ scene_summary }}
-
   {% endif %}
-
-
-  {% if characters %}
-
-  Postacie w dialogu: {{ characters|join('', '') }}
-
-  {% endif %}
-
-
-  Popraw dialog przez:
-
-  - Nadanie każdej postaci unikalnego sposobu mówienia
-
-  - Dodanie naturalnych przerw, wahań i niedokończonych zdań
-
-  - Uwzględnienie emocji i nastroju postaci
-
-  - Dodanie reakcji niewerbalnych (gesty, mimika)
-
-  - Poprawę płynności konwersacji
-
-  - Dodanie podtekstów i ukrytych znaczeń
-
-
-  Zachowaj główne treści i cel rozmowy.
-
-
-  Poprawiony dialog:'
 ui_config:
   allow_context_editing: true
   auto_apply_selection: true

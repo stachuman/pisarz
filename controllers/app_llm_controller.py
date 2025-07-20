@@ -5,10 +5,70 @@ Coordinates LLM operations and integrates with the main application.
 
 import logging
 from typing import Dict, Any, Optional
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, QThread, QRunnable, QThreadPool
 from core.logging_config import get_logger
 from core.llm.service import LLMService
 from core.llm.settings import get_llm_settings
+
+
+class LLMStreamingThread(QThread):
+    """Thread for executing streaming LLM tasks without blocking UI."""
+    
+    chunk_received = Signal(str, str)  # task_id, chunk
+    finished = Signal(str, str)  # task_id, response
+    error = Signal(str, str)     # task_id, error_message
+    cancelled = Signal(str)      # task_id
+    
+    def __init__(self, service: LLMService, task_id: str, context: Dict[str, Any]):
+        super().__init__()
+        self.service = service
+        self.task_id = task_id
+        self.context = context
+        self.logger = get_logger("llm.streaming_thread")
+        self._stop_requested = False
+    
+    def run(self):
+        """Execute the streaming LLM task in background thread."""
+        try:
+            self.logger.info(f"Starting streaming LLM task: {self.task_id}")
+            
+            # Create chunk callback that emits signals and checks for stop
+            def chunk_callback(chunk: str):
+                if self._stop_requested:
+                    raise InterruptedError("Streaming cancelled by user")
+                self.chunk_received.emit(self.task_id, chunk)
+            
+            # Execute streaming task
+            response = self.service.execute_task_streaming(self.task_id, chunk_callback, self.context)
+            
+            # Check if stop was requested before emitting final response
+            if self._stop_requested:
+                self.cancelled.emit(self.task_id)
+            else:
+                self.finished.emit(self.task_id, response)
+                
+        except InterruptedError:
+            self.logger.info(f"Streaming task {self.task_id} was cancelled")
+            self.cancelled.emit(self.task_id)
+        except Exception as e:
+            if self._stop_requested:
+                self.logger.info(f"Streaming task {self.task_id} was cancelled during error handling")
+                self.cancelled.emit(self.task_id)
+            else:
+                self.logger.error(f"Error in streaming LLM task thread: {e}")
+                self.error.emit(self.task_id, str(e))
+    
+    def stop(self):
+        """Request to stop the streaming task."""
+        self.logger.info(f"Stop requested for streaming task: {self.task_id}")
+        self._stop_requested = True
+        # Cancel the current request in the provider
+        try:
+            self.service.cancel_current_request()
+        except Exception as e:
+            self.logger.warning(f"Error cancelling provider request: {e}")
+        
+        # Don't use terminate() as it's too harsh - let the thread finish naturally
 
 
 class AppLLMController(QObject):
@@ -16,7 +76,9 @@ class AppLLMController(QObject):
     
     # Signals
     llm_response_ready = Signal(str, str)  # task_id, response
+    llm_response_chunk = Signal(str, str)  # task_id, chunk
     llm_error = Signal(str, str)  # task_id, error_message
+    llm_cancelled = Signal(str)  # task_id
     llm_status_changed = Signal(str)  # status message
     
     def __init__(self, parent=None):
@@ -24,6 +86,7 @@ class AppLLMController(QObject):
         self.logger = get_logger("llm.controller")
         self.settings_manager = get_llm_settings()
         self.llm_service = LLMService()
+        self.streaming_thread: Optional[LLMStreamingThread] = None
         self._initialized = False
         
     def initialize(self):
@@ -86,6 +149,60 @@ class AppLLMController(QObject):
             self.llm_error.emit(task_id, str(e))
             self.llm_status_changed.emit("Task failed")
             return False
+    
+    def execute_task_streaming(self, task_id: str, context: Dict[str, Any]) -> bool:
+        """Execute an LLM task with streaming output."""
+        if not self.is_initialized():
+            self.logger.error("LLM controller not initialized")
+            self.llm_error.emit(task_id, "LLM system not initialized")
+            return False
+        
+        try:
+            self.logger.info(f"Executing streaming LLM task: {task_id}")
+            self.llm_status_changed.emit(f"Streaming task: {task_id}")
+            
+            # Execute streaming task in background thread
+            self.streaming_thread = LLMStreamingThread(self.llm_service, task_id, context)
+            self.streaming_thread.chunk_received.connect(self.llm_response_chunk.emit)
+            self.streaming_thread.finished.connect(self.llm_response_ready.emit)
+            self.streaming_thread.error.connect(self.llm_error.emit)
+            self.streaming_thread.cancelled.connect(self.llm_cancelled.emit)
+            self.streaming_thread.finished.connect(lambda: self.llm_status_changed.emit("Streaming task completed"))
+            self.streaming_thread.error.connect(lambda: self.llm_status_changed.emit("Streaming task failed"))
+            self.streaming_thread.cancelled.connect(lambda: self.llm_status_changed.emit("Streaming task cancelled"))
+            
+            # Clean up thread reference when it finishes
+            def cleanup_thread():
+                self.streaming_thread = None
+            
+            self.streaming_thread.finished.connect(cleanup_thread)
+            self.streaming_thread.error.connect(cleanup_thread)
+            self.streaming_thread.cancelled.connect(cleanup_thread)
+            
+            self.streaming_thread.start()
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error executing streaming task {task_id}: {e}")
+            self.llm_error.emit(task_id, str(e))
+            self.llm_status_changed.emit("Streaming task failed")
+            return False
+    
+    def stop_streaming(self) -> bool:
+        """Stop the currently running streaming task."""
+        if self.streaming_thread and self.streaming_thread.isRunning():
+            self.logger.info("Stopping streaming task")
+            self.streaming_thread.stop()
+            # Wait for thread to finish gracefully - give it more time
+            if not self.streaming_thread.wait(5000):  # 5 second timeout
+                self.logger.warning("Streaming thread did not stop gracefully within 5 seconds")
+                # Don't terminate forcefully - just mark as cancelled and let it finish
+                self.streaming_thread.cancelled.emit(self.streaming_thread.task_id)
+            
+            # Don't set to None immediately - let signals finish processing
+            return True
+        return False
     
     def get_available_tasks(self) -> list:
         """Get list of available LLM tasks."""
@@ -228,6 +345,95 @@ class AppLLMController(QObject):
         except Exception as e:
             self.logger.error(f"Error handling context ready: {e}")
     
+    def execute_custom_prompt_with_params(self, prompt: str, llm_params: dict) -> bool:
+        """Execute a custom prompt with parameters (non-streaming) using background thread."""
+        if not self.is_initialized():
+            return False
+        
+        try:
+            self.logger.info("Executing custom prompt (non-streaming)")
+            self.llm_status_changed.emit("Executing custom prompt...")
+            
+            # Use streaming thread but with non-streaming execution
+            self.streaming_thread = LLMStreamingThread(self.llm_service, "custom_prompt", {})
+            self.streaming_thread.finished.connect(self.llm_response_ready.emit)
+            self.streaming_thread.error.connect(self.llm_error.emit)
+            self.streaming_thread.cancelled.connect(self.llm_cancelled.emit)
+            
+            # Override the execute method to handle custom prompt without streaming
+            def custom_execute():
+                return self.llm_service.provider.generate(prompt, **llm_params)
+            
+            # Replace the run method to execute without streaming, bypassing template system
+            def non_streaming_run():
+                try:
+                    self.logger.info("Starting custom non-streaming execution")
+                    # Execute directly on provider
+                    response = self.llm_service.provider.generate(prompt, **llm_params)
+                    self.streaming_thread.finished.emit("custom_prompt", response)
+                except Exception as e:
+                    self.logger.error(f"Error in custom non-streaming execution: {e}")
+                    self.streaming_thread.error.emit("custom_prompt", str(e))
+            
+            self.streaming_thread.run = non_streaming_run
+            self.streaming_thread.start()
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to execute custom prompt: {e}")
+            self.llm_error.emit("custom_prompt", str(e))
+            return False
+    
+    def execute_custom_prompt_streaming_with_params(self, prompt: str, llm_params: dict) -> bool:
+        """Execute a custom prompt with streaming in background thread."""
+        if not self.is_initialized():
+            return False
+        
+        try:
+            self.logger.info("Executing custom streaming prompt")
+            
+            # Create a streaming thread for custom prompt
+            self.streaming_thread = LLMStreamingThread(self.llm_service, "custom_prompt", {})
+            self.streaming_thread.chunk_received.connect(self.llm_response_chunk.emit)
+            self.streaming_thread.finished.connect(self.llm_response_ready.emit)
+            self.streaming_thread.error.connect(self.llm_error.emit)
+            self.streaming_thread.cancelled.connect(self.llm_cancelled.emit)
+            
+            # Replace the run method to bypass template system and call provider directly
+            def custom_streaming_run():
+                try:
+                    self.logger.info("Starting custom streaming execution")
+                    
+                    # Create chunk callback that emits signals and checks for stop
+                    def chunk_callback(chunk: str):
+                        if self.streaming_thread._stop_requested:
+                            raise InterruptedError("Streaming cancelled by user")
+                        self.streaming_thread.chunk_received.emit("custom_prompt", chunk)
+                    
+                    # Execute streaming directly on provider
+                    response = self.llm_service.provider.generate_streaming(prompt, chunk_callback, **llm_params)
+                    
+                    # Check if stop was requested before emitting final response
+                    if self.streaming_thread._stop_requested:
+                        self.streaming_thread.cancelled.emit("custom_prompt")
+                    else:
+                        self.streaming_thread.finished.emit("custom_prompt", response)
+                        
+                except InterruptedError:
+                    self.logger.info("Custom streaming was interrupted")
+                    self.streaming_thread.cancelled.emit("custom_prompt")
+                except Exception as e:
+                    self.logger.error(f"Error in custom streaming execution: {e}")
+                    self.streaming_thread.error.emit("custom_prompt", str(e))
+            
+            self.streaming_thread.run = custom_streaming_run
+            self.streaming_thread.start()
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to execute custom streaming prompt: {e}")
+            return False
+
     def get_context_summary(self) -> str:
         """Get human-readable summary of current context."""
         if not self.is_initialized():

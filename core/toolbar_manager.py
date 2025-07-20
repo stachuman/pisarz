@@ -97,7 +97,7 @@ class ToolbarManager(QObject):
         layout.addWidget(size_label)
         
         self.font_size_combo = QComboBox()
-        self.font_size_combo.setEditable(True)
+        self.font_size_combo.setEditable(False)  # Tylko dropdown, bez możliwości wpisywania
         sizes = ["8", "9", "10", "11", "12", "14", "16", "18", "20", "24", "28", "32", "36"]
         self.font_size_combo.addItems(sizes)
         self.font_size_combo.setCurrentText("12")

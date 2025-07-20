@@ -39,6 +39,7 @@ class EmbeddedRichTextWidget(QWidget):
         super().__init__(parent)
         self._content = ""
         self._has_changes = False
+        self._last_saved_content = ""  # Przechowywanie ostatnio zapisanej zawartości
         
         # Initialize toolbar manager
         self.toolbar_manager = ToolbarManager(self)
@@ -187,8 +188,11 @@ class EmbeddedRichTextWidget(QWidget):
         
     def on_text_changed(self):
         """Obsługa zmian w tekście."""
-        self._content = self.text_edit.toHtml()
-        if not self._has_changes:
+        current_content = self.text_edit.toHtml()
+        self._content = current_content
+        
+        # Sprawdź czy zawartość rzeczywiście się zmieniła w porównaniu do ostatnio zapisanej
+        if not self._has_changes and current_content != self._last_saved_content:
             self._has_changes = True
             self.contentChanged.emit()
             
@@ -240,6 +244,7 @@ class EmbeddedRichTextWidget(QWidget):
         """Ustawienie zawartości z HTML."""
         self.text_edit.setHtml(content)
         self._content = content
+        self._last_saved_content = content  # Zapisz jako ostatnio zapisaną zawartość
         self._has_changes = False
         
         # Ustaw domyślną czcionkę dla nowego tekstu
@@ -256,13 +261,20 @@ class EmbeddedRichTextWidget(QWidget):
             
         
     def save_content(self):
-        """Emisja sygnału zapisania."""
+        """Emisja sygnału zapisania - tylko jeśli zawartość się zmieniła."""
         content = self.get_content()
+        
+        # Sprawdź czy zawartość rzeczywiście się zmieniła
+        if content == self._last_saved_content:
+            return  # Nie zapisuj jeśli nic się nie zmieniło
+        
         self.saveRequested.emit(content)
+        self._last_saved_content = content  # Zaktualizuj ostatnio zapisaną zawartość
         self._has_changes = False
     
     def confirm_auto_save(self):
         """Confirm that auto-save was successful."""
+        self._last_saved_content = self.get_content()  # Zaktualizuj ostatnio zapisaną zawartość
         self._has_changes = False
         
     def has_changes(self):
