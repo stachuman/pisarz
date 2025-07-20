@@ -274,34 +274,15 @@ class EnhancedTemplateManager:
         """Build additional context data based on configuration."""
         context = {}
         
+        # Use ContextFormatterService for consistent formatting
+        from services import ContextFormatterService
+        formatter = ContextFormatterService()
+        
         # Characters - create full descriptions from character objects
         if config.include_characters:
             characters = scene_data.get('characters', [])
             if isinstance(characters, list):
-                character_descriptions = []
-                for char in characters:
-                    if isinstance(char, dict):
-                        # Build full character description for LLM
-                        name = char.get('name', 'Nieznana postać')
-                        description = char.get('description', '').strip()
-                        notes = char.get('notes', '').strip()
-                        role = char.get('role', '').strip()
-                        
-                        char_desc = f"{name}"
-                        if role and role != "participant":
-                            char_desc += f" ({role})"
-                        
-                        if description:
-                            char_desc += f" - {description}"
-                        
-                        if notes:
-                            char_desc += f" | Notatki: {notes}"
-                        
-                        character_descriptions.append(char_desc)
-                    else:
-                        # Handle simple string names as fallback
-                        character_descriptions.append(str(char))
-                context['characters'] = character_descriptions
+                context['characters'] = formatter.format_characters_list(characters)
             else:
                 context['characters'] = []
         
@@ -309,33 +290,7 @@ class EnhancedTemplateManager:
         if config.include_locations:
             locations = scene_data.get('locations', [])
             if isinstance(locations, list):
-                location_descriptions = []
-                for loc in locations:
-                    if isinstance(loc, dict):
-                        # Build full location description for LLM
-                        name = loc.get('name', 'Nieznana lokalizacja')
-                        description = loc.get('description', '').strip()
-                        notes = loc.get('notes', '').strip()
-                        location_type = loc.get('location_type', '').strip()
-                        role = loc.get('role', '').strip()
-                        
-                        loc_desc = f"{name}"
-                        if location_type:
-                            loc_desc += f" ({location_type})"
-                        elif role and role != "setting":
-                            loc_desc += f" ({role})"
-                        
-                        if description:
-                            loc_desc += f" - {description}"
-                        
-                        if notes:
-                            loc_desc += f" | Notatki: {notes}"
-                        
-                        location_descriptions.append(loc_desc)
-                    else:
-                        # Handle simple string names as fallback
-                        location_descriptions.append(str(loc))
-                context['locations'] = location_descriptions
+                context['locations'] = formatter.format_locations_list(locations)
             else:
                 context['locations'] = []
         

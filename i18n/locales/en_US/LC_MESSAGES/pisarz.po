@@ -1096,3 +1096,80 @@ msgstr "✅ Context automatically saved and linked to scene"
 
 msgid "Context for"
 msgstr "Context for"
+
+# Service messages for user feedback
+msgid "No scene manager available"
+msgstr "No scene manager available"
+
+msgid "No project loaded"
+msgstr "No project loaded"
+
+msgid "Failed to prepare context data"
+msgstr "Failed to prepare context data"
+
+msgid "Invalid context data"
+msgstr "Invalid context data"
+
+msgid "Failed to generate context"
+msgstr "Failed to generate context"
+
+msgid "No context to refresh"
+msgstr "No context to refresh"
+
+msgid "Error refreshing context"
+msgstr "Error refreshing context"
+
+msgid "No narrative context manager available"
+msgstr "No narrative context manager available"
+
+msgid "No context found for this scene"
+msgstr "No context found for this scene"
+
+msgid "Error viewing context"
+msgstr "Error viewing context"
+
+msgid "Error editing context"
+msgstr "Error editing context"
+
+msgid "Generating narrative context with template: {}"
+msgstr "Generating narrative context with template: {}"
+
+msgid "Viewing context for scene {}"
+msgstr "Viewing context for scene {}"
+
+msgid "Editing context for scene {}"
+msgstr "Editing context for scene {}"
+
+msgid "Task execution failed"
+msgstr "Task execution failed"
+
+# Character and location context formatting terms
+msgid "full name: {}"
+msgstr "full name: {}"
+
+msgid "alias: {}"
+msgstr "alias: {}"
+
+msgid "age: {}"
+msgstr "age: {}"
+
+msgid "gender: {}"
+msgstr "gender: {}"
+
+msgid "occupation: {}"
+msgstr "occupation: {}"
+
+msgid "place: {}"
+msgstr "place: {}"
+
+msgid "atmosphere: {}"
+msgstr "atmosphere: {}"
+
+msgid "details: {}"
+msgstr "details: {}"
+
+msgid "significance: {}"
+msgstr "significance: {}"
+
+msgid "Notes: {}"
+msgstr "Notes: {}"

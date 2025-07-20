@@ -39,7 +39,7 @@ class LLMTaskThread(QThread):
             success = self.controller.execute_task(self.task_id, self.context)
             
             if not success:
-                self.error.emit(self.task_id, "Task execution failed")
+                self.error.emit(self.task_id, _("Task execution failed"))
                 return
                 
             # The response will be emitted via controller signals
@@ -580,10 +580,11 @@ class LLMAssistantPanel(QWidget):
             }
         """)
         self.execute_button.clicked.connect(self.execute_selected_task)
+        self.execute_button.setVisible(False)  # Hide regular execute button
         execute_layout.addWidget(self.execute_button)
         
         # Streaming Execute button
-        self.execute_streaming_button = QPushButton(_("🔄 Stream"))
+        self.execute_streaming_button = QPushButton(_("🔄 Execute"))
         self.execute_streaming_button.setStyleSheet("""
             QPushButton {
                 background-color: #28a745;
@@ -824,9 +825,7 @@ class LLMAssistantPanel(QWidget):
     def set_additional_context(self, context_data: dict):
         """Set additional context data (characters, locations, etc.)."""
         self.additional_context = context_data or {}
-        self.logger.info(f"DEBUG set_additional_context - keys: {list(self.additional_context.keys())}")
-        self.logger.info(f"DEBUG set_additional_context - characters: {self.additional_context.get('characters', 'NOT FOUND')}")
-        self.logger.info(f"DEBUG set_additional_context - locations: {self.additional_context.get('locations', 'NOT FOUND')}")
+        self.logger.debug(f"Additional context set with {len(context_data)} keys")
     
     def set_auto_save_context_info(self, scene_id: int, template_name: str):
         """Set auto-save context info for automatic saving after task completion."""
@@ -846,6 +845,9 @@ class LLMAssistantPanel(QWidget):
         if not self.llm_controller.is_initialized():
             self.show_error(_("Error"), _("LLM system not initialized"))
             return
+        
+        # IMPORTANT: Populate additional context before building context
+        self._populate_additional_context()
         
         # Build context from current scene
         context = self.build_context()
@@ -875,6 +877,9 @@ class LLMAssistantPanel(QWidget):
         if not self.llm_controller.is_initialized():
             self.show_error(_("Error"), _("LLM system not initialized"))
             return
+        
+        # IMPORTANT: Populate additional context before building context
+        self._populate_additional_context()
         
         # Build context from current scene
         context = self.build_context()
@@ -1030,7 +1035,7 @@ class LLMAssistantPanel(QWidget):
             if key not in context:  # Don't override existing keys
                 context[key] = value
         
-        self.logger.debug(f"Built enhanced context: scene_content={len(text_content)} chars, has_selection={context['has_selection']}, characters={len(context['characters'])}, locations={len(context['locations'])}")
+        self.logger.debug(f"Built context: {len(text_content)} chars, {len(context['characters'])} characters, {len(context['locations'])} locations")
         return context
     
     def set_task_executing(self, task_id: str, executing: bool):
@@ -1040,13 +1045,13 @@ class LLMAssistantPanel(QWidget):
         
         if executing:
             self.execute_button.setText(_("Processing..."))
-            self.execute_streaming_button.setText(_("🔄 Streaming..."))
+            self.execute_streaming_button.setText(_("🔄 Processing..."))
             # Show stop button only for streaming tasks
             if hasattr(self, '_is_streaming_task') and self._is_streaming_task:
                 self.stop_button.setVisible(True)
         else:
             self.execute_button.setText(_("Execute"))
-            self.execute_streaming_button.setText(_("🔄 Stream"))
+            self.execute_streaming_button.setText(_("🔄 Execute"))
             self.stop_button.setVisible(False)
             if hasattr(self, '_is_streaming_task'):
                 self._is_streaming_task = False
@@ -1483,63 +1488,25 @@ class LLMAssistantPanel(QWidget):
                 self.logger.debug("No current scene ID, cannot populate additional context")
                 return
             
-            # Access main window to get managers
+            # Access main window to get managers - navigate up the widget hierarchy
             main_window = self.parent()
-            if not main_window or not hasattr(main_window, 'managers'):
-                self.logger.debug("No main window or managers found")
+            while main_window and not hasattr(main_window, 'project_controller'):
+                main_window = main_window.parent()
+            
+            if not main_window or not hasattr(main_window, 'project_controller'):
+                self.logger.debug("No main window or project controller found")
                 return
             
-            managers = main_window.managers
-            character_manager = managers.get('character_manager')
-            location_manager = managers.get('location_manager')
+            # Use the new LLM context service for custom prompts
+            from services import LLMContextService
+            llm_context_service = LLMContextService()
             
-            scene_characters = []
-            scene_locations = []
+            managers = main_window.project_controller.get_current_managers()
             
-            # Get characters for this scene
-            if character_manager:
-                try:
-                    character_role_pairs = character_manager.get_characters_for_scene_with_roles(self.current_scene_id)
-                    scene_characters = [
-                        {
-                            "id": char_dict["id"],
-                            "name": char_dict["name"],
-                            "description": char_dict.get("description", ""),
-                            "notes": char_dict.get("notes", ""),
-                            "role": char_dict.get("role", "participant")
-                        }
-                        for char_dict in character_role_pairs
-                    ]
-                    self.logger.debug(f"Found {len(scene_characters)} characters for scene {self.current_scene_id}")
-                except Exception as e:
-                    self.logger.error(f"Error getting characters for scene {self.current_scene_id}: {e}")
-            
-            # Get locations for this scene  
-            if location_manager:
-                try:
-                    scene_location_ids = location_manager.get_locations_for_scene(self.current_scene_id)
-                    for location_id in scene_location_ids:
-                        location = location_manager.get_location(location_id)
-                        if location:
-                            scene_locations.append({
-                                "id": location["id"],
-                                "name": location.get("name", ""),
-                                "description": location.get("description", ""),
-                                "notes": location.get("notes", "")
-                            })
-                    self.logger.debug(f"Found {len(scene_locations)} locations for scene {self.current_scene_id}")
-                except Exception as e:
-                    self.logger.error(f"Error getting locations for scene {self.current_scene_id}: {e}")
-            
-            # Update additional context
-            context_data = {
-                "characters": scene_characters,
-                "locations": scene_locations,
-                "project_name": getattr(main_window, 'project_name', ''),
-                "scene_title": f"Scene {self.current_scene_id}",
-                "character_count": len(scene_characters),
-                "location_count": len(scene_locations)
-            }
+            context_data = llm_context_service.prepare_custom_prompt_context(
+                self.current_scene_id, managers, 
+                include_characters=True, include_locations=True
+            )
             
             self.set_additional_context(context_data)
             self.logger.debug(f"Additional context populated for scene {self.current_scene_id}")
@@ -1670,68 +1637,15 @@ class LLMAssistantPanel(QWidget):
     
     def _extract_character_names(self, characters):
         """Extract full character descriptions from character objects for LLM context."""
-        self.logger.info(f"DEBUG _extract_character_names - input: {characters}")
-        if not characters:
-            self.logger.info("DEBUG _extract_character_names - no characters, returning empty list")
-            return []
-        
-        character_descriptions = []
-        for char in characters:
-            if isinstance(char, dict):
-                # Build full character description for LLM
-                name = char.get('name', 'Nieznana postać')
-                description = char.get('description', '').strip()
-                notes = char.get('notes', '').strip()
-                role = char.get('role', '').strip()
-                
-                char_desc = f"{name}"
-                if role and role != "participant":
-                    char_desc += f" ({role})"
-                
-                if description:
-                    char_desc += f" - {description}"
-                
-                if notes:
-                    char_desc += f" | Notatki: {notes}"
-                
-                character_descriptions.append(char_desc)
-            else:
-                # Handle simple string names as fallback
-                character_descriptions.append(str(char))
-        return character_descriptions
+        from services import ContextFormatterService
+        formatter = ContextFormatterService()
+        return formatter.format_characters_list(characters)
     
     def _extract_location_names(self, locations):
         """Extract full location descriptions from location objects for LLM context."""
-        if not locations:
-            return []
-        
-        location_descriptions = []
-        for loc in locations:
-            if isinstance(loc, dict):
-                # Build full location description for LLM
-                name = loc.get('name', 'Nieznana lokalizacja')
-                description = loc.get('description', '').strip()
-                notes = loc.get('notes', '').strip()
-                location_type = loc.get('location_type', '').strip()
-                role = loc.get('role', '').strip()
-                
-                loc_desc = f"{name}"
-                if location_type:
-                    loc_desc += f" ({location_type})"
-                elif role and role != "setting":
-                    loc_desc += f" ({role})"
-                
-                if description:
-                    loc_desc += f" - {description}"
-                
-                if notes:
-                    loc_desc += f" | Notatki: {notes}"
-                
-                location_descriptions.append(loc_desc)
-            else:
-                # Handle simple string names as fallback
-                location_descriptions.append(str(loc))
-        return location_descriptions
+        from services import ContextFormatterService
+        formatter = ContextFormatterService()
+        return formatter.format_locations_list(locations)
     
     def _execute_custom_prompt_blocking(self, prompt: str, llm_params: dict):
         """Execute custom prompt in blocking mode using proper threading."""

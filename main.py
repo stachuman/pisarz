@@ -22,6 +22,7 @@ from controllers.app_llm_controller import AppLLMController
 from ui.widgets import (ProjectsView, ProjectTreeView, Workspace, SettingsDialog,
                        CharactersGridView, CharacterEditorDialog, ProjectPropertiesDialog,
                        LLMAssistantPanel, NarrativeContextPanel)
+from services import LLMEventService, UIEventService, ProjectManagementService, SettingsService
 from i18n import _
 
 
@@ -48,6 +49,12 @@ class PisarzApp(QMainWindow):
         # Set global LLM controller instance
         from controllers.app_llm_controller import set_llm_controller
         set_llm_controller(self.llm_controller)
+        
+        # Initialize services
+        self.llm_event_service = LLMEventService(self)
+        self.ui_event_service = UIEventService(self)
+        self.project_management_service = ProjectManagementService(self)
+        self.settings_service = SettingsService(self)
         
         # Initialize theme
         self.focus_controller.initialize_theme()
@@ -111,7 +118,7 @@ class PisarzApp(QMainWindow):
         self.main_splitter.addWidget(top_widget)
         
         # LLM Assistant Panel (teraz na dole)
-        self.llm_panel = LLMAssistantPanel()
+        self.llm_panel = LLMAssistantPanel(self)  # Pass self as parent
         self.llm_panel.setMinimumHeight(250)  # Minimum height for usability
         self.llm_panel.setVisible(False)  # Hidden by default
         self.main_splitter.addWidget(self.llm_panel)
@@ -388,7 +395,7 @@ class PisarzApp(QMainWindow):
         
     def exit_focus_mode_if_active(self):
         """Wyjdź z trybu fokusu tylko jeśli jest aktywny."""
-        self.focus_controller.exit_focus_mode_if_active()
+        self.settings_service.exit_focus_mode_if_active()
     
     def closeEvent(self, event):
         """Handle application close event - auto-save current scene."""
@@ -535,48 +542,51 @@ class PisarzApp(QMainWindow):
         self.current_view_state = "welcome"
         self.current_category = None
         
-        # Load project using controller
-        success = self.project_controller.load_project(project_path, project_name)
+        # Use project management service
+        success = self.project_management_service.handle_project_selection(project_path, project_name)
         if not success:
             self.show_projects_view()
             
     def on_category_selected(self, category: str) -> None:
         """Obsługa wyboru kategorii - pokaż widok kafelków."""
-        managers = self.project_controller.get_current_managers()
-        if not managers['scene_manager']:
-            return
+        success = self.project_management_service.handle_category_selection(category)
+        if success:
+            # Get data and show the category view through UI controller
+            managers = self.project_controller.get_current_managers()
+            if not managers['scene_manager']:
+                return
+                
+            project_path, _project_name = self.project_controller.get_current_project_info()
+            if not project_path:
+                return
+                
+            project_data = self.project_controller.get_project_data(Path(project_path))
+            project_id = project_data['id'] if project_data else None
             
-        project_path, _project_name = self.project_controller.get_current_project_info()
-        if not project_path:
-            return
-            
-        project_data = self.project_controller.get_project_data(Path(project_path))
-        project_id = project_data['id'] if project_data else None
-        
-        if category == "scenes":
-            scenes = self.scene_controller.get_scenes_list()
-            data_dict = {
-                'scenes': scenes,
-                'character_manager': managers['character_manager'],
-                'location_manager': managers['location_manager']
-            }
-        elif category == "characters":
-            characters = self.character_controller.get_characters_list(project_id) if project_id else []
-            data_dict = {
-                'characters': characters,
-                'location_manager': managers['location_manager']
-            }
-        elif category == "locations":
-            data_dict = {
-                'location_manager': managers['location_manager'],
-                'project_id': project_id
-            }
-        elif category == "search":
-            data_dict = {}
-        else:
-            data_dict = {}
-            
-        self.ui_controller.show_category_view(category, data_dict)
+            if category == "scenes":
+                scenes = self.scene_controller.get_scenes_list()
+                data_dict = {
+                    'scenes': scenes,
+                    'character_manager': managers['character_manager'],
+                    'location_manager': managers['location_manager']
+                }
+            elif category == "characters":
+                characters = self.character_controller.get_characters_list(project_id) if project_id else []
+                data_dict = {
+                    'characters': characters,
+                    'location_manager': managers['location_manager']
+                }
+            elif category == "locations":
+                data_dict = {
+                    'location_manager': managers['location_manager'],
+                    'project_id': project_id
+                }
+            elif category == "search":
+                data_dict = {}
+            else:
+                data_dict = {}
+                
+            self.ui_controller.show_category_view(category, data_dict)
             
     def on_scene_selected(self, scene_id: int, scene_title: str) -> None:
         """Obsługa wyboru sceny."""
@@ -590,21 +600,21 @@ class PisarzApp(QMainWindow):
                 if success and self.workspace.current_editor:
                     self.workspace.current_editor._has_changes = False
         
-        # Open scene using controller
-        self.scene_controller.open_scene(scene_id, scene_title)
+        # Use project management service for scene selection
+        self.project_management_service.handle_scene_selection(scene_id, scene_title)
             
     def save_scene_content(self, content: str, is_auto_save: bool = False) -> None:
         """Zapisz zawartość sceny."""
-        self.scene_controller.save_scene_content(content, is_auto_save)
-        
-        # Update LLM panel with latest content
-        current_scene_id = self.scene_controller.get_current_scene_id()
-        if current_scene_id:
-            self.llm_panel.set_scene_context(current_scene_id, content)
+        success = self.project_management_service.save_scene_content(content, is_auto_save)
+        if success:
+            # Update LLM panel with latest content
+            current_scene_id = self.scene_controller.get_current_scene_id()
+            if current_scene_id:
+                self.llm_panel.set_scene_context(current_scene_id, content)
     
     def auto_save_scene_content(self, content: str) -> None:
         """Handle periodic auto-save."""
-        success = self.scene_controller.auto_save_scene_content(content)
+        success = self.project_management_service.save_scene_content(content, is_auto_save=True)
         if success and self.workspace.current_editor:
             self.workspace.current_editor.confirm_auto_save()
             
@@ -640,19 +650,19 @@ class PisarzApp(QMainWindow):
             
     def create_new_project(self, name: str) -> None:
         """Stwórz nowy projekt."""
-        self.project_controller.create_project(name)
+        self.project_management_service.create_new_project(name)
             
     def create_new_scene(self, title: str) -> None:
         """Stwórz nową scenę."""
-        self.scene_controller.create_scene(title)
+        self.project_management_service.create_new_scene(title)
     
     def on_scene_rename_requested(self, scene_id: int, new_title: str) -> None:
         """Handle scene rename request."""
-        self.scene_controller.rename_scene(scene_id, new_title)
+        self.project_management_service.handle_scene_rename(scene_id, new_title)
             
     def on_character_selected(self, character_id, character_name):
         """Obsługa wyboru postaci - otwiera edytor postaci."""
-        self.character_controller.open_character_editor(character_id, character_name, self.project_controller)
+        self.ui_event_service.handle_character_selection(character_id, character_name)
             
     def create_new_character(self, name):
         """Stwórz nową postać."""
@@ -759,7 +769,7 @@ class PisarzApp(QMainWindow):
     
     def on_location_selected(self, location_id, location_name):
         """Obsługa wyboru lokacji - otwiera edytor lokacji."""
-        self.location_controller.open_location_editor(location_id, location_name, self.project_controller)
+        self.ui_event_service.handle_location_selection(location_id, location_name)
     
     def create_new_location(self, name):
         """Stwórz nową lokację."""
@@ -769,31 +779,27 @@ class PisarzApp(QMainWindow):
     
     def on_character_added_to_scene(self, character_id, role):
         """Handle character added to scene from context panel."""
-        self.status_bar.showMessage(_("Character linked to scene with role: {}").format(role))
-        # The linking is already done in the context panel, just update UI if needed
-        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
-            self.workspace.current_editor.refresh_context_panel()
+        success = self.ui_event_service.handle_scene_character_addition(character_id, role)
+        if success:
+            self.status_bar.showMessage(_("Character linked to scene with role: {}").format(role))
     
     def on_character_removed_from_scene(self, character_id):
         """Handle character removed from scene."""
-        self.status_bar.showMessage(_("Character unlinked from scene"))
-        # The unlinking is already done in the context panel, just update UI if needed
-        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
-            self.workspace.current_editor.refresh_context_panel()
+        success = self.ui_event_service.handle_scene_character_removal(character_id)
+        if success:
+            self.status_bar.showMessage(_("Character unlinked from scene"))
     
     def on_location_added_to_scene(self, location_id, role):
         """Handle location added to scene from context panel."""
-        self.status_bar.showMessage(_("Location linked to scene with role: {}").format(role))
-        # The linking is already done in the context panel, just update UI if needed
-        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
-            self.workspace.current_editor.refresh_context_panel()
+        success = self.ui_event_service.handle_scene_location_addition(location_id, role)
+        if success:
+            self.status_bar.showMessage(_("Location linked to scene with role: {}").format(role))
     
     def on_location_removed_from_scene(self, location_id):
         """Handle location removed from scene."""
-        self.status_bar.showMessage(_("Location unlinked from scene"))
-        # The unlinking is already done in the context panel, just update UI if needed
-        if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
-            self.workspace.current_editor.refresh_context_panel()
+        success = self.ui_event_service.handle_scene_location_removal(location_id)
+        if success:
+            self.status_bar.showMessage(_("Location unlinked from scene"))
     
     def on_character_selected_from_scene(self, character_id):
         """Handle character selected for editing from scene context panel."""
@@ -803,20 +809,18 @@ class PisarzApp(QMainWindow):
             character = managers['character_manager'].get_character(character_id)
             if character:
                 character_name = character.get('name', _('Unknown Character'))
-                self.on_character_selected(character_id, character_name)
+                self.ui_event_service.handle_character_selection(character_id, character_name)
     
     def on_location_selected_from_scene(self, location_id):
         """Handle location selected for editing from scene context panel."""
         # Get location data using controller
         location = self.location_controller.get_location(location_id)
         if location:
-            self.on_location_selected(location_id, location.name)
+            self.ui_event_service.handle_location_selection(location_id, location.name)
     
     def on_search_requested(self):
         """Handle search category selection from tree."""
-        self.search_controller.show_search_view()
-        if hasattr(self.workspace, 'show_search_view'):
-            self.workspace.show_search_view()
+        self.ui_event_service.handle_search_request()
     
     def perform_search(self, query, filter_type):
         """Perform search and display results."""
@@ -824,163 +828,66 @@ class PisarzApp(QMainWindow):
     
     def on_search_result_selected(self, result_type, result_id, title, search_query):
         """Handle selection of a search result."""
-        try:
-            if result_type == "scene":
-                self.on_scene_selected_with_search(result_id, title, search_query)
-            elif result_type == "character":
-                self.on_character_selected(result_id, title)
-            elif result_type == "location":
-                self.on_location_selected(result_id, title)
-        except Exception as e:
-            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
-                                       context="Opening search result",
-                                       show_to_user=True, parent_widget=self,
-                                       custom_message=_("Failed to open search result"))
+        self.ui_event_service.handle_search_result_selection(result_type, result_id, title, search_query)
     
     def on_scene_selected_with_search(self, scene_id, scene_title, search_query):
         """Handle scene selection from search results with text highlighting."""
-        try:
-            managers = self.project_controller.get_current_managers()
-            scene_manager = managers['scene_manager']
-            if not scene_manager:
-                return
-                
-            scene_data = scene_manager.get_scene(scene_id)
-            content = scene_data.get("content_rtf", f"<p>{_('Start writing your scene...')}</p>") if scene_data else f"<p>{_('Scene loading error')}</p>"
-            
-            # Get project ID for managers
-            project_path, project_name = self.project_controller.get_current_project_info()
-            if project_path:
-                project_data = self.project_controller.get_project_data(Path(project_path))
-                project_id = project_data['id'] if project_data else None
-            else:
-                project_id = None
-            
-            # Open editor with context panel support
-            self.workspace.open_editor_for_scene(
-                content, 
-                scene_id=scene_id,
-                character_manager=managers['character_manager'],
-                location_manager=managers['location_manager'],
-                project_id=project_id
-            )
-            
-            # Find and highlight the search term in the editor
-            if search_query and self.workspace.current_editor:
-                self.workspace.current_editor.find_and_highlight_text(search_query)
-            
+        success = self.project_management_service.handle_scene_selection_with_search(scene_id, scene_title, search_query)
+        if success:
             self.status_bar.showMessage(_("Editing scene: {} (search: '{}')").format(scene_title, search_query))
-            
-        except Exception as e:
-            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
-                                       context=f"Opening scene with search: {scene_title}",
-                                       show_to_user=True, parent_widget=self,
-                                       custom_message=_("Failed to open scene: {}").format(scene_title))
             
     def show_settings(self):
         """Pokaż dialog ustawień."""
-        dialog = SettingsDialog(self)
-        dialog.themeChanged.connect(self.on_theme_changed)
-        dialog.languageChanged.connect(self.on_language_changed)
-        dialog.llmSettingsChanged.connect(self.on_llm_settings_changed)
-        dialog.exec()
+        self.settings_service.show_settings_dialog()
         
     def on_theme_changed(self, theme_name):
         """Obsługa zmiany motywu."""
-        self.status_bar.showMessage(_("Applied theme: {}").format(theme_name))
-        
-        # Odśwież kafelki w widokach
-        self.projects_view.refresh_theme()
-        if hasattr(self.workspace, 'scenes_grid_view') and self.workspace.scenes_grid_view:
-            self.workspace.scenes_grid_view.refresh_theme()
+        success = self.settings_service.handle_theme_change(theme_name)
+        if success:
+            self.status_bar.showMessage(_("Applied theme: {}").format(theme_name))
+            # Odśwież kafelki w widokach
+            self.projects_view.refresh_theme()
+            if hasattr(self.workspace, 'scenes_grid_view') and self.workspace.scenes_grid_view:
+                self.workspace.scenes_grid_view.refresh_theme()
     
     def on_llm_settings_changed(self):
         """Handle LLM settings changes."""
-        self.status_bar.showMessage(_("LLM settings updated"))
-        
-        # Notify the LLM controller about settings changes
-        self.llm_controller.on_settings_changed()
+        success = self.settings_service.handle_llm_settings_change()
+        if success:
+            self.status_bar.showMessage(_("LLM settings updated"))
     
     def on_text_selection_changed(self, selected_text: str, current_text: str):
         """Handle text selection changes from editor."""
-        try:
-            # Update LLM context with text selection
-            self.llm_controller.update_text_selection(selected_text, current_text)
-            
-        except Exception as e:
-            self.logger.error(f"Error handling text selection change: {e}")
+        self.settings_service.handle_text_selection_change(selected_text, current_text)
     
     def show_project_properties(self):
         """Show project properties dialog."""
-        project_path, _project_name = self.project_controller.get_current_project_info()
-        if not project_path:
-            return
-            
-        # Get current project data
-        project_data = self.project_controller.get_project_data(Path(project_path))
-        if not project_data:
-            self.error_handler.log_warning("Could not load project data", 
-                                          ErrorCategory.BUSINESS_LOGIC,
-                                          show_to_user=True, parent_widget=self)
-            return
-            
-        # Show the properties dialog
-        dialog = ProjectPropertiesDialog(project_data, self)
-        dialog.propertiesSaved.connect(self.on_project_properties_saved)
-        dialog.exec()
+        self.settings_service.show_project_properties()
     
     def on_project_properties_saved(self, properties):
         """Handle project properties being saved."""
-        project_path, _project_name = self.project_controller.get_current_project_info()
-        if not project_path:
-            return
-            
-        # Update the project in the database
-        success = self.project_controller.update_project_properties(
-            Path(project_path), properties
-        )
-        
+        success = self.settings_service.handle_project_properties_save(properties)
         if success:
-            self.status_bar.showMessage(_("Project properties saved successfully"))
-            
             # Update the project title in the UI if it changed
             if 'title' in properties:
                 _, current_project_name = self.project_controller.get_current_project_info()
                 display_title = properties['title'] or current_project_name
                 self.project_tree.update_project_name(display_title)
-        else:
-            self.error_handler.log_error("Failed to save project properties", 
-                                        ErrorCategory.BUSINESS_LOGIC,
-                                        show_to_user=True, parent_widget=self)
             
-        # Odśwież ikony w drzewku
-        self.project_tree.refresh_icons()
-        
-        # Jeśli jesteśmy w trybie fokusu, odśwież style trybu fokusu
-        # This is now handled by the focus controller
-        if hasattr(self.focus_controller, 'refresh_focus_mode_if_active'):
-            self.focus_controller.refresh_focus_mode_if_active()
+            # Odśwież ikony w drzewku
+            self.project_tree.refresh_icons()
+            
+            # Jeśli jesteśmy w trybie fokusu, odśwież style trybu fokusu
+            if hasattr(self.focus_controller, 'refresh_focus_mode_if_active'):
+                self.focus_controller.refresh_focus_mode_if_active()
                 
     def on_language_changed(self, language_code):
         """Obsługa zmiany języka."""
-        # Zapisz wybrany język do ustawień
-        from PySide6.QtCore import QSettings
-        settings = QSettings()
-        settings.setValue("language", language_code)
-        
-        # Informacja o konieczności restartu
-        from PySide6.QtWidgets import QMessageBox
-        QMessageBox.information(
-            self, 
-            _("Language Changed"), 
-            _("Language has been changed. Please restart the application to see changes.")
-        )
+        self.settings_service.handle_language_change(language_code)
         
     def toggle_focus_mode(self):
         """Przełącz tryb fokusu pisania."""
-        self.focus_controller.toggle_focus_mode()
-        
-        # Focus mode implementation is now in focus_controller
+        self.settings_service.toggle_focus_mode()
     
     def _apply_focus_mode_style(self):
         """Zastosuj minimalistyczny styl w trybie fokusu."""
@@ -1109,108 +1016,7 @@ class PisarzApp(QMainWindow):
     
     def on_generate_context_requested(self, scene_id: int, template_name: str):
         """Handle request to generate narrative context using a template."""
-        try:
-            # Get scene data
-            managers = self.project_controller.get_current_managers()
-            scene_manager = managers.get('scene_manager')
-            if not scene_manager:
-                self.status_bar.showMessage(_("No scene manager available"))
-                return
-            
-            scene = scene_manager.get_scene(scene_id)
-            if not scene:
-                self.status_bar.showMessage(_("Scene not found"))
-                return
-            
-            # Get project info for template context
-            project_path, project_name = self.project_controller.get_current_project_info()
-            if not project_path:
-                self.status_bar.showMessage(_("No project loaded"))
-                return
-            
-            # Get linked characters and locations for the scene
-            character_manager = managers.get('character_manager')
-            location_manager = managers.get('location_manager')
-            
-            scene_characters = []
-            scene_locations = []
-            
-            if character_manager:
-                try:
-                    # Get characters with roles for this scene
-                    character_role_pairs = character_manager.get_characters_for_scene_with_roles(scene_id)
-                    scene_characters = [
-                        {
-                            "id": char_dict["id"],
-                            "name": char_dict["name"],
-                            "description": char_dict.get("description", ""),
-                            "notes": char_dict.get("notes", ""),
-                            "role": role or "participant"
-                        }
-                        for char_dict, role in character_role_pairs
-                    ]
-                except Exception as e:
-                    self.logger.warning(f"Failed to get characters for scene {scene_id}: {e}")
-            
-            if location_manager:
-                try:
-                    # Get locations with roles for this scene
-                    location_role_pairs = location_manager.get_scene_locations(scene_id)
-                    scene_locations = [
-                        {
-                            "id": location.id,
-                            "name": location.name,
-                            "description": location.description or "",
-                            "notes": location.notes or "",
-                            "location_type": location.type or "",
-                            "role": role or "setting"
-                        }
-                        for location, role in location_role_pairs
-                    ]
-                except Exception as e:
-                    self.logger.warning(f"Failed to get locations for scene {scene_id}: {e}")
-            
-            # Build context for template
-            context_data = {
-                "scene_id": scene_id,
-                "scene_title": scene.get("title", ""),
-                "scene_content": scene.get("content_rtf", ""),
-                "project_name": project_name,
-                "template_type": template_name,
-                "characters": scene_characters,
-                "locations": scene_locations,
-                "character_count": len(scene_characters),
-                "location_count": len(scene_locations)
-            }
-            
-            # Show AI Assistant panel if not visible
-            if not self.llm_panel.isVisible():
-                self.toggle_ai_assistant()
-            
-            # Set context and execute the appropriate task
-            self.llm_panel.set_scene_context(scene_id, scene.get("content_rtf", ""))
-            self.llm_panel.set_additional_context(context_data)
-            
-            # Set auto-save context info for automatic linking
-            self.logger.info(f"Setting auto-save info: scene_id={scene_id}, template_name={template_name}")
-            self.llm_panel.set_auto_save_context_info(scene_id, template_name)
-            
-            # Use template name directly if it exists, otherwise fallback to scene_summary
-            # Template IDs should match the .yaml files in templates/ directory
-            available_templates = ["scene_summary", "continue_with_context", "dialogue_enhancement", 
-                                 "expand_scene", "rewrite_scene", "continue_scene_enhanced"]
-            
-            template_id = template_name if template_name in available_templates else "scene_summary"
-            self.llm_panel.execute_task(template_id)
-            
-            self.status_bar.showMessage(_("Generating narrative context with template: {}").format(template_name))
-            self.logger.info(f"Generating context for scene {scene_id} with template {template_name}")
-            
-        except Exception as e:
-            from core.error_handler import ErrorCategory
-            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
-                                       context=f"Generating context for scene {scene_id}",
-                                       show_to_user=True, parent_widget=self)
+        self.llm_event_service.handle_generate_context_request(scene_id, template_name)
     
     def on_edit_template_requested(self, template_name: str):
         """Handle request to edit a template."""
@@ -1231,121 +1037,11 @@ class PisarzApp(QMainWindow):
     
     def on_refresh_context_requested(self, scene_id: int):
         """Handle request to refresh narrative context for a scene."""
-        try:
-            # Get narrative context manager
-            project_path, _project_name = self.project_controller.get_current_project_info()
-            if not project_path:
-                self.status_bar.showMessage(_("No project loaded"))
-                return
-            
-            from core.llm.context.narrative_context import get_narrative_context_manager
-            narrative_manager = get_narrative_context_manager(Path(project_path))
-            
-            # Get existing context for the scene
-            existing_context = narrative_manager.get_context_for_scene(scene_id)
-            
-            if not existing_context:
-                self.status_bar.showMessage(_("No context to refresh"))
-                return
-            
-            # Show confirmation dialog
-            from PySide6.QtWidgets import QMessageBox
-            reply = QMessageBox.question(
-                self,
-                _("Refresh Context"),
-                _("This will regenerate narrative context for this scene. Continue?"),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes
-            )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                # Trigger regeneration of the most recent context type
-                latest_context = max(existing_context, key=lambda x: x.get("updated_at", ""))
-                context_type = latest_context.get("context_type", "scene_summary")
-                
-                self.on_generate_context_requested(scene_id, context_type)
-                
-        except Exception as e:
-            from core.error_handler import ErrorCategory
-            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
-                                       context=f"Refreshing context for scene {scene_id}",
-                                       show_to_user=True, parent_widget=self)
+        self.llm_event_service.handle_refresh_context_request(scene_id)
     
     def on_view_context_requested(self, scene_id: int):
         """Handle request to view generated context for a scene."""
-        try:
-            # Get narrative context manager
-            project_path, _project_name = self.project_controller.get_current_project_info()
-            if not project_path:
-                self.status_bar.showMessage(_("No project loaded"))
-                return
-            
-            from core.llm.context.narrative_context import get_narrative_context_manager
-            narrative_manager = get_narrative_context_manager(Path(project_path))
-            
-            # Get existing context for the scene
-            existing_context = narrative_manager.get_context_for_scene(scene_id)
-            
-            if not existing_context:
-                self.status_bar.showMessage(_("No context found for this scene"))
-                return
-            
-            # Show context in a dialog
-            from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QLabel, QDialogButtonBox
-            
-            dialog = QDialog(self)
-            dialog.setWindowTitle(_("Generated Context for Scene"))
-            dialog.setModal(True)
-            dialog.resize(600, 500)
-            
-            layout = QVBoxLayout(dialog)
-            
-            # Get scene info for title
-            managers = self.project_controller.get_current_managers()
-            scene_manager = managers.get('scene_manager')
-            scene = scene_manager.get_scene(scene_id) if scene_manager else None
-            scene_title = scene.get("title", _("Scene")) if scene else _("Scene")
-            
-            title_label = QLabel(f"📄 {_('Context for')}: {scene_title}")
-            title_label.setStyleSheet("font-weight: bold; font-size: 14pt; margin-bottom: 10px;")
-            layout.addWidget(title_label)
-            
-            # Context display area
-            context_text = QTextEdit()
-            context_text.setReadOnly(True)
-            
-            # Format and display all context entries
-            context_display = ""
-            for i, context in enumerate(existing_context):
-                context_type = context.get("context_type", _("Unknown"))
-                title = context.get("title", _("Untitled"))
-                content = context.get("content", "")
-                updated_at = context.get("updated_at", "")
-                
-                context_display += f"## {title}\n"
-                context_display += f"**{_('Type')}:** {context_type.replace('_', ' ').title()}\n"
-                if updated_at:
-                    context_display += f"**{_('Updated')}:** {updated_at}\n"
-                context_display += f"\n{content}\n"
-                
-                if i < len(existing_context) - 1:
-                    context_display += "\n" + "="*50 + "\n\n"
-            
-            context_text.setPlainText(context_display)
-            layout.addWidget(context_text)
-            
-            # Buttons
-            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-            button_box.rejected.connect(dialog.reject)
-            layout.addWidget(button_box)
-            
-            dialog.exec()
-            
-        except Exception as e:
-            from core.error_handler import ErrorCategory
-            self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
-                                       context=f"Viewing context for scene {scene_id}",
-                                       show_to_user=True, parent_widget=self)
+        self.llm_event_service.handle_view_context_request(scene_id)
     
     def on_edit_context_requested(self, scene_id: int):
         """Handle request to edit generated context for a scene."""

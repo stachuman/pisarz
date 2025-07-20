@@ -1097,3 +1097,80 @@ msgstr "✅ Kontekst automatycznie zapisany i połączony ze sceną"
 
 msgid "Context for"
 msgstr "Kontekst dla"
+
+# Service messages for user feedback
+msgid "No scene manager available"
+msgstr "Menedżer scen niedostępny"
+
+msgid "No project loaded"
+msgstr "Nie załadowano projektu"
+
+msgid "Failed to prepare context data"
+msgstr "Nie udało się przygotować danych kontekstu"
+
+msgid "Invalid context data"
+msgstr "Nieprawidłowe dane kontekstu"
+
+msgid "Failed to generate context"
+msgstr "Nie udało się wygenerować kontekstu"
+
+msgid "No context to refresh"
+msgstr "Brak kontekstu do odświeżenia"
+
+msgid "Error refreshing context"
+msgstr "Błąd odświeżania kontekstu"
+
+msgid "No narrative context manager available"
+msgstr "Menedżer kontekstu narracyjnego niedostępny"
+
+msgid "No context found for this scene"
+msgstr "Nie znaleziono kontekstu dla tej sceny"
+
+msgid "Error viewing context"
+msgstr "Błąd wyświetlania kontekstu"
+
+msgid "Error editing context"
+msgstr "Błąd edycji kontekstu"
+
+msgid "Generating narrative context with template: {}"
+msgstr "Generowanie kontekstu narracyjnego z szablonem: {}"
+
+msgid "Viewing context for scene {}"
+msgstr "Wyświetlanie kontekstu dla sceny {}"
+
+msgid "Editing context for scene {}"
+msgstr "Edycja kontekstu dla sceny {}"
+
+msgid "Task execution failed"
+msgstr "Wykonanie zadania nie powiodło się"
+
+# Character and location context formatting terms
+msgid "full name: {}"
+msgstr "pełne imię: {}"
+
+msgid "alias: {}"
+msgstr "pseudonim: {}"
+
+msgid "age: {}"
+msgstr "wiek: {}"
+
+msgid "gender: {}"
+msgstr "płeć: {}"
+
+msgid "occupation: {}"
+msgstr "zawód: {}"
+
+msgid "place: {}"
+msgstr "miejsce: {}"
+
+msgid "atmosphere: {}"
+msgstr "atmosfera: {}"
+
+msgid "details: {}"
+msgstr "szczegóły: {}"
+
+msgid "significance: {}"
+msgstr "znaczenie: {}"
+
+msgid "Notes: {}"
+msgstr "Notatki: {}"

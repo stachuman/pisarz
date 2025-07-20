@@ -1,0 +1,52 @@
+=== LLAMACPP REQUEST LOG ===
+Timestamp: 2025-07-20T13:04:40.900523
+URL: http://192.168.1.102:80/completion
+streaming: True
+Payload: {
+  "prompt": "Popraw nast\u0119puj\u0105cy dialog, czyni\u0105c go bardziej naturalnym i charakterystycznym.\n\nPopraw dialog przez:\n- Nadanie ka\u017cdej postaci unikalnego sposobu m\u00f3wienia\n- Dodanie naturalnych przerw, waha\u0144 i niedoko\u0144czonych zda\u0144\n- Uwzgl\u0119dnienie emocji i nastroju postaci\n- Dodanie reakcji niewerbalnych (gesty, mimika)\n- Popraw\u0119 p\u0142ynno\u015bci konwersacji\n- Dodanie podtekst\u00f3w i ukrytych znacze\u0144\n\nZachowaj g\u0142\u00f3wne tre\u015bci i cel rozmowy.\n\n\nPostacie w dialogu:\n\n- Janusz (Supporting Character) - Zainteresowania: Interesuje si\u0119 histori\u0105 wojskowo\u015bci i sportem ekstremalnym.\n\nWady: Czasami ma problemy z kontrolowaniem gniewu, co mo\u017ce prowadzi\u0107 do agresywnych zachowa\u0144.\n\nSilne strony: Jest \u015bwietnie wyszkolony fizycznie i umys\u0142owo. Potrafi szybko analizowa\u0107 sytuacje i podejmowa\u0107 trafne decyzje.\n\nS\u0142abe strony: Czasami ma problemy z otwieraniem si\u0119 przed innymi, co mo\u017ce utrudnia\u0107 mu budowanie bliskich relacji.\n\n\n\n--- ORYGINALNY DIALOG ---\n\n- Witaj, Janusz - powiedzia\u0142 Micha\u0142, wyci\u0105gaj\u0105c r\u0119k\u0119 na przywitanie. - D\u0142ugo si\u0119 nie widzieli\u015bmy, co? Jak leci?  Janusz, nieco spi\u0119ty, u\u015bcisn\u0105\u0142 d\u0142o\u0144 Micha\u0142a, ale szybko j\u0105 pu\u015bci\u0142. W jego oczach malowa\u0142a si\u0119 mieszanka ulgi i niepokoju.   - No, wiele si\u0119 zmieni\u0142o, Micha\u0142... A co ciebie tutaj sprowadza? - Jego ton by\u0142 ostro\u017cny, a spojrzenie niepewne.  Micha\u0142 si\u0119 u\u015bmiechn\u0105\u0142, lekko przechylaj\u0105c g\u0142ow\u0119 na bok. - Mam dla ciebie propozycj\u0119, Janusz. Chcemy, \u017ceby\u015b do nas wr\u00f3ci\u0142.   Janusz zamar\u0142 na moment, jego r\u0119ce mimowolnie zacisn\u0119\u0142y si\u0119 w pi\u0119\u015bci, ale szybko si\u0119 opanowa\u0142. Spojrza\u0142 na Micha\u0142a, pr\u00f3buj\u0105c czyta\u0107 z jego twarzy wi\u0119cej ni\u017c s\u0142owa mog\u0142y wyrazi\u0107.  - Wr\u00f3ci\u0107? - Jego g\u0142os by\u0142 pe\u0142en niepewno\u015bci, a serce bi\u0142o mu szybciej. - Do... tego \u015bwiata? Po wszystkim, co przeszed\u0142em? Micha\u0142, to nie jest takie proste.\n\n\n\nKontekst sytuacji:\n- Miejsce\n",
+  "n_predict": 4000,
+  "temperature": 0.75,
+  "top_p": 0.88,
+  "top_k": 35,
+  "repeat_penalty": 1.12,
+  "seed": -1,
+  "stream": true,
+  "custom_params": {}
+}
+
+=== FULL PROMPT ===
+Popraw następujący dialog, czyniąc go bardziej naturalnym i charakterystycznym.
+
+Popraw dialog przez:
+- Nadanie każdej postaci unikalnego sposobu mówienia
+- Dodanie naturalnych przerw, wahań i niedokończonych zdań
+- Uwzględnienie emocji i nastroju postaci
+- Dodanie reakcji niewerbalnych (gesty, mimika)
+- Poprawę płynności konwersacji
+- Dodanie podtekstów i ukrytych znaczeń
+
+Zachowaj główne treści i cel rozmowy.
+
+
+Postacie w dialogu:
+
+- Janusz (Supporting Character) - Zainteresowania: Interesuje się historią wojskowości i sportem ekstremalnym.
+
+Wady: Czasami ma problemy z kontrolowaniem gniewu, co może prowadzić do agresywnych zachowań.
+
+Silne strony: Jest świetnie wyszkolony fizycznie i umysłowo. Potrafi szybko analizować sytuacje i podejmować trafne decyzje.
+
+Słabe strony: Czasami ma problemy z otwieraniem się przed innymi, co może utrudniać mu budowanie bliskich relacji.
+
+
+
+--- ORYGINALNY DIALOG ---
+
+- Witaj, Janusz - powiedział Michał, wyciągając rękę na przywitanie. - Długo się nie widzieliśmy, co? Jak leci?  Janusz, nieco spięty, uścisnął dłoń Michała, ale szybko ją puścił. W jego oczach malowała się mieszanka ulgi i niepokoju.   - No, wiele się zmieniło, Michał... A co ciebie tutaj sprowadza? - Jego ton był ostrożny, a spojrzenie niepewne.  Michał się uśmiechnął, lekko przechylając głowę na bok. - Mam dla ciebie propozycję, Janusz. Chcemy, żebyś do nas wrócił.   Janusz zamarł na moment, jego ręce mimowolnie zacisnęły się w pięści, ale szybko się opanował. Spojrzał na Michała, próbując czytać z jego twarzy więcej niż słowa mogły wyrazić.  - Wrócić? - Jego głos był pełen niepewności, a serce biło mu szybciej. - Do... tego świata? Po wszystkim, co przeszedłem? Michał, to nie jest takie proste.
+
+
+
+Kontekst sytuacji:
+- Miejsce
+
+=== END PROMPT ===

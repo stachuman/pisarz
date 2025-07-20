@@ -13,6 +13,7 @@ from .tasks.registry import TaskRegistry
 from .settings import get_llm_settings
 from .context.manager import ContextManager
 from .templates.engine import TemplateEngine
+from i18n import _
 
 
 class LLMService:

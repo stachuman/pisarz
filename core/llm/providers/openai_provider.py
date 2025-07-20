@@ -239,6 +239,112 @@ class OpenAIProvider(BaseLLMProvider):
             self.logger.error(f"Error generating text with OpenAI: {e}")
             return ""
     
+    def generate_streaming(self, prompt: str, chunk_callback, **kwargs) -> str:
+        """Generate text using OpenAI's API with streaming support."""
+        try:
+            # Merge provider defaults with kwargs
+            params = {
+                'model': self.model,
+                'max_tokens': kwargs.get('max_tokens', self.max_tokens),
+                'temperature': kwargs.get('temperature', self.temperature),
+                'top_p': kwargs.get('top_p', self.top_p),
+                'presence_penalty': kwargs.get('presence_penalty', self.presence_penalty),
+                'frequency_penalty': kwargs.get('frequency_penalty', self.frequency_penalty)
+            }
+            
+            # Build the request payload with streaming enabled
+            payload = {
+                'model': params['model'],
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ],
+                'max_tokens': params['max_tokens'],
+                'temperature': params['temperature'],
+                'top_p': params['top_p'],
+                'presence_penalty': params['presence_penalty'],
+                'frequency_penalty': params['frequency_penalty'],
+                'stream': True  # Enable streaming
+            }
+            
+            # Log detailed request information
+            self.logger.info(f"=== OPENAI STREAMING REQUEST ===")
+            self.logger.info(f"URL: {self.base_url}/chat/completions")
+            self.logger.info(f"Model: {params['model']}")
+            self.logger.info(f"Prompt length: {len(prompt)} characters")
+            self.logger.info(f"Streaming: True")
+            
+            # Log request to file
+            self.file_logger.log_request(prompt, payload, {
+                "Model": params['model'],
+                "Base URL": self.base_url,
+                "Streaming": True
+            })
+            
+            # Make the streaming API request
+            response = self.session.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                timeout=self.timeout,
+                stream=True
+            )
+            
+            if response.status_code == 200:
+                full_content = ""
+                
+                for line in response.iter_lines():
+                    if line:
+                        line = line.decode('utf-8')
+                        if line.startswith('data: '):
+                            data_str = line[6:]  # Remove 'data: ' prefix
+                            
+                            if data_str.strip() == '[DONE]':
+                                break
+                                
+                            try:
+                                data = json.loads(data_str)
+                                if 'choices' in data and len(data['choices']) > 0:
+                                    delta = data['choices'][0].get('delta', {})
+                                    content = delta.get('content', '')
+                                    
+                                    if content:
+                                        full_content += content
+                                        # Call the chunk callback with the new content
+                                        if chunk_callback:
+                                            chunk_callback(content)
+                                            
+                            except json.JSONDecodeError:
+                                # Skip invalid JSON lines
+                                continue
+                
+                self.logger.info(f"=== OPENAI STREAMING RESPONSE ===")
+                self.logger.info(f"Total response length: {len(full_content)} characters")
+                
+                # Log response to file
+                self.file_logger.log_response(full_content, {"streaming": True}, {
+                    "Model used": params['model'],
+                    "Streaming": True,
+                    "Total length": len(full_content)
+                })
+                
+                return full_content
+            else:
+                error_msg = f"OpenAI API streaming error {response.status_code}: {response.text}"
+                self.logger.error(error_msg)
+                return ""
+                
+        except requests.exceptions.Timeout:
+            self.logger.error("OpenAI API streaming request timed out")
+            return ""
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"OpenAI API streaming request failed: {e}")
+            return ""
+        except Exception as e:
+            self.logger.error(f"Error generating streaming text with OpenAI: {e}")
+            return ""
+    
     def get_health_status(self) -> Dict[str, Any]:
         """Check OpenAI API health and connectivity."""
         try:
