@@ -24,7 +24,6 @@ share/python-wheels/
 MANIFEST
 pisarz.md
 CLAUDE.md
-README.md
 # PyInstaller
 *.manifest
 *.spec
