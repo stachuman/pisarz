@@ -137,7 +137,7 @@ Plik → Nowy Projekt → Wpisz nazwę → OK
 - Własne szablony promptów dla AI
 - Niestandardowe motywy kolorystyczne
 - Plugin architecture (w rozwoju)
-- API dla integracji zewnętrznych
+- API dla integracji zewnętrznych (planowane)
 
 ## 🤝 Społeczność i wsparcie
 
@@ -164,17 +164,11 @@ Plik → Nowy Projekt → Wpisz nazwę → OK
 
 ## 📈 Roadmapa
 
-### 🎯 **W najbliższym czasie (v1.1)**
+### 🎯 **W najbliższym czasie**
 - [ ] Export do EPUB/PDF
 - [ ] Synchronizacja w chmurze
 - [ ] Plugin marketplace
 - [ ] Ulepszone motywy
-
-### 🚀 **Długoterminowe (v2.0)**
-- [ ] Współpraca zespołowa w czasie rzeczywistym
-- [ ] Zaawansowana analityka tekstu
-- [ ] Integracja z platformami publikacji
-- [ ] Aplikacja mobilna
 
 ## 📄 Licencja
 
