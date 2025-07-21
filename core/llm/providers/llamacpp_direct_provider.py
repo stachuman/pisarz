@@ -7,7 +7,6 @@ import logging
 from typing import Dict, Any, Optional
 from .base_provider import BaseLLMProvider
 from ..settings import get_llm_settings
-from .file_logger import get_llamacpp_file_logger
 from i18n import _
 
 
@@ -17,7 +16,6 @@ class LlamaCppDirectProvider(BaseLLMProvider):
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(config)
         self.settings_manager = get_llm_settings()
-        self.file_logger = get_llamacpp_file_logger()
         self.llm = None
         
     def initialize(self) -> bool:
@@ -88,14 +86,6 @@ class LlamaCppDirectProvider(BaseLLMProvider):
         # Log full prompt if debug logging enabled
         self.logger.debug(f"=== FULL PROMPT ===\\n{prompt}\\n=== END PROMPT ===")
         
-        # Log request to file
-        self.file_logger.log_request(prompt, {
-            'max_tokens': max_tokens,
-            'temperature': temperature,
-            'top_p': top_p,
-            'top_k': top_k,
-            'repeat_penalty': repeat_penalty
-        }, {"provider": "llamacpp_direct"})
         
         try:
             # Generate response
@@ -116,7 +106,6 @@ class LlamaCppDirectProvider(BaseLLMProvider):
             else:
                 text = str(response)
             
-            self._log_response(text)
             
             # Return raw response without any cleaning
             return text
@@ -129,7 +118,6 @@ class LlamaCppDirectProvider(BaseLLMProvider):
         self.logger.info("=== LLAMA.CPP DIRECT RESPONSE ===")
         self.logger.info("Response length: %d chars", len(text))
         self.logger.info("Response preview: %s…", text[:200])
-        self.file_logger.log_response(text, {"length": len(text)})
     
     def get_provider_info(self) -> Dict[str, Any]:
         """Get llama.cpp direct provider information."""

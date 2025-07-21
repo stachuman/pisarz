@@ -40,6 +40,7 @@ class ContextConfig:
     include_characters: bool = True
     include_locations: bool = True
     include_project_info: bool = False
+    include_scene_content: bool = True  # New: Allow disabling scene content entirely
     max_context_chars: int = 2000
     word_boundary_trim: bool = True
     

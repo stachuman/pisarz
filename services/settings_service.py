@@ -2,6 +2,7 @@
 
 import logging
 from typing import Dict, Any, Optional
+from pathlib import Path
 from core.logging_config import get_logger
 from i18n import _
 
@@ -136,7 +137,7 @@ class SettingsService:
                 self._show_error(_("Error"), _("Project manager not available"))
                 return False
             
-            project_data = project_manager.get_project_info()
+            project_data = project_manager.get_project_data(Path(project_path))
             if not project_data:
                 self._show_error(_("Error"), _("Could not load project data"))
                 return False
@@ -166,15 +167,22 @@ class SettingsService:
         try:
             self.logger.info("Saving project properties")
             
-            # Get project manager
+            # Get project manager and current project path
             managers = self.main_window.project_controller.get_current_managers()
             project_manager = managers.get('project_manager')
             if not project_manager:
                 self.logger.error("Project manager not available")
                 return False
             
+            # Get current project path
+            project_path, _ = self.main_window.project_controller.get_current_project_info()
+            if not project_path:
+                self.logger.error("No current project path available")
+                return False
+            
             # Update project properties
-            success = project_manager.update_project_info(properties)
+            from pathlib import Path
+            success = project_manager.update_project_properties(Path(project_path), properties)
             if success:
                 self.logger.info("Project properties saved successfully")
                 

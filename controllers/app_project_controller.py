@@ -127,6 +127,7 @@ class AppProjectController(QObject):
     def get_current_managers(self) -> dict:
         """Get current project managers."""
         return {
+            'project_manager': self.project_manager,
             'scene_manager': self.current_scene_manager,
             'character_manager': self.current_character_manager,
             'location_manager': self.current_location_manager,

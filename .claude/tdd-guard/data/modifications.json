@@ -1,0 +1,11 @@
+{
+  "session_id": "b22ff28d-daa5-4572-a88d-561780ca8777",
+  "transcript_path": "/home/staszek/.claude/projects/-home-staszek-pisarz/b22ff28d-daa5-4572-a88d-561780ca8777.jsonl",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/home/staszek/pisarz/core/llm/templates/config.py",
+    "old_string": "@dataclass\nclass ContextConfig:\n    \"\"\"Configuration for context extraction.\"\"\"\n    use_selection: bool = True\n    selection_priority: bool = True\n    default_context_length: int = 500\n    scene_summary_length: int = 500  # Default, can be overridden by template\n    scene_summary_source: ContextSource = ContextSource.SCENE_BEGINNING\n    include_characters: bool = True\n    include_locations: bool = True\n    include_project_info: bool = False\n    max_context_chars: int = 2000\n    word_boundary_trim: bool = True",
+    "new_string": "@dataclass\nclass ContextConfig:\n    \"\"\"Configuration for context extraction.\"\"\"\n    use_selection: bool = True\n    selection_priority: bool = True\n    default_context_length: int = 500\n    scene_summary_length: int = 500  # Default, can be overridden by template\n    scene_summary_source: ContextSource = ContextSource.SCENE_BEGINNING\n    include_characters: bool = True\n    include_locations: bool = True\n    include_project_info: bool = False\n    include_scene_content: bool = True  # New: Allow disabling scene content entirely\n    max_context_chars: int = 2000\n    word_boundary_trim: bool = True"
+  }
+}

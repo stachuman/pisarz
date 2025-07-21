@@ -84,14 +84,15 @@ class ProjectController(QObject):
         project_data = self.get_project_data()
         return project_data['id'] if project_data else None
     
-    def get_current_managers(self) -> tuple:
-        """Get current managers tuple."""
-        return (
-            self.current_scene_manager,
-            self.current_character_manager,
-            self.current_location_manager,
-            self.current_search_manager
-        )
+    def get_current_managers(self) -> dict:
+        """Get current managers dictionary."""
+        return {
+            'project_manager': self.project_manager,
+            'scene_manager': self.current_scene_manager,
+            'character_manager': self.current_character_manager,
+            'location_manager': self.current_location_manager,
+            'search_manager': self.current_search_manager
+        }
     
     def has_active_project(self) -> bool:
         """Check if there's an active project."""

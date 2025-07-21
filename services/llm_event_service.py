@@ -58,9 +58,9 @@ class LLMEventService:
             # Set context and execute task
             self._setup_llm_panel_context(scene_id, context_data, template_name)
             
-            # Execute the template
+            # Execute the template with streaming
             template_id = context_data.get("template_id", "scene_summary")
-            self.main_window.llm_panel.execute_task(template_id)
+            self.main_window.llm_panel.execute_task_streaming(template_id)
             
             self._show_status_message(_("Generating narrative context with template: {}").format(template_name))
             self.logger.info(f"Generated context for scene {scene_id} with template {template_name}")

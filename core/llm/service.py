@@ -123,6 +123,15 @@ class LLMService:
             llm_params = template_manager.get_template_llm_params(task_id)
             self.logger.debug(f"Template LLM params for {task_id}: {llm_params}")
             
+            # DEBUG: Show complete request being sent to AI (non-streaming)
+            print(f"\n[DEBUG] === FULL AI REQUEST (NON-STREAMING) ===")
+            print(f"Task ID: {task_id}")
+            print(f"LLM Parameters: {llm_params}")
+            print(f"Prompt Length: {len(prompt)} characters")
+            print(f"=== PROMPT CONTENT ===")
+            print(prompt)
+            print(f"=== END PROMPT ===\n")
+            
             # Generate response with template-specific parameters
             raw_response = self.provider.generate(prompt, **llm_params)
             response = self._clean_response(raw_response)
@@ -176,6 +185,15 @@ class LLMService:
                 # For streaming, we don't clean individual chunks as they may be incomplete
                 # Just pass them through to the UI
                 chunk_callback(chunk)
+            
+            # DEBUG: Show complete request being sent to AI
+            print(f"\n[DEBUG] === FULL AI REQUEST ===")
+            print(f"Task ID: {task_id}")
+            print(f"LLM Parameters: {llm_params}")
+            print(f"Prompt Length: {len(prompt)} characters")
+            print(f"=== PROMPT CONTENT ===")
+            print(prompt)
+            print(f"=== END PROMPT ===\n")
             
             # Generate response with streaming callback
             raw_response = self.provider.generate_streaming(prompt, clean_chunk_callback, **llm_params)

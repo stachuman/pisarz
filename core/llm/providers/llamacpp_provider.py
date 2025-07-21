@@ -20,40 +20,32 @@ class LlamaCppProvider(BaseLLMProvider):
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(config)
-        self.settings_manager = get_llm_settings()
         self.file_logger = get_llamacpp_file_logger()
         self.base_url = ""
         self._current_request = None  # Track current request for cancellation
+    
+    def _get_provider_name(self) -> str:
+        """Get the provider name for configuration lookup."""
+        return 'llamacpp'
         
-    def initialize(self) -> bool:
-        """Initialize the llama.cpp provider."""
+    def _load_provider_settings(self, provider_config) -> bool:
+        """Load llama.cpp-specific settings from configuration."""
         try:
-            self.logger.info("Initializing llama.cpp provider")
-            
-            # Get configuration from settings
-            provider_config = self.settings_manager.get_provider_config('llamacpp')
-            if not provider_config:
-                self.logger.error(_("llama.cpp provider configuration not found"))
-                return False
-            
             # Build base URL
             host = provider_config.get_setting('host', 'localhost')
             port = provider_config.get_setting('port', 8080)
             self.base_url = f"http://{host}:{port}"
             
-            # Validate configuration
-            is_valid, message = self.settings_manager.validate_provider_config('llamacpp')
-            if not is_valid:
-                self.logger.error(_("llama.cpp configuration invalid: {}").format(message))
-                return False
-            
-            self.logger.info(_("llama.cpp provider initialized with URL: {}").format(self.base_url))
-            self._initialized = True
+            self.logger.info(_("llama.cpp provider configured with URL: {}").format(self.base_url))
             return True
             
         except Exception as e:
-            self.logger.error(_("Failed to initialize llama.cpp provider: {}").format(e))
+            self.logger.error(_("Error loading llama.cpp settings: {}").format(e))
             return False
+    
+    def initialize(self) -> bool:
+        """Initialize the llama.cpp provider using common pattern."""
+        return self.initialize_with_common_pattern()
     
     def is_available(self) -> bool:
         """Check if llama.cpp server is available."""
@@ -110,26 +102,25 @@ class LlamaCppProvider(BaseLLMProvider):
         
         payload.update(kwargs)
         
-        # Log detailed request information
-        self.logger.info(f"=== LLAMA.CPP REQUEST ===")
-        self.logger.info(f"URL: {self.base_url}/completion")
-        self.logger.info(f"Prompt length: {len(prompt)} characters")
-        self.logger.info(f"Prompt preview: {prompt[:200]}...")
-        self.logger.info(f"Parameters: max_tokens={payload['n_predict']}, temp={payload['temperature']}, top_p={payload['top_p']}, top_k={payload['top_k']}, repeat_penalty={payload['repeat_penalty']}, seed={payload['seed']}")
-        
-        # Log full prompt if debug logging enabled
-        self.logger.debug(f"=== FULL PROMPT ===\n{prompt}\n=== END PROMPT ===")
+        # Log detailed request information using base class utility
+        request_params = {
+            'n_predict': payload['n_predict'],
+            'temperature': payload['temperature'],
+            'top_p': payload['top_p'],
+            'top_k': payload['top_k'],
+            'repeat_penalty': payload['repeat_penalty'],
+            'seed': payload['seed']
+        }
+        timeout = provider_config.get_setting('timeout', 120)
+        self.log_request_details("LlamaCpp", f"{self.base_url}/completion", prompt, request_params, timeout)
         
         # Send request
-        timeout = provider_config.get_setting('timeout', 120)
         # Also check kwargs for timeout override
         if 'timeout' in kwargs:
             timeout = kwargs['timeout']
             
         self.logger.info(f"Using timeout: {timeout} seconds")
         
-        # Log request to file for easier inspection
-        self.file_logger.log_request(prompt, payload, {"URL": f"{self.base_url}/completion"})
         
         try:
             if stream:
@@ -144,8 +135,6 @@ class LlamaCppProvider(BaseLLMProvider):
             self.logger.error(_("Error in llama.cpp generation: {}").format(exc))
             raise
 
-        self._log_response(text)
-        
         # Return raw response without any cleaning
         return text
     
@@ -198,8 +187,6 @@ class LlamaCppProvider(BaseLLMProvider):
         if 'timeout' in kwargs:
             timeout = kwargs['timeout']
         
-        # Log request to file
-        self.file_logger.log_request(prompt, payload, {"URL": f"{self.base_url}/completion", "streaming": True})
         
         try:
             text = self._generate_streaming_with_callback(payload, timeout, chunk_callback)
@@ -218,7 +205,6 @@ class LlamaCppProvider(BaseLLMProvider):
             self.logger.error(_("Error in llama.cpp streaming generation: {}").format(exc))
             raise
 
-        self._log_response(text)
         return text
                 
      # ------------------------------------------------------------------ #
@@ -422,10 +408,8 @@ class LlamaCppProvider(BaseLLMProvider):
             self._current_request = None
     
     def _log_response(self, text: str) -> None:
-        self.logger.info("=== LLAMA.CPP RESPONSE ===")
-        self.logger.info("Response length: %d chars", len(text))
-        self.logger.info("Response preview: %s…", text[:200])
-        self.file_logger.log_response(text, {"length": len(text)})
+        """Log response using base class utility."""
+        self.log_response_details("LlamaCpp", text)
      
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about the loaded model."""

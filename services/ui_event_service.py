@@ -65,12 +65,10 @@ class UIEventService:
             True if successful, False otherwise
         """
         try:
-            current_scene = self.main_window.workspace.get_current_scene()
-            if not current_scene:
+            scene_id = self.main_window.scene_controller.get_current_scene_id()
+            if not scene_id:
                 self.logger.warning("No current scene for character addition")
                 return False
-            
-            scene_id = current_scene['id']
             managers = self.main_window.project_controller.get_current_managers()
             character_manager = managers.get('character_manager')
             
@@ -78,7 +76,7 @@ class UIEventService:
                 self.logger.error("No character manager available")
                 return False
             
-            success = character_manager.add_character_to_scene(character_id, scene_id, role)
+            success = character_manager.link_character_to_scene_with_role(character_id, scene_id, role)
             if success:
                 self._refresh_scene_context_panel()
             
@@ -99,12 +97,10 @@ class UIEventService:
             True if successful, False otherwise
         """
         try:
-            current_scene = self.main_window.workspace.get_current_scene()
-            if not current_scene:
+            scene_id = self.main_window.scene_controller.get_current_scene_id()
+            if not scene_id:
                 self.logger.warning("No current scene for character removal")
                 return False
-            
-            scene_id = current_scene['id']
             managers = self.main_window.project_controller.get_current_managers()
             character_manager = managers.get('character_manager')
             
@@ -112,7 +108,7 @@ class UIEventService:
                 self.logger.error("No character manager available")
                 return False
             
-            success = character_manager.remove_character_from_scene(character_id, scene_id)
+            success = character_manager.unlink_character_from_scene(character_id, scene_id)
             if success:
                 self._refresh_scene_context_panel()
             
@@ -134,12 +130,10 @@ class UIEventService:
             True if successful, False otherwise
         """
         try:
-            current_scene = self.main_window.workspace.get_current_scene()
-            if not current_scene:
+            scene_id = self.main_window.scene_controller.get_current_scene_id()
+            if not scene_id:
                 self.logger.warning("No current scene for location addition")
                 return False
-            
-            scene_id = current_scene['id']
             managers = self.main_window.project_controller.get_current_managers()
             location_manager = managers.get('location_manager')
             
@@ -147,7 +141,7 @@ class UIEventService:
                 self.logger.error("No location manager available")
                 return False
             
-            success = location_manager.add_location_to_scene(location_id, scene_id, role)
+            success = location_manager.link_location_to_scene(location_id, scene_id, role)
             if success:
                 self._refresh_scene_context_panel()
             
@@ -168,12 +162,10 @@ class UIEventService:
             True if successful, False otherwise
         """
         try:
-            current_scene = self.main_window.workspace.get_current_scene()
-            if not current_scene:
+            scene_id = self.main_window.scene_controller.get_current_scene_id()
+            if not scene_id:
                 self.logger.warning("No current scene for location removal")
                 return False
-            
-            scene_id = current_scene['id']
             managers = self.main_window.project_controller.get_current_managers()
             location_manager = managers.get('location_manager')
             
@@ -181,7 +173,7 @@ class UIEventService:
                 self.logger.error("No location manager available")
                 return False
             
-            success = location_manager.remove_location_from_scene(location_id, scene_id)
+            success = location_manager.unlink_location_from_scene(location_id, scene_id)
             if success:
                 self._refresh_scene_context_panel()
             

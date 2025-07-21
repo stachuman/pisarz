@@ -170,11 +170,6 @@ class OllamaProvider(BaseLLMProvider):
             # Log full prompt if debug logging enabled
             self.logger.debug(f"=== FULL PROMPT ===\n{prompt}\n=== END PROMPT ===")
             
-            # Log request to file
-            self.file_logger.log_request(prompt, payload, {
-                "Host": f"{self.host}:{self.port}",
-                "Model": self.model
-            })
             
             # Make request
             response = self._session.post(
@@ -214,7 +209,6 @@ class OllamaProvider(BaseLLMProvider):
                         "Tokens/second": f"{tokens_per_second:.2f}"
                     }
                 
-                self.file_logger.log_response(generated_text, data, stats)
                 
                 return generated_text
             else:

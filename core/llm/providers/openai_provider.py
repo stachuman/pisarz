@@ -20,9 +20,7 @@ class OpenAIProvider(BaseLLMProvider):
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(config)
-        self.logger = get_logger("llm.openai_provider")
         self.file_logger = get_openai_file_logger()
-        self.settings_manager = None
         self.api_key: Optional[str] = None
         self.model: str = "gpt-4"
         self.base_url: str = "https://api.openai.com/v1"
@@ -33,6 +31,10 @@ class OpenAIProvider(BaseLLMProvider):
         self.frequency_penalty: float = 0.0
         self.timeout: int = 30
         self.session = requests.Session()
+    
+    def _get_provider_name(self) -> str:
+        """Get the provider name for configuration lookup."""
+        return 'openai'
     
     def configure(self, config: Dict[str, Any]) -> bool:
         """Configure the OpenAI provider with settings."""
@@ -61,21 +63,9 @@ class OpenAIProvider(BaseLLMProvider):
             self.logger.error(_("Error configuring OpenAI provider: {}").format(e))
             return False
     
-    def initialize(self) -> bool:
-        """Initialize the OpenAI provider."""
+    def _load_provider_settings(self, provider_config) -> bool:
+        """Load OpenAI-specific settings from configuration."""
         try:
-            self.logger.info("Initializing OpenAI provider")
-            
-            # Import here to avoid circular imports
-            from ..settings import get_llm_settings
-            self.settings_manager = get_llm_settings()
-            
-            # Get configuration from settings
-            provider_config = self.settings_manager.get_provider_config('openai')
-            if not provider_config:
-                self.logger.error(_("OpenAI provider configuration not found"))
-                return False
-            
             # Load settings
             self.api_key = provider_config.get_setting('api_key', '')
             self.model = provider_config.get_setting('model', 'gpt-4')
@@ -98,18 +88,15 @@ class OpenAIProvider(BaseLLMProvider):
                 'User-Agent': 'Pisarz-Writer/1.0'
             })
             
-            # Test connection by making a simple API call
-            health_status = self.get_health_status()
-            if health_status['status'] == 'healthy':
-                self.logger.info(_("OpenAI provider initialized successfully"))
-                return True
-            else:
-                self.logger.error(_("OpenAI provider initialization failed: {}").format(health_status['message']))
-                return False
-                
+            return True
+            
         except Exception as e:
-            self.logger.error(_("Error initializing OpenAI provider: {}").format(e))
+            self.logger.error(_("Error loading OpenAI settings: {}").format(e))
             return False
+    
+    def initialize(self) -> bool:
+        """Initialize the OpenAI provider using common pattern."""
+        return self.initialize_with_common_pattern()
     
     def is_available(self) -> bool:
         """Check if OpenAI provider is available and configured."""
@@ -158,25 +145,17 @@ class OpenAIProvider(BaseLLMProvider):
                 'stream': False
             }
             
-            # Log detailed request information
-            self.logger.info(f"=== OPENAI REQUEST ===")
-            self.logger.info(f"URL: {self.base_url}/chat/completions")
-            self.logger.info(f"Model: {params['model']}")
-            self.logger.info(f"Prompt length: {len(prompt)} characters")
-            self.logger.info(f"Prompt preview: {prompt[:200]}...")
-            self.logger.info(f"Parameters: max_tokens={params['max_tokens']}, temp={params['temperature']}, "
-                           f"top_p={params['top_p']}, presence_penalty={params['presence_penalty']}, "
-                           f"frequency_penalty={params['frequency_penalty']}")
-            self.logger.info(f"Timeout: {self.timeout} seconds")
+            # Log detailed request information using base class utility
+            request_params = {
+                'model': params['model'],
+                'max_tokens': params['max_tokens'],
+                'temperature': params['temperature'],
+                'top_p': params['top_p'],
+                'presence_penalty': params['presence_penalty'],
+                'frequency_penalty': params['frequency_penalty']
+            }
+            self.log_request_details("OpenAI", f"{self.base_url}/chat/completions", prompt, request_params, self.timeout)
             
-            # Log full prompt if debug logging enabled
-            self.logger.debug(f"=== FULL PROMPT ===\n{prompt}\n=== END PROMPT ===")
-            
-            # Log request to file
-            self.file_logger.log_request(prompt, payload, {
-                "Model": params['model'],
-                "Base URL": self.base_url
-            })
             
             # Make the API request
             response = self.session.post(
@@ -191,9 +170,8 @@ class OpenAIProvider(BaseLLMProvider):
                 if 'choices' in data and len(data['choices']) > 0:
                     content = data['choices'][0]['message']['content']
                     
-                    self.logger.info(f"=== OPENAI RESPONSE ===")
-                    self.logger.info(f"Response length: {len(content)} characters")
-                    self.logger.info(f"Response preview: {content[:200]}...")
+                    # Log response using base class utility
+                    self.log_response_details("OpenAI", content, response.status_code)
                     
                     # Log usage information if available
                     if 'usage' in data:
@@ -218,7 +196,6 @@ class OpenAIProvider(BaseLLMProvider):
                     if 'id' in data:
                         stats["Request ID"] = data['id']
                     
-                    self.file_logger.log_response(content, data, stats)
                     
                     return content
                 else:
@@ -229,15 +206,8 @@ class OpenAIProvider(BaseLLMProvider):
                 self.logger.error(error_msg)
                 return ""
                 
-        except requests.exceptions.Timeout:
-            self.logger.error("OpenAI API request timed out")
-            return ""
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"OpenAI API request failed: {e}")
-            return ""
         except Exception as e:
-            self.logger.error(f"Error generating text with OpenAI: {e}")
-            return ""
+            return self.handle_request_exception("OpenAI", e, "text generation")
     
     def generate_streaming(self, prompt: str, chunk_callback, **kwargs) -> str:
         """Generate text using OpenAI's API with streaming support."""
@@ -276,12 +246,6 @@ class OpenAIProvider(BaseLLMProvider):
             self.logger.info(f"Prompt length: {len(prompt)} characters")
             self.logger.info(f"Streaming: True")
             
-            # Log request to file
-            self.file_logger.log_request(prompt, payload, {
-                "Model": params['model'],
-                "Base URL": self.base_url,
-                "Streaming": True
-            })
             
             # Make the streaming API request
             response = self.session.post(
@@ -322,12 +286,6 @@ class OpenAIProvider(BaseLLMProvider):
                 self.logger.info(f"=== OPENAI STREAMING RESPONSE ===")
                 self.logger.info(f"Total response length: {len(full_content)} characters")
                 
-                # Log response to file
-                self.file_logger.log_response(full_content, {"streaming": True}, {
-                    "Model used": params['model'],
-                    "Streaming": True,
-                    "Total length": len(full_content)
-                })
                 
                 return full_content
             else:
@@ -335,15 +293,8 @@ class OpenAIProvider(BaseLLMProvider):
                 self.logger.error(error_msg)
                 return ""
                 
-        except requests.exceptions.Timeout:
-            self.logger.error("OpenAI API streaming request timed out")
-            return ""
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"OpenAI API streaming request failed: {e}")
-            return ""
         except Exception as e:
-            self.logger.error(f"Error generating streaming text with OpenAI: {e}")
-            return ""
+            return self.handle_request_exception("OpenAI", e, "streaming generation")
     
     def get_health_status(self) -> Dict[str, Any]:
         """Check OpenAI API health and connectivity."""

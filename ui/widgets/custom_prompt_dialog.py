@@ -67,9 +67,32 @@ class CustomPromptDialog(QDialog):
         
         # Context configuration
         context_group = QGroupBox(_("Context Configuration"))
-        context_layout = QFormLayout(context_group)
+        context_layout = QHBoxLayout(context_group)
         
-        # Text portion selection
+        # Left column - checkboxes
+        left_column = QVBoxLayout()
+        
+        self.include_scene_context_cb = QCheckBox(_("Include scene context"))
+        self.include_scene_context_cb.setChecked(True)
+        self.include_scene_context_cb.toggled.connect(self.update_context_preview)
+        self.include_scene_context_cb.toggled.connect(self._on_scene_context_toggled)
+        left_column.addWidget(self.include_scene_context_cb)
+        
+        self.include_characters_cb = QCheckBox(_("Include character list"))
+        self.include_characters_cb.setChecked(True)
+        self.include_characters_cb.toggled.connect(self.update_context_preview)
+        left_column.addWidget(self.include_characters_cb)
+        
+        self.include_locations_cb = QCheckBox(_("Include location list"))  
+        self.include_locations_cb.setChecked(True)
+        self.include_locations_cb.toggled.connect(self.update_context_preview)
+        left_column.addWidget(self.include_locations_cb)
+        
+        left_column.addStretch()
+        
+        # Right column - text portion and custom length
+        right_column = QFormLayout()
+        
         self.text_portion_combo = QComboBox()
         self.text_portion_combo.addItems([
             _("🎯 Selected text only"),
@@ -80,26 +103,18 @@ class CustomPromptDialog(QDialog):
             _("🎯 Selection + context")
         ])
         self.text_portion_combo.currentTextChanged.connect(self.update_context_preview)
-        context_layout.addRow(_("Text portion:"), self.text_portion_combo)
+        right_column.addRow(_("Text portion:"), self.text_portion_combo)
         
-        # Custom length for partial text
         self.custom_length_spin = QSpinBox()
         self.custom_length_spin.setRange(500, 50000)
         self.custom_length_spin.setValue(8000)
         self.custom_length_spin.setSuffix(_(" characters"))
         self.custom_length_spin.valueChanged.connect(self.update_context_preview)
-        context_layout.addRow(_("Custom length:"), self.custom_length_spin)
+        right_column.addRow(_("Custom length:"), self.custom_length_spin)
         
-        # Include additional context
-        self.include_characters_cb = QCheckBox(_("Include character list"))
-        self.include_characters_cb.setChecked(True)
-        self.include_characters_cb.toggled.connect(self.update_context_preview)
-        context_layout.addRow("", self.include_characters_cb)
-        
-        self.include_locations_cb = QCheckBox(_("Include location list"))  
-        self.include_locations_cb.setChecked(True)
-        self.include_locations_cb.toggled.connect(self.update_context_preview)
-        context_layout.addRow("", self.include_locations_cb)
+        # Add columns to main layout
+        context_layout.addLayout(left_column)
+        context_layout.addLayout(right_column)
         
         layout.addWidget(context_group)
         
@@ -202,10 +217,21 @@ class CustomPromptDialog(QDialog):
         button_layout.addWidget(self.execute_button)
         
         layout.addLayout(button_layout)
+    
+    def _on_scene_context_toggled(self, checked: bool):
+        """Handle scene context checkbox toggle."""
+        # Enable/disable text portion controls based on scene context setting
+        self.text_portion_combo.setEnabled(checked)
+        self.custom_length_spin.setEnabled(checked)
         
     def update_context_preview(self):
         """Update the context preview based on current settings."""
         try:
+            # Check if scene context is enabled
+            if not self.include_scene_context_cb.isChecked():
+                self.context_preview.setPlainText(_("No scene context - instruction only"))
+                return
+            
             portion_text = self.text_portion_combo.currentText()
             context_text = ""
             
@@ -248,24 +274,8 @@ class CustomPromptDialog(QDialog):
     
     def _clean_html_css(self, content: str) -> str:
         """Clean HTML tags and CSS from content to produce plain text."""
-        # Use the same cleaning logic as the assistant panel
-        # This is a simplified version - the full cleaning happens in the assistant panel
-        import re
-        
-        if not content:
-            return ""
-        
-        # Basic HTML tag removal
-        content = re.sub(r'<[^>]+>', '', content)
-        
-        # Remove HTML entities
-        content = re.sub(r'&[a-zA-Z0-9#]+;', '', content)
-        
-        # Remove excessive whitespace
-        content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-        content = content.strip()
-        
-        return content
+        from core.utils.text_cleaner import clean_html_css
+        return clean_html_css(content)
     
     def execute_custom_prompt(self):
         """Execute the custom prompt."""
@@ -283,6 +293,7 @@ class CustomPromptDialog(QDialog):
             "custom_length": self.custom_length_spin.value(),
             "include_characters": self.include_characters_cb.isChecked(),
             "include_locations": self.include_locations_cb.isChecked(),
+            "include_scene_content": self.include_scene_context_cb.isChecked(),
             "temperature": self.temperature_slider.value() / 10.0,
             "max_tokens": self.max_tokens_spin.value(),
             "repetition_penalty": self.repetition_slider.value() / 100.0,

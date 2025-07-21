@@ -540,6 +540,40 @@ class LLMAssistantPanel(QWidget):
         
         controls_layout.addLayout(template_layout)
         
+        # Content source selection
+        content_label = QLabel(_("Content Source:"))
+        content_label.setStyleSheet("""
+            QLabel {
+                color: #495057;
+                font-size: 9pt;
+                font-weight: bold;
+                margin-top: 8px;
+                margin-bottom: 2px;
+            }
+        """)
+        controls_layout.addWidget(content_label)
+        
+        self.content_source_combo = QComboBox()
+        self.content_source_combo.addItems([
+            _("Selection (if any)"),
+            _("Full Scene"),
+            _("Scene Beginning"),
+            _("Scene End"),
+            _("Custom Length")
+        ])
+        self.content_source_combo.setCurrentIndex(0)  # Default to selection
+        self.content_source_combo.setStyleSheet("""
+            QComboBox {
+                padding: 4px 6px;
+                border: 1px solid #dee2e6;
+                border-radius: 3px;
+                background-color: white;
+                font-size: 9pt;
+            }
+        """)
+        self.content_source_combo.setToolTip(_("Choose what content to pass to the AI template"))
+        controls_layout.addWidget(self.content_source_combo)
+        
         # Edit template button
         self.edit_template_button = QPushButton(_("🛠️ Edit"))
         self.edit_template_button.setStyleSheet("""
@@ -834,23 +868,35 @@ class LLMAssistantPanel(QWidget):
         self.logger.info(f"Auto-save context info set: scene_id={scene_id}, template={template_name}")
         self.logger.info(f"Current auto-save state: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
     
-    def execute_task(self, task_id: str):
-        """Execute an LLM task."""
-        self.logger.info(f"Starting execute_task with task_id='{task_id}', current auto-save: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+    def _prepare_task_execution(self, task_id: str) -> tuple[bool, dict]:
+        """Prepare task execution with common validation and context building.
+        
+        Returns:
+            tuple: (success, context) - success indicates if preparation was successful
+        """
+        self.logger.info(f"Preparing task execution with task_id='{task_id}', current auto-save: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
         
         if not self.llm_controller:
             self.show_error(_("Error"), _("LLM controller not initialized"))
-            return
+            return False, {}
         
         if not self.llm_controller.is_initialized():
             self.show_error(_("Error"), _("LLM system not initialized"))
-            return
+            return False, {}
         
         # IMPORTANT: Populate additional context before building context
         self._populate_additional_context()
         
         # Build context from current scene
         context = self.build_context()
+        
+        return True, context
+    
+    def execute_task(self, task_id: str):
+        """Execute an LLM task (non-streaming)."""
+        success, context = self._prepare_task_execution(task_id)
+        if not success:
+            return
         
         # Update UI state
         self.set_task_executing(task_id, True)
@@ -868,23 +914,11 @@ class LLMAssistantPanel(QWidget):
     
     def execute_task_streaming(self, task_id: str):
         """Execute an LLM task with streaming output."""
-        self.logger.info(f"Starting execute_task_streaming with task_id='{task_id}', current auto-save: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
-        
-        if not self.llm_controller:
-            self.show_error(_("Error"), _("LLM controller not initialized"))
+        success, context = self._prepare_task_execution(task_id)
+        if not success:
             return
         
-        if not self.llm_controller.is_initialized():
-            self.show_error(_("Error"), _("LLM system not initialized"))
-            return
-        
-        # IMPORTANT: Populate additional context before building context
-        self._populate_additional_context()
-        
-        # Build context from current scene
-        context = self.build_context()
-        
-        # Update UI state
+        # Update UI state for streaming
         self._is_streaming_task = True  # Mark as streaming task
         self.set_task_executing(task_id, True)
         self.update_status(_("🔄 Starting streaming..."), "processing")
@@ -903,12 +937,12 @@ class LLMAssistantPanel(QWidget):
         self.logger.info(f"Started streaming LLM task: {task_id}")
     
     def execute_selected_task(self):
-        """Execute the selected task from dropdown."""
+        """Execute the selected task from dropdown (using streaming as default)."""
         selected_data = self.task_combo.currentData()
         if selected_data == "custom_prompt":
-            self.open_custom_prompt_dialog()
+            self.open_custom_prompt_dialog(streaming=True)
         elif selected_data:
-            self.execute_task(selected_data)
+            self.execute_task_streaming(selected_data)
         else:
             self.show_error(_("No Template Selected"), _("Please select a template to execute."))
     
@@ -937,66 +971,17 @@ class LLMAssistantPanel(QWidget):
     
     def _clean_html_css(self, content: str) -> str:
         """Clean HTML tags and CSS from content to produce plain text."""
-        import re
-        
-        # First, remove all HTML tags (including script, style, etc.)
-        content = re.sub(r'<[^>]+>', '', content)
-        
-        # Remove HTML entities
-        content = re.sub(r'&[a-zA-Z0-9#]+;', '', content)
-        
-        # Remove CSS style blocks completely (anything between braces)
-        content = re.sub(r'\{[^}]*\}', '', content)
-        
-        # Remove CSS property lines (property: value;)
-        content = re.sub(r'^[a-zA-Z0-9_-]+\s*:\s*[^;]+;?\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove CSS selectors and pseudo-selectors
-        content = re.sub(r'[a-zA-Z0-9_-]+::[a-zA-Z0-9_-]+', '', content)
-        content = re.sub(r'[a-zA-Z0-9_.-]+\s*\{', '', content)
-        
-        # Remove common CSS selector patterns (aggressive cleaning)
-        content = re.sub(r'^p,\s*li\s*$', '', content, flags=re.MULTILINE)
-        content = re.sub(r'^hr\s*$', '', content, flags=re.MULTILINE)
-        content = re.sub(r'^li\.\s*$', '', content, flags=re.MULTILINE)
-        content = re.sub(r'^li\.[a-zA-Z0-9_-]*\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove remaining CSS-like patterns
-        content = re.sub(r'[a-zA-Z-]+\s*:\s*[^;{}]+;?', '', content)
-        
-        # Remove CSS selector fragments
-        content = re.sub(r'^[a-zA-Z0-9_.-]+\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove Unicode escape sequences
-        content = re.sub(r'\\[0-9a-fA-F]{4}', '', content)
-        
-        # Replace paragraph separators with regular spaces
-        content = content.replace('\u2029', ' ')
-        content = content.replace('\u2028', ' ')
-        
-        # Remove content property values with quotes
-        content = re.sub(r'content:\s*"[^"]*"', '', content)
-        
-        # Remove empty lines and excessive whitespace
-        content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-        content = re.sub(r'^\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove lines that are just punctuation or special characters
-        content = re.sub(r'^\s*[{}();,.\-_\s]*$', '', content, flags=re.MULTILINE)
-        
-        # Final cleanup
-        content = content.strip()
-        
-        # Remove multiple consecutive newlines
-        content = re.sub(r'\n{3,}', '\n\n', content)
-        
-        return content
+        from core.utils.text_cleaner import clean_html_css
+        return clean_html_css(content)
 
     def build_context(self) -> Dict[str, Any]:
         """Build context for LLM task from current scene."""
         # Extract text content (remove HTML tags and CSS for context)
         import re
         text_content = self._clean_html_css(self.current_scene_content)
+        
+        # Get user's content source selection
+        content_source = self._get_selected_content_source()
         
         # Get current text selection from LLM service (updated via signals)
         selected_text = ""
@@ -1016,18 +1001,58 @@ class LLMAssistantPanel(QWidget):
         except Exception as e:
             self.logger.warning(f"Could not get text selection: {e}")
         
+        # Apply content source selection to override template behavior
+        from core.llm.templates.config import ContextSource
+        from ui.widgets.ai_content_settings_widget import AIContentSettingsWidget
+        
+        # Store original selection state for logging
+        original_selected_text = selected_text
+        original_has_selection = bool(selected_text.strip())
+        
+        if content_source == ContextSource.SELECTION:
+            # Use actual text selection from editor - keep what we got from context manager
+            has_selection = bool(selected_text.strip())
+        elif content_source == ContextSource.FULL_SCENE:
+            # Use full scene as both selected and current text
+            selected_text = text_content
+            current_selection_text = text_content
+            has_selection = True
+        elif content_source == ContextSource.SCENE_BEGINNING:
+            # Use configurable length for scene beginning
+            beginning_length = AIContentSettingsWidget.get_scene_beginning_length_from_settings()
+            scene_beginning = text_content[:beginning_length] if text_content else ""
+            selected_text = scene_beginning
+            current_selection_text = scene_beginning
+            has_selection = bool(scene_beginning.strip())
+        elif content_source == ContextSource.SCENE_END:
+            # Use configurable length for scene end
+            end_length = AIContentSettingsWidget.get_scene_end_length_from_settings()
+            scene_end = text_content[-end_length:] if text_content else ""
+            selected_text = scene_end
+            current_selection_text = scene_end
+            has_selection = bool(scene_end.strip())
+        elif content_source == ContextSource.CUSTOM_LENGTH:
+            # Use configurable custom length
+            custom_length = AIContentSettingsWidget.get_custom_length_from_settings()
+            custom_text = text_content[:custom_length] if text_content else ""
+            selected_text = custom_text
+            current_selection_text = custom_text
+            has_selection = bool(custom_text.strip())
+        
         # Build basic context - enhanced template manager will handle the rest
         context = {
             'scene_content': text_content,
             'selected_text': selected_text,
             'current_text': current_selection_text,
+            'scene_summary': text_content,  # Full scene as summary
             'scene_id': self.current_scene_id,
             'project_name': self.additional_context.get('project_name', 'Current Project'),
-            'has_selection': bool(selected_text.strip()),
+            'has_selection': has_selection,
             'characters': self.additional_context.get('characters', []),
             'locations': self.additional_context.get('locations', []),
             'character_count': self.additional_context.get('character_count', 0),
-            'location_count': self.additional_context.get('location_count', 0)
+            'location_count': self.additional_context.get('location_count', 0),
+            'content_source': content_source.value
         }
         
         # Add any other additional context data
@@ -1035,7 +1060,7 @@ class LLMAssistantPanel(QWidget):
             if key not in context:  # Don't override existing keys
                 context[key] = value
         
-        self.logger.debug(f"Built context: {len(text_content)} chars, {len(context['characters'])} characters, {len(context['locations'])} locations")
+        self.logger.debug(f"Built context with {content_source.value}: {len(text_content)} chars, {len(context['characters'])} characters, {len(context['locations'])} locations")
         return context
     
     def set_task_executing(self, task_id: str, executing: bool):
@@ -1377,6 +1402,15 @@ class LLMAssistantPanel(QWidget):
                     if self.task_combo.itemData(i) == current_template_id:
                         self.task_combo.setCurrentIndex(i)
                         break
+            else:
+                # If no previous selection and we have templates, select the first real template (skip custom_prompt and separator)
+                if len(template_list) > 0:
+                    for i in range(self.task_combo.count()):
+                        item_data = self.task_combo.itemData(i)
+                        if item_data and item_data != "custom_prompt":
+                            self.task_combo.setCurrentIndex(i)
+                            self.logger.debug(f"Auto-selected first template: {item_data}")
+                            break
             
             self.logger.info(f"Loaded {len(template_list)} templates into dropdown")
             
@@ -1460,13 +1494,13 @@ class LLMAssistantPanel(QWidget):
             # Populate additional context with current scene data before opening dialog
             self._populate_additional_context()
             
-            # Get current scene content
-            scene_content = self.current_scene_content or ""
-            selected_text = ""
+            # Build context using the same logic as templates (respects content source selection)
+            context = self.build_context()
             
-            # Try to get selected text from main window
-            if hasattr(self.parent(), 'get_selected_text'):
-                selected_text = self.parent().get_selected_text() or ""
+            # Extract the relevant information from context
+            scene_content = context.get('scene_content', '')
+            selected_text = context.get('selected_text', '')
+            has_selection = context.get('has_selection', False)
             
             dialog = CustomPromptDialog(scene_content, selected_text, self)
             result = dialog.exec()
@@ -1515,53 +1549,181 @@ class LLMAssistantPanel(QWidget):
             self.logger.error(f"Error populating additional context: {e}")
     
     def execute_custom_prompt(self, config: dict, streaming: bool = False):
-        """Execute a custom prompt configuration."""
+        """Execute a custom prompt configuration using regular LLM service path."""
         try:
-            # DEBUG: Log additional context
-            self.logger.info(f"DEBUG Custom Prompt - additional_context keys: {list(self.additional_context.keys())}")
-            self.logger.info(f"DEBUG Custom Prompt - characters in context: {self.additional_context.get('characters', 'NOT FOUND')}")
-            self.logger.info(f"DEBUG Custom Prompt - locations in context: {self.additional_context.get('locations', 'NOT FOUND')}")
-            self.logger.info(f"DEBUG Custom Prompt - config include_characters: {config.get('include_characters', False)}")
-            self.logger.info(f"DEBUG Custom Prompt - config include_locations: {config.get('include_locations', False)}")
+            # Create dynamic template configuration
+            template_config = self._create_dynamic_template_config(config)
             
-            # Extract context text based on configuration
-            context_text = self._extract_custom_context(config)
+            # Add template to manager temporarily
+            from core.llm.templates import get_template_manager
+            template_manager = get_template_manager()
+            template_manager.add_template(template_config, save_to_file=False)
             
-            # Build context for LLM
+            # Build context in standard format
             context = {
-                'current_text': context_text,
                 'scene_content': config['scene_content'],
                 'selected_text': config.get('selected_text', ''),
-                'has_selection': bool(config.get('selected_text', '')),
-                'scene_summary': context_text,  # Use same as current_text for custom prompts
-                'characters': self._extract_character_names(self.additional_context.get('characters', [])) if config['include_characters'] else [],
-                'locations': self._extract_location_names(self.additional_context.get('locations', [])) if config['include_locations'] else [],
+                'current_text': self._extract_custom_context(config),  # Use existing extraction logic
+                'characters': self.additional_context.get('characters', []),
+                'locations': self.additional_context.get('locations', []),
                 'project_name': self.additional_context.get('project_name', ''),
                 'scene_title': self.additional_context.get('scene_title', ''),
                 'scene_id': self.current_scene_id,
-                'word_count': len(context_text.split()) if context_text else 0,
-                'scene_length': len(config['scene_content']) if config['scene_content'] else 0
             }
             
-            # Create a dynamic prompt
-            prompt = self._build_custom_prompt(config, context)
+            # Set up UI state (same as regular templates)
+            self._current_task_id = "custom_prompt"
+            self._is_streaming_task = streaming
             
-            # LLM parameters from config
-            llm_params = {
-                'temperature': config['temperature'],
-                'max_tokens': config['max_tokens'],
-                'repeat_penalty': config['repetition_penalty']
-            }
+            # Update UI state
+            self.set_task_executing("custom_prompt", True)
             
-            # Execute directly with provider
+            # Show progress bar
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setRange(0, 0)  # Indeterminate progress
+            
+            # Clear response area for new content
+            self.response_area.clear_response()
+            
+            # Use regular LLM service execution path
             if streaming:
-                self._execute_custom_prompt_streaming(prompt, llm_params)
+                success = self.llm_controller.execute_task_streaming("custom_prompt", context)
+                if not success:
+                    self.on_error("custom_prompt", "Failed to start custom prompt streaming")
             else:
-                self._execute_custom_prompt_blocking(prompt, llm_params)
+                success = self.llm_controller.execute_task("custom_prompt", context)
+                if not success:
+                    self.on_error("custom_prompt", "Failed to start custom prompt execution")
                 
         except Exception as e:
             self.logger.error(f"Error executing custom prompt: {e}")
             self.show_error(_("Error"), _("Failed to execute custom prompt: {}").format(str(e)))
+    
+    def _create_dynamic_template_config(self, config: dict):
+        """Create a dynamic template configuration from custom prompt config."""
+        from core.llm.templates.config import (
+            EnhancedTemplateConfig, TemplateMetadata, ContextConfig, 
+            LLMParams, UIConfig, ContextSource
+        )
+        
+        # Create metadata
+        metadata = TemplateMetadata(
+            name="Custom Prompt",
+            template_id="custom_prompt", 
+            description="Dynamic custom prompt template",
+            category="custom",
+            author="User"
+        )
+        
+        # Create context config based on custom prompt settings
+        context_config = ContextConfig(
+            include_characters=config.get('include_characters', False),
+            include_locations=config.get('include_locations', False),
+            include_scene_content=config.get('include_scene_content', True),  # Default true for compatibility
+            use_selection=True,
+            selection_priority=True,
+            default_context_length=config.get('custom_length', 8000),
+            scene_summary_length=config.get('custom_length', 8000),
+            scene_summary_source=self._get_context_source_from_text_portion(config.get('text_portion', '')),
+            max_context_chars=25000,
+            word_boundary_trim=True
+        )
+        
+        # Create LLM params from config
+        llm_params = LLMParams(
+            temperature=config.get('temperature', 0.75),
+            max_tokens=config.get('max_tokens', 8000),
+            repeat_penalty=config.get('repetition_penalty', 1.05)
+        )
+        
+        # Create UI config
+        ui_config = UIConfig(
+            show_context_preview=True,
+            allow_context_editing=False,
+            show_params_editor=False,
+            auto_apply_selection=True,
+            confirm_before_execution=False
+        )
+        
+        # Create template content using instruction as Jinja2 template
+        template_content = self._build_template_content(config)
+        
+        return EnhancedTemplateConfig(
+            metadata=metadata,
+            context_config=context_config,
+            llm_params=llm_params,
+            ui_config=ui_config,
+            template_content=template_content
+        )
+    
+    def _get_context_source_from_text_portion(self, text_portion: str):
+        """Convert text portion selection to ContextSource enum."""
+        from core.llm.templates.config import ContextSource
+        
+        if _("🎯 Selected text only") in text_portion:
+            return ContextSource.SELECTION
+        elif _("📄 Full scene") in text_portion:
+            return ContextSource.FULL_SCENE
+        elif _("⬆️ Beginning of scene") in text_portion:
+            return ContextSource.SCENE_BEGINNING
+        elif _("⬇️ End of scene") in text_portion:
+            return ContextSource.SCENE_END
+        elif _("🎚️ Custom length from end") in text_portion:
+            return ContextSource.CUSTOM_LENGTH
+        else:
+            return ContextSource.SELECTION
+    
+    def _build_template_content(self, config: dict) -> str:
+        """Build Jinja2 template content from custom prompt config."""
+        instruction = config.get('instruction', '')
+        include_characters = config.get('include_characters', False)
+        include_locations = config.get('include_locations', False)
+        
+        # Create template that conditionally includes scene content
+        template_parts = [instruction]
+        
+        # Add conditional character section only if enabled
+        if include_characters:
+            template_parts.append("""
+{% if characters and characters|length > 0 %}
+
+Postacie w scenie:
+{% for character in characters %}
+- {{ character }}
+{% endfor %}
+{% endif %}""")
+        
+        # Add conditional location section only if enabled
+        if include_locations:
+            template_parts.append("""
+{% if locations and locations|length > 0 %}
+
+Lokalizacje:
+{% for location in locations %}
+- {{ location }}
+{% endfor %}
+{% endif %}""")
+        
+        # Add scene content section (controlled by include_scene_content in ContextConfig)
+        template_parts.append("""
+{% if current_text or selected_text %}
+
+--- TEKST DO ANALIZY ---
+
+{% if has_selection %}
+{{ selected_text }}
+{% else %}
+{{ current_text }}
+{% endif %}
+
+{% if scene_summary and scene_summary != (selected_text if has_selection else current_text) %}
+
+Dodatkowy kontekst sceny:
+{{ scene_summary }}
+{% endif %}
+{% endif %}""")
+        
+        return "\n".join(template_parts)
     
     def _extract_custom_context(self, config: dict) -> str:
         """Extract context text based on custom prompt configuration."""
@@ -1607,96 +1769,20 @@ class LLMAssistantPanel(QWidget):
             self.logger.debug(f"Using fallback: first {custom_length} chars")
             return clean_scene_content[:custom_length]
     
-    def _build_custom_prompt(self, config: dict, context: dict) -> str:
-        """Build the custom prompt from configuration."""
-        instruction = config['instruction']
-        context_text = context['current_text']
+    def _get_selected_content_source(self):
+        """Get the selected content source from UI and convert to ContextSource enum."""
+        from core.llm.templates.config import ContextSource
         
-        # DEBUG: Log what we're building
-        self.logger.info(f"DEBUG _build_custom_prompt - context['characters']: {context.get('characters', 'NOT FOUND')}")
-        self.logger.info(f"DEBUG _build_custom_prompt - context['locations']: {context.get('locations', 'NOT FOUND')}")
-        self.logger.info(f"DEBUG _build_custom_prompt - config include_characters: {config.get('include_characters', False)}")
-        self.logger.info(f"DEBUG _build_custom_prompt - config include_locations: {config.get('include_locations', False)}")
+        selected_index = self.content_source_combo.currentIndex()
+        content_source_map = {
+            0: ContextSource.SELECTION,      # "Selection (if any)"
+            1: ContextSource.FULL_SCENE,     # "Full Scene" 
+            2: ContextSource.SCENE_BEGINNING, # "Scene Beginning"
+            3: ContextSource.SCENE_END,      # "Scene End"
+            4: ContextSource.CUSTOM_LENGTH   # "Custom Length"
+        }
         
-        prompt_parts = [instruction]
-        
-        if context_text:
-            prompt_parts.append(f"\n =============== :\n{context_text}")
-        
-        if context['characters'] and config['include_characters']:
-            prompt_parts.append("\nCharacters:")
-            for character in context['characters']:
-                prompt_parts.append(f"- {character}")
-            
-        if context['locations'] and config['include_locations']:
-            prompt_parts.append("\nLocations:")
-            for location in context['locations']:
-                prompt_parts.append(f"- {location}")
-        
-        return "\n".join(prompt_parts)
-    
-    def _extract_character_names(self, characters):
-        """Extract full character descriptions from character objects for LLM context."""
-        from services import ContextFormatterService
-        formatter = ContextFormatterService()
-        return formatter.format_characters_list(characters)
-    
-    def _extract_location_names(self, locations):
-        """Extract full location descriptions from location objects for LLM context."""
-        from services import ContextFormatterService
-        formatter = ContextFormatterService()
-        return formatter.format_locations_list(locations)
-    
-    def _execute_custom_prompt_blocking(self, prompt: str, llm_params: dict):
-        """Execute custom prompt in blocking mode using proper threading."""
-        if not self.llm_controller:
-            self.show_error(_("Error"), _("LLM controller not initialized"))
-            return
-        
-        try:
-            # Create a temporary custom prompt task for threading
-            self.logger.debug("Executing custom prompt in background thread")
-            
-            # Use the existing threading mechanism
-            self._current_task_id = "custom_prompt"
-            self._is_streaming_task = False
-            self.set_task_executing("custom_prompt", True)
-            self.response_area.clear_response()
-            
-            # Execute through LLM controller's threading system
-            success = self.llm_controller.execute_custom_prompt_with_params(prompt, llm_params)
-            
-            if not success:
-                self.on_error("custom_prompt", "Failed to start custom prompt execution")
-                
-        except Exception as e:
-            self.logger.error(f"Error in custom prompt execution: {e}")
-            self.on_error("custom_prompt", str(e))
-    
-    def _execute_custom_prompt_streaming(self, prompt: str, llm_params: dict):
-        """Execute custom prompt in streaming mode using proper threading."""
-        if not self.llm_controller:
-            self.show_error(_("Error"), _("LLM controller not initialized"))
-            return
-        
-        try:
-            # Use the existing streaming threading mechanism
-            self.logger.debug("Executing custom prompt streaming in background thread")
-            
-            self._current_task_id = "custom_prompt"
-            self._is_streaming_task = True
-            self.set_task_executing("custom_prompt", True)
-            self.response_area.clear_response()
-            
-            # Execute through LLM controller's streaming system
-            success = self.llm_controller.execute_custom_prompt_streaming_with_params(prompt, llm_params)
-            
-            if not success:
-                self.on_error("custom_prompt", "Failed to start custom prompt streaming")
-                
-        except Exception as e:
-            self.logger.error(f"Error in streaming custom prompt: {e}")
-            self.on_error("custom_prompt", str(e))
+        return content_source_map.get(selected_index, ContextSource.SELECTION)
     
     def show_error(self, title: str, message: str):
         """Show error message dialog."""

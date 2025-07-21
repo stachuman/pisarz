@@ -8,6 +8,7 @@ from PySide6.QtGui import QFont, QPalette, QColor
 
 from ..styles.themes import ThemeManager
 from .llm_settings_widget import LLMSettingsWidget
+from .ai_content_settings_widget import AIContentSettingsWidget
 from i18n import _, get_available_languages, get_current_language, set_language
 
 
@@ -184,6 +185,11 @@ class SettingsDialog(QDialog):
         self.llm_settings_widget = LLMSettingsWidget()
         self.llm_settings_widget.settings_changed.connect(self.llmSettingsChanged.emit)
         tabs.addTab(self.llm_settings_widget, _("AI Assistant"))
+        
+        # === AI CONTENT TAB ===
+        self.ai_content_settings_widget = AIContentSettingsWidget()
+        self.ai_content_settings_widget.settings_changed.connect(self.llmSettingsChanged.emit)
+        tabs.addTab(self.ai_content_settings_widget, _("AI Content"))
         
         # Add tabs to main layout
         layout.addWidget(tabs)

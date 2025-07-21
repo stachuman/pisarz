@@ -154,16 +154,27 @@ class EnhancedTemplateManager:
             selected_text = scene_data.get('selected_text', '')
             current_text = scene_data.get('current_text', '')
             
+            # Check if UI has provided a content_source override
+            content_source_from_ui = scene_data.get('content_source')
+            
             # Clean HTML tags and CSS if present
             import re
             clean_content = self._clean_html_css(scene_content)
             clean_selected_text = self._clean_html_css(selected_text) if selected_text else ''
             clean_current_text = self._clean_html_css(current_text) if current_text else ''
             
-            # Build context based on configuration
-            enhanced_context.update(self._build_selection_context(
-                context_config, clean_content, clean_selected_text, clean_current_text
-            ))
+            # Build context based on configuration only if UI hasn't overridden content source
+            if content_source_from_ui:
+                # UI has selected specific content source - keep the context as is
+                self.logger.debug(f"Using UI content source selection: {content_source_from_ui}")
+                enhanced_context['current_text'] = current_text
+                enhanced_context['selected_text'] = selected_text
+                enhanced_context['has_selection'] = bool(selected_text.strip())
+            else:
+                # Use template configuration
+                enhanced_context.update(self._build_selection_context(
+                    context_config, clean_content, clean_selected_text, clean_current_text
+                ))
             
             enhanced_context.update(self._build_scene_summary(
                 context_config, clean_content, clean_selected_text
@@ -188,6 +199,14 @@ class EnhancedTemplateManager:
                                 selected_text: str, current_text: str) -> Dict[str, Any]:
         """Build selection-related context."""
         context = {}
+        
+        # Check if scene content should be included
+        if not config.include_scene_content:
+            # Scene content disabled - return empty context
+            context['current_text'] = ''
+            context['selected_text'] = ''
+            context['has_selection'] = False
+            return context
         
         # Handle text selection
         if config.use_selection and selected_text.strip():
@@ -222,6 +241,11 @@ class EnhancedTemplateManager:
                            selected_text: str) -> Dict[str, Any]:
         """Build scene summary based on configuration."""
         context = {}
+        
+        # Check if scene content should be included
+        if not config.include_scene_content:
+            context['scene_summary'] = ''
+            return context
         
         summary_length = config.scene_summary_length
         source = config.scene_summary_source
@@ -458,59 +482,8 @@ class EnhancedTemplateManager:
         Returns:
             Cleaned plain text content
         """
-        import re
-        
-        if not content:
-            return ""
-        
-        # First, remove all HTML tags (including script, style, etc.)
-        content = re.sub(r'<[^>]+>', '', content)
-        
-        # Remove HTML entities
-        content = re.sub(r'&[a-zA-Z0-9#]+;', '', content)
-        
-        # Remove CSS style blocks completely (anything between braces)
-        content = re.sub(r'\{[^}]*\}', '', content)
-        
-        # Remove CSS property lines (property: value;)
-        content = re.sub(r'^[a-zA-Z0-9_-]+\s*:\s*[^;]+;?\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove CSS selectors and pseudo-selectors
-        content = re.sub(r'[a-zA-Z0-9_-]+::[a-zA-Z0-9_-]+', '', content)
-        content = re.sub(r'[a-zA-Z0-9_.-]+\s*\{', '', content)
-        
-        # Remove common CSS patterns
-        content = re.sub(r'p,\s*li\s*\{', '', content)
-        content = re.sub(r'hr\s*\{', '', content)
-        content = re.sub(r'li\.[^{]*\{', '', content)
-        
-        # Remove remaining CSS-like patterns
-        content = re.sub(r'[a-zA-Z-]+\s*:\s*[^;{}]+;?', '', content)
-        
-        # Remove Unicode escape sequences
-        content = re.sub(r'\\[0-9a-fA-F]{4}', '', content)
-        
-        # Replace paragraph separators with regular spaces
-        content = content.replace('\u2029', ' ')
-        content = content.replace('\u2028', ' ')
-        
-        # Remove content property values with quotes
-        content = re.sub(r'content:\s*"[^"]*"', '', content)
-        
-        # Remove empty lines and excessive whitespace
-        content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-        content = re.sub(r'^\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove lines that are just punctuation or special characters
-        content = re.sub(r'^\s*[{}();,.\-_\s]*$', '', content, flags=re.MULTILINE)
-        
-        # Final cleanup
-        content = content.strip()
-        
-        # Remove multiple consecutive newlines
-        content = re.sub(r'\n{3,}', '\n\n', content)
-        
-        return content
+        from core.utils.text_cleaner import clean_html_css
+        return clean_html_css(content)
     
     def _build_narrative_context(self, project_path) -> str:
         """Build narrative context summary from project data."""

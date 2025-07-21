@@ -1,97 +1,104 @@
-format_version: '2.0'
-
-metadata:
-  template_id: 'continue_scene_configurable'
-  name: 'Continue Scene (Configurable)'
-  description: 'Continue writing with fully configurable text lengths and context sources'
-  category: 'writing'
-  author: 'User'
-  version: '2.0'
-  tags:
-    - writing
-    - continuation
-    - scene
-    - configurable
-
 context_config:
-  # Length of text passed to model (characters)
   default_context_length: 8000
-  
-  # Scene summary configuration
-  scene_summary_length: 4000
-  scene_summary_source: scene_beginning  # Options: scene_beginning, scene_end, full_scene, custom_length, selection
-  
-  # Maximum total context to prevent token overflow
-  max_context_chars: 25000
-  
-  # Text selection handling
-  use_selection: true
-  selection_priority: true  # If true, selected text becomes current_text
-  
-  # Include additional context
   include_characters: true
   include_locations: true
-  include_project_info: false
-  
-  # Word boundary trimming to avoid cutting mid-word
+  include_project_info: true
+  max_context_chars: 25000
+  scene_summary_length: 4000
+  scene_summary_source: full_scene
+  selection_priority: true
+  use_selection: true
   word_boundary_trim: true
-
+format_version: '2.0'
 llm_params:
-  max_tokens: 8000
-  temperature: 0.75
-  top_p: 0.9
-  top_k: 40
-  repeat_penalty: 1.05
   custom_params: {}
+  max_tokens: 8000
+  repeat_penalty: 1.05
+  temperature: 0.75
+  top_k: 40
+  top_p: 0.9
+metadata:
+  author: User
+  category: writing
+  created_date: null
+  description: Continue writing with fully configurable text lengths and context sources
+  modified_date: null
+  name: Continue Scene (Configurable)
+  tags:
+  - writing
+  - continuation
+  - scene
+  - configurable
+  template_id: continue_scene_configurable
+  version: '2.0'
+template_content: 'Kontynuuj tę scenę, pisząc naturalną kontynuację (2-3 akapity),
+  zachowując styl i ton tekstu.
 
-ui_config:
-  show_context_preview: true
-  auto_apply_selection: true
-  confirm_before_execution: false
-  preview_length: 200
-  allow_context_editing: true
-  show_params_editor: true
-
-template_content: |
-  Kontynuuj tę scenę, pisząc naturalną kontynuację (2-3 akapity), zachowując styl i ton tekstu.
 
   {% if characters %}
+
   Postacie w scenie:
+
   {% for character in characters %}
+
   - {{ character }}
+
   {% endfor %}
+
   {% endif %}
 
+
   {% if locations %}
+
   Lokalizacje:
+
   {% for location in locations %}
+
   - {{ location }}
+
   {% endfor %}
+
   {% endif %}
+
 
   --- TEKST DO KONTYNUACJI ---
 
+
   {% if has_selection %}
+
   {{ selected_text }}
+
 
   {% if scene_summary and scene_summary != selected_text %}
 
-  Dodatkowy kontekst sceny ({{ scene_summary|length }} znaków):
+
+  Dodatkowy kontekst sceny:
+
   {{ scene_summary }}
+
   {% endif %}
 
+
   {% else %}
+
   {{ current_text }}
+
 
   {% if scene_summary and scene_summary != current_text %}
 
-  Pełny kontekst sceny ({{ scene_summary|length }} znaków):
+
+  Pełny kontekst sceny:
+
   {{ scene_summary }}
-  {% endif %}
 
   {% endif %}
 
-  # Konfiguracja długości tekstu w tym template:
-  # - default_context_length: {{ context_config.default_context_length if context_config else 'N/A' }} znaków
-  # - scene_summary_length: {{ context_config.scene_summary_length if context_config else 'N/A' }} znaków
-  # - Źródło podsumowania: {{ context_config.scene_summary_source if context_config else 'N/A' }}
+
+  {% endif %}'
+ui_config:
+  allow_context_editing: true
+  auto_apply_selection: true
+  confirm_before_execution: false
+  preview_length: 200
+  show_context_preview: true
+  show_params_editor: true

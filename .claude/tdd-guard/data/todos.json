@@ -1,0 +1,40 @@
+{
+  "session_id": "b22ff28d-daa5-4572-a88d-561780ca8777",
+  "transcript_path": "/home/staszek/.claude/projects/-home-staszek-pisarz/b22ff28d-daa5-4572-a88d-561780ca8777.jsonl",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "TodoWrite",
+  "tool_input": {
+    "todos": [
+      {
+        "content": "Map execution paths for regular vs custom templates",
+        "status": "completed",
+        "priority": "high",
+        "id": "1"
+      },
+      {
+        "content": "Consolidate custom templates to use regular LLM service path",
+        "status": "in_progress",
+        "priority": "high",
+        "id": "2"
+      },
+      {
+        "content": "Add scene context optional checkbox to CustomPromptDialog UI",
+        "status": "pending",
+        "priority": "high",
+        "id": "3"
+      },
+      {
+        "content": "Update context preview to show 'No scene context' when disabled",
+        "status": "pending",
+        "priority": "medium",
+        "id": "4"
+      },
+      {
+        "content": "Test custom prompts with and without scene context",
+        "status": "pending",
+        "priority": "medium",
+        "id": "5"
+      }
+    ]
+  }
+}

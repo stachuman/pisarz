@@ -1173,3 +1173,59 @@ msgstr "significance: {}"
 
 msgid "Notes: {}"
 msgstr "Notes: {}"
+
+# Content source selection
+msgid "Content Source:"
+msgstr "Content Source:"
+
+msgid "Selection (if any)"
+msgstr "Selection (if any)"
+
+msgid "Full Scene"
+msgstr "Full Scene"
+
+msgid "Scene Beginning"
+msgstr "Scene Beginning"
+
+msgid "Scene End"
+msgstr "Scene End"
+
+msgid "Custom Length"
+msgstr "Custom Length"
+
+msgid "Choose what content to pass to the AI template"
+msgstr "Choose what content to pass to the AI template"
+
+# AI Content Settings
+msgid "AI Content Processing Settings"
+msgstr "AI Content Processing Settings"
+
+msgid "Content Length Settings"
+msgstr "Content Length Settings"
+
+msgid "Scene Beginning Length:"
+msgstr "Scene Beginning Length:"
+
+msgid "Scene End Length:"
+msgstr "Scene End Length:"
+
+msgid "Custom Length:"
+msgstr "Custom Length:"
+
+msgid " characters"
+msgstr " characters"
+
+msgid "Number of characters to use when 'Scene Beginning' is selected"
+msgstr "Number of characters to use when 'Scene Beginning' is selected"
+
+msgid "Number of characters to use when 'Scene End' is selected"
+msgstr "Number of characters to use when 'Scene End' is selected"
+
+msgid "Number of characters to use when 'Custom Length' is selected"
+msgstr "Number of characters to use when 'Custom Length' is selected"
+
+msgid "These settings control how much content is passed to AI templates when different content source options are selected in the AI Assistant panel.\n\n• Scene Beginning: Uses the first N characters of the scene\n• Scene End: Uses the last N characters of the scene\n• Custom Length: Uses the first N characters for custom length option"
+msgstr "These settings control how much content is passed to AI templates when different content source options are selected in the AI Assistant panel.\n\n• Scene Beginning: Uses the first N characters of the scene\n• Scene End: Uses the last N characters of the scene\n• Custom Length: Uses the first N characters for custom length option"
+
+msgid "AI Content"
+msgstr "AI Content"

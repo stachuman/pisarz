@@ -16,7 +16,7 @@ class ProjectPropertiesDialog(BaseDialog):
     """Dialog for editing project properties and settings."""
     
     # Signal emitted when project properties are saved
-    propertiesSaved = Signal(dict)  # project_data
+    properties_saved = Signal(dict)  # project_data
     
     def __init__(self, project_data=None, parent=None):
         self.project_data = project_data or {}
@@ -403,5 +403,5 @@ class ProjectPropertiesDialog(BaseDialog):
         }
         
         # Emit signal with the properties
-        self.propertiesSaved.emit(properties)
+        self.properties_saved.emit(properties)
         self.accept()

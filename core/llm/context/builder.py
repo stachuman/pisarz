@@ -165,60 +165,8 @@ class ContextBuilder:
         Returns:
             Cleaned plain text content
         """
-        import re
-        
-        # First, remove all HTML tags (including script, style, etc.)
-        content = re.sub(r'<[^>]+>', '', content)
-        
-        # Remove HTML entities
-        content = re.sub(r'&[a-zA-Z0-9#]+;', '', content)
-        
-        # Remove CSS style blocks completely (anything between braces)
-        content = re.sub(r'\{[^}]*\}', '', content)
-        
-        # Remove CSS property lines (property: value;)
-        content = re.sub(r'^[a-zA-Z0-9_-]+\s*:\s*[^;]+;?\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove CSS selectors and pseudo-selectors
-        content = re.sub(r'[a-zA-Z0-9_-]+::[a-zA-Z0-9_-]+', '', content)
-        content = re.sub(r'[a-zA-Z0-9_.-]+\s*\{', '', content)
-        
-        # Remove common CSS selector patterns (aggressive cleaning)
-        content = re.sub(r'^p,\s*li\s*$', '', content, flags=re.MULTILINE)
-        content = re.sub(r'^hr\s*$', '', content, flags=re.MULTILINE)
-        content = re.sub(r'^li\.\s*$', '', content, flags=re.MULTILINE)
-        content = re.sub(r'^li\.[a-zA-Z0-9_-]*\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove remaining CSS-like patterns
-        content = re.sub(r'[a-zA-Z-]+\s*:\s*[^;{}]+;?', '', content)
-        
-        # Remove CSS selector fragments
-        content = re.sub(r'^[a-zA-Z0-9_.-]+\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove Unicode escape sequences
-        content = re.sub(r'\\[0-9a-fA-F]{4}', '', content)
-        
-        # Replace paragraph separators with regular spaces
-        content = content.replace('\u2029', ' ')
-        content = content.replace('\u2028', ' ')
-        
-        # Remove content property values with quotes
-        content = re.sub(r'content:\s*"[^"]*"', '', content)
-        
-        # Remove empty lines and excessive whitespace
-        content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
-        content = re.sub(r'^\s*$', '', content, flags=re.MULTILINE)
-        
-        # Remove lines that are just punctuation or special characters
-        content = re.sub(r'^\s*[{}();,.\-_\s]*$', '', content, flags=re.MULTILINE)
-        
-        # Final cleanup
-        content = content.strip()
-        
-        # Remove multiple consecutive newlines
-        content = re.sub(r'\n{3,}', '\n\n', content)
-        
-        return content
+        from core.utils.text_cleaner import clean_html_css
+        return clean_html_css(content)
     
     def _get_empty_context(self) -> Dict[str, Any]:
         """Return empty context dictionary with default values."""

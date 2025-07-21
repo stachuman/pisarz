@@ -65,7 +65,8 @@ class ContextFormatterService:
         
         # Add notes
         if notes:
-            char_desc += f" | {_(\"Notes: {}\").format(notes)}"
+            notes_label = _("Notes: {}").format(notes)
+            char_desc += f" | {notes_label}"
         
         return char_desc
     
@@ -116,7 +117,8 @@ class ContextFormatterService:
         
         # Add notes
         if notes:
-            loc_desc += f" | {_(\"Notes: {}\").format(notes)}"
+            notes_label = _("Notes: {}").format(notes)
+            loc_desc += f" | {notes_label}"
         
         return loc_desc
     
