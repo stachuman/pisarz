@@ -57,9 +57,8 @@ class AppUIController(QObject):
             self.project_tree.load_scenes(scenes, preserve_selection=False)
             self.project_tree.load_characters(characters, preserve_selection=False)
             
-            # Convert location objects to dictionaries for display
-            location_dicts = [loc.__dict__ for loc in locations]
-            self.project_tree.load_locations(location_dicts, preserve_selection=False)
+            # Locations are already dictionaries from the repository
+            self.project_tree.load_locations(locations, preserve_selection=False)
             
             # Show welcome screen in workspace
             self.workspace.show_welcome()
@@ -131,8 +130,8 @@ class AppUIController(QObject):
     def refresh_locations_data(self, locations: list):
         """Refresh locations data in UI components."""
         if self.project_tree:
-            location_dicts = [loc.__dict__ for loc in locations]
-            self.project_tree.load_locations(location_dicts, preserve_selection=True)
+            # Locations are already dictionaries from the repository
+            self.project_tree.load_locations(locations, preserve_selection=True)
             
         if hasattr(self.workspace, 'locations_grid_view') and self.workspace.locations_grid_view:
             self.workspace.locations_grid_view.refresh_locations()

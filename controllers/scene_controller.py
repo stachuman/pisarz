@@ -100,7 +100,10 @@ class SceneController(QObject):
             return []
             
         try:
-            return scene_manager.list_scenes()
+            project_id = self.project_controller.get_project_id()
+            if project_id is None:
+                return []
+            return scene_manager.get_scenes_by_project(project_id)
         except Exception as e:
             self.error.emit(_("Error"), _("Failed to load scenes: {}").format(e))
             return []

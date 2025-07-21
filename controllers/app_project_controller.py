@@ -54,16 +54,17 @@ class AppProjectController(QObject):
             self.current_project_name = project_name
             
             # Initialize managers
-            self.current_scene_manager = SceneManager(Path(project_path))
-            self.current_character_manager = CharacterManager(Path(project_path))
-            self.current_location_manager = LocationManager(Path(project_path) / "pisarz.db")
-            self.current_search_manager = SearchManager(Path(project_path) / "pisarz.db")
+            db_path = Path(project_path) / "pisarz.db"
+            self.current_scene_manager = SceneManager(db_path)
+            self.current_character_manager = CharacterManager(db_path)
+            self.current_location_manager = LocationManager(db_path)
+            self.current_search_manager = SearchManager(db_path)
             
             # Get project data and load entities
             project_data = self.project_manager.get_project_data(Path(project_path))
             project_id = project_data['id']
             
-            scenes = self.current_scene_manager.list_scenes()
+            scenes = self.current_scene_manager.get_scenes_by_project(project_id)
             characters = self.current_character_manager.get_characters(project_id)
             locations = self.current_location_manager.get_locations(project_id)
             

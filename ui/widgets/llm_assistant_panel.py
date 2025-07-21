@@ -1226,7 +1226,7 @@ class LLMAssistantPanel(QWidget):
             
             # Get the narrative context manager directly
             from PySide6.QtWidgets import QApplication
-            from core.llm.context.narrative_context import get_narrative_context_manager
+            from core.llm.context.narrative_context import NarrativeContextManager
             from pathlib import Path
             
             # Get main window for project path
@@ -1246,7 +1246,7 @@ class LLMAssistantPanel(QWidget):
                 return
                 
             # Get narrative context manager directly
-            context_manager = get_narrative_context_manager(Path(project_path))
+            context_manager = NarrativeContextManager(Path(project_path))
             if not context_manager:
                 self.logger.error("Failed to get narrative context manager for auto-save")
                 return

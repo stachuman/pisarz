@@ -57,8 +57,10 @@ class AppCharacterController(QObject):
             linked_scenes = self.character_manager.get_scenes_for_character(character_id)
             character_data['scenes'] = linked_scenes
             
-            # Get all scenes in project for linking
-            all_scenes = self.scene_manager.list_scenes()
+            # Get all scenes in project for linking  
+            project_data = self.character_manager.get_character(character_id)
+            project_id = project_data.get('project_id') if project_data else None
+            all_scenes = self.scene_manager.get_scenes_by_project(project_id) if project_id else []
             
             # Create and show dialog
             dialog = CharacterEditorDialog(character_data, all_scenes, self.parent())
@@ -94,7 +96,7 @@ class AppCharacterController(QObject):
             # Open character editor for new character
             character_data = self.character_manager.get_character(character_id)
             if character_data:
-                all_scenes = self.scene_manager.list_scenes()
+                all_scenes = self.scene_manager.get_scenes_by_project(project_data['id'])
                 
                 # Check if window is already open
                 if character_id in self.character_editor_windows:

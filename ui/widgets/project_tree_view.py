@@ -34,7 +34,6 @@ class ProjectTreeView(QWidget):
     generateContextRequested = Signal(int, str)     # scene_id, template_name
     editTemplateRequested = Signal(str)             # template_name
     refreshContextRequested = Signal(int)           # scene_id
-    viewContextRequested = Signal(int)              # scene_id
     editContextRequested = Signal(int)              # scene_id
     
     def __init__(self, project_name="", parent=None):
@@ -400,7 +399,7 @@ class ProjectTreeView(QWidget):
         
         try:
             # Check if there's any narrative context for this scene
-            context_entries = self.narrative_context_manager.get_context_for_scene(scene_id)
+            context_entries = self.narrative_context_manager.get_contexts_by_scene(scene_id)
             
             if not context_entries:
                 return "scene_no_context"  # No context exists
@@ -466,6 +465,8 @@ class ProjectTreeView(QWidget):
                 tooltip += f"\n⚠ {_('Narrative context needs refresh')}"
             elif context_status == "scene_no_context":
                 tooltip += f"\n⚠ {_('No narrative context available')}"
+            
+            tooltip += f"\n\nNote: Each scene maintains one unified narrative context"
                 
             scene_item.setToolTip(0, tooltip)
             
@@ -663,14 +664,8 @@ class ProjectTreeView(QWidget):
                                            self.refreshContextRequested.emit(sid))
             menu.addAction(refresh_action)
         
-        # View Context action (if context exists)
+        # Edit Context action (if context exists)
         if context_status in ["scene_stale", "scene_fresh"]:
-            view_context_action = QAction(_("📄 View Generated Context"), self)
-            view_context_action.triggered.connect(lambda checked, sid=scene_id: 
-                                                self.viewContextRequested.emit(sid))
-            menu.addAction(view_context_action)
-            
-            # Edit Context action (if context exists)
             edit_context_action = QAction(_("✏️ Edit Generated Context"), self)
             edit_context_action.triggered.connect(lambda checked, sid=scene_id: 
                                                 self.editContextRequested.emit(sid))

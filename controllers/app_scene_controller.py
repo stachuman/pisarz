@@ -23,10 +23,12 @@ class AppSceneController(QObject):
         super().__init__(parent)
         self.scene_manager: Optional[SceneManager] = None
         self.current_scene_id: Optional[int] = None
+        self.current_project_id: Optional[int] = None
         
-    def set_scene_manager(self, scene_manager: SceneManager):
-        """Set the current scene manager."""
+    def set_scene_manager(self, scene_manager: SceneManager, project_id: Optional[int] = None):
+        """Set the current scene manager and project ID."""
         self.scene_manager = scene_manager
+        self.current_project_id = project_id
         
     def auto_save_current_scene(self, content: str) -> bool:
         """Auto-save the current scene before switching."""
@@ -142,7 +144,9 @@ class AppSceneController(QObject):
         if not self.scene_manager:
             return []
         try:
-            return self.scene_manager.list_scenes()
+            if self.current_project_id is None:
+                return []
+            return self.scene_manager.get_scenes_by_project(self.current_project_id)
         except Exception as e:
             self.errorOccurred.emit(_("Error"), _("Failed to load scenes: {}").format(e))
             return []

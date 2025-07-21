@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 from PySide6.QtCore import QObject, Signal
 
-from core.search import SearchManager, SearchResults
+from core.database.search_repository import SearchManager, SearchResult
 from i18n import _
 
 
@@ -54,13 +54,13 @@ class AppSearchController(QObject):
             # Perform search based on filter type
             if filter_type == "scenes":
                 results = self.search_manager.search_scenes(query, project_id, limit=50)
-                search_results = SearchResults(query=query, results=results, total_count=len(results), search_time_ms=0.0)
+                search_results = SearchResult(query=query, results=results, total_count=len(results), search_time_ms=0.0)
             elif filter_type == "characters":
                 results = self.search_manager.search_characters(query, project_id, limit=50)
-                search_results = SearchResults(query=query, results=results, total_count=len(results), search_time_ms=0.0)
+                search_results = SearchResult(query=query, results=results, total_count=len(results), search_time_ms=0.0)
             elif filter_type == "locations":
                 results = self.search_manager.search_locations(query, project_id, limit=50)
-                search_results = SearchResults(query=query, results=results, total_count=len(results), search_time_ms=0.0)
+                search_results = SearchResult(query=query, results=results, total_count=len(results), search_time_ms=0.0)
             else:  # "all"
                 search_results = self.search_manager.search_all(query, project_id, limit=100)
             

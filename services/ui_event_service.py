@@ -191,16 +191,9 @@ class UIEventService:
             True if successful, False otherwise
         """
         try:
-            from ui.widgets.search_view import SearchView
-            
-            search_dialog = SearchView(self.main_window)
-            search_dialog.search_result_selected.connect(
-                lambda result_type, result_id, title, search_query: 
-                self.handle_search_result_selection(result_type, result_id, title, search_query)
-            )
-            
-            result = search_dialog.exec()
-            return result == search_dialog.DialogCode.Accepted
+            # SearchView is a widget, not a dialog, so we show the search view in the workspace
+            self.main_window.workspace.show_search_view()
+            return True
             
         except Exception as e:
             self.logger.error(f"Error handling search request: {e}")

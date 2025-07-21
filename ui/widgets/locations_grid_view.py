@@ -296,7 +296,7 @@ class LocationsGridView(QWidget):
     
     def _edit_location(self, location_id):
         """Edit an existing location."""
-        location = self.location_manager.get_location(location_id)
+        location = self.location_manager.get_location_object(location_id)
         if location:
             dialog = LocationEditorDialog(
                 self.location_manager, 
@@ -351,7 +351,7 @@ class LocationsGridView(QWidget):
     
     def refresh_locations(self):
         """Refresh the locations list from the database."""
-        self.locations = self.location_manager.get_locations(self.project_id)
+        self.locations = self.location_manager.get_location_objects(self.project_id)
         self._apply_filters()
     
     def clear_filters(self):

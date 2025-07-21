@@ -240,14 +240,23 @@ class NarrativeContextPanel(QWidget):
     
     def refresh_contexts(self):
         """Refresh the context list."""
-        if not self.context_manager:
+        if not self.context_manager or not self.current_project_path:
             return
         
         try:
             self.context_tree.clear()
             
+            # Get project ID from project database
+            from core.project import ProjectManager
+            project_manager = ProjectManager()
+            project_data = project_manager.get_project_data(self.current_project_path)
+            if not project_data:
+                return
+            
+            project_id = project_data['id']
+            
             # Get all active contexts
-            contexts = self.context_manager.get_active_context()
+            contexts = self.context_manager.get_active_contexts(project_id)
             
             # Group by type
             type_groups = {}

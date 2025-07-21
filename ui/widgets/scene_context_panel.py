@@ -396,41 +396,81 @@ class SceneContextPanel(QWidget):
         """Update the locations list widget."""
         self.locations_list.clear()
         
-        for location, role in self.scene_locations:
-            item_text = f"{location.name}"
-            if role:
-                item_text += f" ({role})"
-            
-            item = QListWidgetItem(item_text)
-            item.setData(Qt.UserRole, location.id)
-            self.locations_list.addItem(item)
+        for location_item in self.scene_locations:
+            try:
+                # Handle different possible formats
+                if isinstance(location_item, tuple) and len(location_item) == 2:
+                    location, role = location_item
+                elif isinstance(location_item, dict):
+                    # Legacy format - location dict without role
+                    location = location_item
+                    role = ""
+                else:
+                    print(f"Unexpected location item format: {location_item}")
+                    continue
+                
+                # Handle both dict and object formats for location
+                if isinstance(location, dict):
+                    location_name = location.get('name', 'Unknown Location')
+                    location_id = location.get('id')
+                else:
+                    location_name = getattr(location, 'name', 'Unknown Location')
+                    location_id = getattr(location, 'id', None)
+                
+                item_text = location_name
+                if role:
+                    item_text += f" ({role})"
+                
+                item = QListWidgetItem(item_text)
+                if location_id:
+                    item.setData(Qt.UserRole, location_id)
+                self.locations_list.addItem(item)
+                
+            except Exception as e:
+                print(f"Error processing location item: {e}")
+                continue
     
     def _update_characters_list(self):
         """Update the characters list widget."""
         self.characters_list.clear()
         
-        for item in self.scene_characters:
+        for character_item in self.scene_characters:
             try:
                 # Handle different possible formats
-                if isinstance(item, tuple) and len(item) == 2:
-                    character, role = item
-                elif isinstance(item, dict):
-                    # Legacy format - character dict without role
-                    character = item
-                    role = ""
+                if isinstance(character_item, tuple) and len(character_item) == 2:
+                    character, role = character_item
+                elif isinstance(character_item, dict):
+                    # Check if it's a character dict with role field (new format)
+                    if 'role' in character_item:
+                        character = character_item
+                        role = character_item.get('role', '')
+                    else:
+                        # Legacy format - character dict without role
+                        character = character_item
+                        role = ""
                 else:
-                    print(f"Unexpected character item format: {item}")
+                    print(f"Unexpected character item format: {character_item}")
                     continue
                 
-                item_text = f"{character.get('name', 'Unknown')}"
+                # Handle both dict and object formats for character
+                if isinstance(character, dict):
+                    character_name = character.get('name', 'Unknown Character')
+                    character_id = character.get('id')
+                else:
+                    character_name = getattr(character, 'name', 'Unknown Character')
+                    character_id = getattr(character, 'id', None)
+                
+                item_text = character_name
                 if role:
                     item_text += f" ({role})"
                 
                 list_item = QListWidgetItem(item_text)
-                list_item.setData(Qt.UserRole, character.get('id'))
+                if character_id:
+                    list_item.setData(Qt.UserRole, character_id)
                 self.characters_list.addItem(list_item)
+                
             except Exception as e:
-                # Silently handle error - character item will be skipped
+                print(f"Error processing character item: {e}")
                 continue
     
     def _update_relationships(self):

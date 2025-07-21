@@ -249,7 +249,7 @@ class SettingsService:
         """
         try:
             if hasattr(self.main_window, 'focus_controller'):
-                return self.main_window.focus_controller.exit_if_active()
+                return self.main_window.focus_controller.exit_focus_mode_if_active()
             
             return True
             

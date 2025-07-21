@@ -47,10 +47,11 @@ class ProjectController(QObject):
         
         try:
             # Initialize managers for the selected project
-            self.current_scene_manager = SceneManager(Path(project_path))
-            self.current_character_manager = CharacterManager(Path(project_path))
-            self.current_location_manager = LocationManager(Path(project_path) / "pisarz.db")
-            self.current_search_manager = SearchManager(Path(project_path) / "pisarz.db")
+            db_path = Path(project_path) / "pisarz.db"
+            self.current_scene_manager = SceneManager(db_path)
+            self.current_character_manager = CharacterManager(db_path)
+            self.current_location_manager = LocationManager(db_path)
+            self.current_search_manager = SearchManager(db_path)
             
             # Emit success signal
             self.projectLoaded.emit(project_path, project_name)

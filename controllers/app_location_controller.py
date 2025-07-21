@@ -44,8 +44,8 @@ class AppLocationController(QObject):
                 window.activateWindow()
                 return True
             
-            # Get location data
-            location = self.location_manager.get_location(location_id)
+            # Get location data as dataclass object for the dialog
+            location = self.location_manager.get_location_object(location_id)
             if not location:
                 self.errorOccurred.emit(_("Warning"), _("Location not found"))
                 return False

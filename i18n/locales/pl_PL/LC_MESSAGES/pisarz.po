@@ -1089,6 +1089,9 @@ msgstr "Przepisz Scenę"
 msgid "📄 View Generated Context"
 msgstr "📄 Zobacz Wygenerowany Kontekst"
 
+msgid "✏️ Edit Generated Context"
+msgstr "✏️ Edytuj Wygenerowany Kontekst"
+
 msgid "✓ Context automatically saved and linked"
 msgstr "✓ Kontekst automatycznie zapisany i połączony"
 
@@ -1230,3 +1233,12 @@ msgstr "Te ustawienia kontrolują ilość treści przekazywanej do szablonów AI
 
 msgid "AI Content"
 msgstr "Treść AI"
+
+msgid "Generate Context with Template"
+msgstr "Generuj Kontekst za Pomocą Szablonu"
+
+msgid "Refresh Narrative Context"
+msgstr "Odśwież Kontekst Narracyjny"
+
+msgid "Edit Templates..."
+msgstr "Edytuj Szablony..."

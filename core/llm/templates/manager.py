@@ -489,10 +489,10 @@ class EnhancedTemplateManager:
         """Build narrative context summary from project data."""
         try:
             from pathlib import Path
-            from core.llm.context.narrative_context import get_narrative_context_manager
+            from core.llm.context.narrative_context import NarrativeContextManager
             
             # Get narrative context manager
-            manager = get_narrative_context_manager(Path(project_path))
+            manager = NarrativeContextManager(Path(project_path))
             
             # Build context summary
             narrative_summary = manager.build_context_summary(max_length=1500)

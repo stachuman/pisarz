@@ -1088,6 +1088,9 @@ msgstr "Rewrite Scene"
 msgid "📄 View Generated Context"
 msgstr "📄 View Generated Context"
 
+msgid "✏️ Edit Generated Context"
+msgstr "✏️ Edit Generated Context"
+
 msgid "✓ Context automatically saved and linked"
 msgstr "✓ Context automatically saved and linked"
 
@@ -1229,3 +1232,12 @@ msgstr "These settings control how much content is passed to AI templates when d
 
 msgid "AI Content"
 msgstr "AI Content"
+
+msgid "Generate Context with Template"
+msgstr "Generate Context with Template"
+
+msgid "Refresh Narrative Context"
+msgstr "Refresh Narrative Context"
+
+msgid "Edit Templates..."
+msgstr "Edit Templates..."

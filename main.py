@@ -348,7 +348,6 @@ class PisarzApp(QMainWindow):
         self.project_tree.generateContextRequested.connect(self.on_generate_context_requested)
         self.project_tree.editTemplateRequested.connect(self.on_edit_template_requested)
         self.project_tree.refreshContextRequested.connect(self.on_refresh_context_requested)
-        self.project_tree.viewContextRequested.connect(self.on_view_context_requested)
         self.project_tree.editContextRequested.connect(self.on_edit_context_requested)
         
         # LLM Assistant signals for context auto-save
@@ -427,7 +426,8 @@ class PisarzApp(QMainWindow):
     def _on_project_data_loaded(self, project_path: str, project_name: str, managers_dict: dict):
         """Handle project data loaded signal."""
         # Set managers in controllers
-        self.scene_controller.set_scene_manager(managers_dict['scene_manager'])
+        project_id = managers_dict['project_data']['id']
+        self.scene_controller.set_scene_manager(managers_dict['scene_manager'], project_id)
         self.character_controller.set_managers(
             managers_dict['character_manager'], 
             managers_dict['scene_manager'], 
@@ -451,9 +451,9 @@ class PisarzApp(QMainWindow):
         self.narrative_context_panel.set_project(Path(project_path))
         
         # Set up narrative context manager for project tree
-        from core.llm.context.narrative_context import get_narrative_context_manager
+        from core.llm.context.narrative_context import NarrativeContextManager
         try:
-            narrative_manager = get_narrative_context_manager(Path(project_path))
+            narrative_manager = NarrativeContextManager(Path(project_path))
             self.project_tree.set_narrative_context_manager(narrative_manager)
         except Exception as e:
             self.logger.warning(f"Failed to set up narrative context manager: {e}")
@@ -1039,10 +1039,6 @@ class PisarzApp(QMainWindow):
         """Handle request to refresh narrative context for a scene."""
         self.llm_event_service.handle_refresh_context_request(scene_id)
     
-    def on_view_context_requested(self, scene_id: int):
-        """Handle request to view generated context for a scene."""
-        self.llm_event_service.handle_view_context_request(scene_id)
-    
     def on_edit_context_requested(self, scene_id: int):
         """Handle request to edit generated context for a scene."""
         try:
@@ -1052,11 +1048,11 @@ class PisarzApp(QMainWindow):
                 self.status_bar.showMessage(_("No project loaded"))
                 return
             
-            from core.llm.context.narrative_context import get_narrative_context_manager
-            narrative_manager = get_narrative_context_manager(Path(project_path))
+            from core.llm.context.narrative_context import NarrativeContextManager
+            narrative_manager = NarrativeContextManager(Path(project_path))
             
             # Get existing context for the scene
-            existing_context = narrative_manager.get_context_for_scene(scene_id)
+            existing_context = narrative_manager.get_contexts_by_scene(scene_id) # get_context_for_scene(scene_id)
             
             if not existing_context:
                 self.status_bar.showMessage(_("No context found for this scene"))
@@ -1174,8 +1170,13 @@ class PisarzApp(QMainWindow):
             managers = self.project_controller.get_current_managers()
             scene_manager = managers.get('scene_manager')
             if scene_manager:
-                scenes = scene_manager.list_scenes()
-                self.project_tree.load_scenes(scenes)
+                current_project_path, project_name = self.project_controller.get_current_project_info()
+                if current_project_path:
+                    from pathlib import Path
+                    project_data = self.project_controller.get_project_data(Path(current_project_path))
+                    if project_data:
+                        scenes = scene_manager.get_scenes_by_project(project_data['id'])
+                        self.project_tree.load_scenes(scenes)
             
             # Also refresh the narrative context panel
             if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:

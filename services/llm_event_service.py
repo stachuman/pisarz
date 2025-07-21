@@ -4,6 +4,7 @@ import logging
 from typing import Dict, Any, Optional
 from core.logging_config import get_logger
 from .llm_context_service import LLMContextService
+from i18n import _
 
 
 class LLMEventService:
@@ -90,11 +91,11 @@ class LLMEventService:
                 return False
             
             from pathlib import Path
-            from core.llm.context.narrative_context import get_narrative_context_manager
-            narrative_manager = get_narrative_context_manager(Path(project_path))
+            from core.llm.context.narrative_context import NarrativeContextManager
+            narrative_manager = NarrativeContextManager(Path(project_path))
             
             # Get existing context for the scene
-            existing_context = narrative_manager.get_context_for_scene(scene_id)
+            existing_context = narrative_manager.get_contexts_by_scene(scene_id)
             
             if not existing_context:
                 self._show_status_message(_("No context to refresh"))
