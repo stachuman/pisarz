@@ -26,7 +26,7 @@ class ContextBuilder:
                            scene_content: str = "",
                            scene_id: Optional[int] = None,
                            project_name: str = "",
-                           project_path: Optional[Path] = None,
+                           project_id: Optional[int] = None,
                            context_length: int = 500) -> Dict[str, Any]:
         """
         Build context dictionary from scene data.
@@ -38,7 +38,7 @@ class ContextBuilder:
             scene_content: Full content of the current scene
             scene_id: ID of the current scene
             project_name: Name of the current project
-            project_path: Path to the project file
+            project_id: ID of the current project
             context_length: Maximum length for scene summary context
             
         Returns:

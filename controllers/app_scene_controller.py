@@ -107,11 +107,11 @@ class AppSceneController(QObject):
     
     def create_scene(self, title: str) -> bool:
         """Create a new scene."""
-        if not self.scene_manager:
+        if not self.scene_manager or not self.current_project_id:
             return False
             
         try:
-            scene_id = self.scene_manager.create_scene(title)
+            scene_id = self.scene_manager.create_scene(self.current_project_id, title)
             self.sceneCreated.emit(title)
             self.scenesRefreshNeeded.emit()
             self.statusMessage.emit(_("Created scene: {}").format(title))

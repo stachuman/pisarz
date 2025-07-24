@@ -1,0 +1,76 @@
+context_config:
+  default_context_length: 4000
+  include_characters: true
+  include_locations: true
+  include_project_info: false
+  include_scene_content: true
+  max_context_chars: 4000
+  scene_summary_length: 12000
+  scene_summary_source: full_scene
+  selection_priority: true
+  use_selection: true
+  word_boundary_trim: true
+format_version: '2.0'
+llm_params:
+  custom_params: {}
+  max_tokens: 4000
+  repeat_penalty: 1.08
+  temperature: 0.91
+  top_k: 45
+  top_p: 0.92
+metadata:
+  author: System
+  category: writing
+  created_date: null
+  description: Expand a scene with more detail, dialogue, and description
+  modified_date: null
+  name: Generate Character
+  tags:
+  - writing
+  - expansion
+  - detail
+  template_id: generate_character
+  version: '2.0'
+template_content: 'Wygeneruj postać na potrzeby książki - thriller
+
+  {% if project_description %}
+
+  {{ project_description }}
+
+  {% endif %}
+
+
+  Opis postaci ma zawierać:
+
+  Pełne imię
+
+  Ewentualnie pseudonim
+
+  Wiek
+
+  Płeć
+
+  Zawód
+
+  Miejsce pochodzenia / Miejsce zamieszkania
+
+  Wygląd
+
+  Opis
+
+  Osobowość
+
+  Tło / Historia
+
+  Cele
+
+  Konflikty
+
+  '
+ui_config:
+  allow_context_editing: false
+  auto_apply_selection: true
+  confirm_before_execution: false
+  preview_length: 180
+  show_context_preview: true
+  show_params_editor: true

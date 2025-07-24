@@ -87,6 +87,68 @@ class LocationRepository(BaseRepository[Location]):
         """
         rows = self.execute_custom_query(query, [scene_id])
         return [self._row_to_model(row) for row in rows]
+    
+    def get_by_scene_with_roles(self, scene_id: int) -> List[tuple]:
+        """Get locations in a scene with their roles. Returns list of (Location, role) tuples."""
+        query = """
+            SELECT l.*, sl.role FROM locations l
+            JOIN scene_locations sl ON l.id = sl.location_id
+            WHERE sl.scene_id = ?
+            ORDER BY l.name ASC
+        """
+        rows = self.execute_custom_query(query, [scene_id])
+        
+        result = []
+        for row in rows:
+            try:
+                # Convert row to dictionary first
+                row_dict = dict(row) if hasattr(row, 'keys') else {}
+                if not row_dict:
+                    continue
+                    
+                # Extract role and remove it from location data
+                role = row_dict.pop('role', '')
+                
+                # Create location from remaining data
+                from dataclasses import fields
+                location = self.model_class(**{k: v for k, v in row_dict.items() 
+                                              if k in {f.name for f in fields(self.model_class)}})
+                result.append((location, role))
+            except Exception as e:
+                self.logger.error(f"Error processing location with role from scene {scene_id}: {e}")
+                continue
+        
+        return result
+    
+    def link_to_scene(self, location_id: int, scene_id: int, role: str = "") -> bool:
+        """Link a location to a scene."""
+        try:
+            # Use direct database connection with commit for INSERT operation
+            from core.db import get_db_connection
+            with get_db_connection(self.db_path) as conn:
+                query = "INSERT OR REPLACE INTO scene_locations (scene_id, location_id, role) VALUES (?, ?, ?)"
+                cursor = conn.execute(query, [scene_id, location_id, role])
+                conn.commit()
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error linking location {location_id} to scene {scene_id}: {e}")
+            return False
+    
+    def unlink_from_scene(self, location_id: int, scene_id: int) -> bool:
+        """Unlink a location from a scene."""
+        try:
+            # Use direct database connection with commit for DELETE operation
+            from core.db import get_db_connection
+            with get_db_connection(self.db_path) as conn:
+                query = "DELETE FROM scene_locations WHERE scene_id = ? AND location_id = ?"
+                cursor = conn.execute(query, [scene_id, location_id])
+                conn.commit()
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error unlinking location {location_id} from scene {scene_id}: {e}")
+            return False
 
 
 class PlotThreadRepository(BaseRepository[PlotThread]):
@@ -139,8 +201,9 @@ class LocationManager:
     Provides backward compatibility while using the new database layer.
     """
     
-    def __init__(self, db_path: Path):
-        self.db_path = db_path
+    def __init__(self, db_path: Path = None):
+        from core.llm.settings import GLOBAL_DB_PATH
+        self.db_path = db_path or GLOBAL_DB_PATH
         self.location_repo = LocationRepository(db_path)
         self.plot_repo = PlotThreadRepository(db_path)
     
@@ -184,33 +247,11 @@ class LocationManager:
         return self.location_repo.search_by_name(project_id, name_pattern)
     
     def get_scene_locations(self, scene_id: int) -> List[tuple]:
-        """Get locations associated with a specific scene. Returns list of (location_dict, role) tuples."""
+        """Get locations associated with a specific scene. Returns list of (location_object, role) tuples."""
         try:
-            query = """
-                SELECT l.*, sl.role FROM locations l
-                JOIN scene_locations sl ON l.id = sl.location_id
-                WHERE sl.scene_id = ?
-                ORDER BY l.name ASC
-            """
-            rows = self.location_repo.execute_custom_query(query, [scene_id])
-            
-            result = []
-            for row in rows:
-                try:
-                    # Convert row to dictionary
-                    row_dict = dict(row) if hasattr(row, 'keys') else {}
-                    if not row_dict:
-                        continue
-                    
-                    # Extract role and remove it from location data
-                    role = row_dict.pop('role', '')
-                    
-                    # Create location dictionary (remaining data)
-                    result.append((row_dict, role))
-                except Exception as e:
-                    self.location_repo.logger.error(f"Error processing location for scene {scene_id}: {e}")
-                    continue
-            return result
+            # Use the repository method that returns (Location, role) tuples
+            location_role_pairs = self.location_repo.get_by_scene_with_roles(scene_id)
+            return location_role_pairs
         except Exception as e:
             self.location_repo.logger.error(f"Error getting locations for scene {scene_id}: {e}")
             return []
@@ -321,3 +362,12 @@ class LocationManager:
     def plot_thread_exists(self, project_id: int, name: str) -> bool:
         """Check if a plot thread with the given name exists."""
         return self.plot_repo.exists({"project_id": project_id, "name": name})
+    
+    # Scene-Location linking methods
+    def link_location_to_scene(self, location_id: int, scene_id: int, role: str = "") -> bool:
+        """Link a location to a scene."""
+        return self.location_repo.link_to_scene(location_id, scene_id, role)
+    
+    def unlink_location_from_scene(self, location_id: int, scene_id: int) -> bool:
+        """Unlink a location from a scene."""
+        return self.location_repo.unlink_from_scene(location_id, scene_id)

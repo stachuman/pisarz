@@ -18,7 +18,7 @@ from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 from core.logging_config import get_logger
-from core.llm.context.narrative_context import NarrativeContextManager
+from core.database.narrative_context_repository import NarrativeContextManager
 from i18n import _
 
 
@@ -121,7 +121,7 @@ class NarrativeContextPanel(QWidget):
         self.logger = get_logger("ui.narrative_context")
         
         self.context_manager: Optional[NarrativeContextManager] = None
-        self.current_project_path: Optional[Path] = None
+        self.current_project_id: Optional[int] = None
         
         self.setup_ui()
         self.setup_connections()
@@ -215,20 +215,21 @@ class NarrativeContextPanel(QWidget):
         self.context_tree.itemSelectionChanged.connect(self.on_selection_changed)
         self.context_tree.itemDoubleClicked.connect(self.edit_context)
     
-    def set_project(self, project_path: Path):
+    def set_project(self, project_id: int, project_name: str = ""):
         """Set the current project."""
         try:
-            self.current_project_path = project_path
-            self.context_manager = NarrativeContextManager(project_path)
+            self.current_project_id = project_id
+            self.context_manager = NarrativeContextManager()
             
-            self.status_label.setText(_("Project: {}").format(project_path.name))
+            display_name = project_name if project_name else f"Project {project_id}"
+            self.status_label.setText(_("Project: {}").format(display_name))
             self.refresh_contexts()
             
             # Enable controls
             self.add_btn.setEnabled(True)
             self.refresh_btn.setEnabled(True)
             
-            self.logger.info(_("Project set: {}").format(project_path))
+            self.logger.info(_("Project set: {}").format(project_id))
             
         except Exception as e:
             self.logger.error(_("Failed to set project: {}").format(str(e)))
@@ -240,23 +241,14 @@ class NarrativeContextPanel(QWidget):
     
     def refresh_contexts(self):
         """Refresh the context list."""
-        if not self.context_manager or not self.current_project_path:
+        if not self.context_manager or not self.current_project_id:
             return
         
         try:
             self.context_tree.clear()
             
-            # Get project ID from project database
-            from core.project import ProjectManager
-            project_manager = ProjectManager()
-            project_data = project_manager.get_project_data(self.current_project_path)
-            if not project_data:
-                return
-            
-            project_id = project_data['id']
-            
-            # Get all active contexts
-            contexts = self.context_manager.get_active_contexts(project_id)
+            # Get all active contexts using the project_id directly
+            contexts = self.context_manager.get_active_contexts(self.current_project_id)
             
             # Group by type
             type_groups = {}
@@ -364,7 +356,8 @@ class NarrativeContextPanel(QWidget):
                     )
                     return
                 
-                context_id = self.context_manager.create_narrative_context(
+                context_id = self.context_manager.create_context(
+                    project_id=self.current_project_id,
                     context_type=data['context_type'],
                     title=data['title'],
                     content=data['content']
@@ -399,7 +392,8 @@ class NarrativeContextPanel(QWidget):
                 title = title[:47] + "..."
             
             # Create the context entry with proper type and scene linkage
-            context_id = self.context_manager.create_narrative_context(
+            context_id = self.context_manager.create_context(
+                project_id=self.current_project_id,
                 context_type=context_type,
                 title=title,
                 content=text,

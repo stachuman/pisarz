@@ -3,6 +3,7 @@
 import sqlite3
 import logging
 from pathlib import Path
+from core.llm.settings import GLOBAL_DB_PATH 
 from typing import Any, Dict, List, Optional
 from contextlib import contextmanager
 
@@ -13,7 +14,7 @@ error_handler = get_error_handler()
 
 
 @contextmanager
-def get_db_connection(db_path: Path):
+def get_db_connection(db_path: Path = GLOBAL_DB_PATH):
     """Context manager for SQLite database connections."""
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -23,18 +24,18 @@ def get_db_connection(db_path: Path):
         conn.close()
 
 
-def init_project_db(db_path: Path) -> None:
+def init_project_db(db_path: Path = GLOBAL_DB_PATH) -> None:
     """Initialize a new project database with required tables."""
     _ensure_all_tables(db_path)
     _set_initial_schema_version(db_path)
 
 
-def ensure_database_schema(db_path: Path) -> None:
+def ensure_database_schema(db_path: Path = GLOBAL_DB_PATH) -> None:
     """Ensure database has all required tables for new projects."""
     _ensure_all_tables(db_path)
 
 
-def _ensure_all_tables(db_path: Path) -> None:
+def _ensure_all_tables(db_path: Path = GLOBAL_DB_PATH) -> None:
     """Create all required tables if they don't exist."""
     with get_db_connection(db_path) as conn:
         conn.executescript("""
@@ -281,7 +282,7 @@ def _ensure_all_tables(db_path: Path) -> None:
 # Current schema version - increment when making schema changes
 CURRENT_SCHEMA_VERSION = 6
 
-def _set_initial_schema_version(db_path: Path) -> None:
+def _set_initial_schema_version(db_path: Path = GLOBAL_DB_PATH) -> None:
     """Set the schema version for a newly created database."""
     try:
         with get_db_connection(db_path) as conn:
@@ -299,7 +300,7 @@ def _set_initial_schema_version(db_path: Path) -> None:
                                show_to_user=False)
 
 
-def get_schema_version(db_path: Path) -> int:
+def get_schema_version(db_path: Path = GLOBAL_DB_PATH) -> int:
     """Get the current schema version of a database."""
     try:
         with get_db_connection(db_path) as conn:
@@ -323,7 +324,7 @@ def get_schema_version(db_path: Path) -> int:
         return -1
 
 
-def set_schema_version(db_path: Path, version: int) -> bool:
+def set_schema_version(db_path: Path = GLOBAL_DB_PATH, version: int = CURRENT_SCHEMA_VERSION) -> bool:
     """Set the schema version in the database."""
     try:
         with get_db_connection(db_path) as conn:
@@ -471,7 +472,7 @@ def _create_fts_triggers(conn):
     """)
 
 
-def update_database_schema(db_path: Path) -> bool:
+def update_database_schema(db_path: Path = GLOBAL_DB_PATH) -> bool:
     """Update existing database with latest schema including FTS triggers."""
     try:
         with get_db_connection(db_path) as conn:
@@ -486,7 +487,7 @@ def update_database_schema(db_path: Path) -> bool:
         return False
 
 
-def rebuild_fts_index(db_path: Path) -> bool:
+def rebuild_fts_index(db_path: Path = GLOBAL_DB_PATH) -> bool:
     """Rebuild FTS index from existing data."""
     try:
         with get_db_connection(db_path) as conn:
@@ -507,14 +508,14 @@ def rebuild_fts_index(db_path: Path) -> bool:
                                show_to_user=False)
         return False
 
-def execute_query(db_path: Path, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
+def execute_query(db_path: Path = GLOBAL_DB_PATH, query: str="", params: tuple = ()) -> List[Dict[str, Any]]:
     """Execute a SELECT query and return results as list of dictionaries."""
     with get_db_connection(db_path) as conn:
         cursor = conn.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
 
 
-def execute_insert(db_path: Path, query: str, params: tuple = ()) -> int:
+def execute_insert(db_path: Path = GLOBAL_DB_PATH, query: str="", params: tuple = ()) -> int:
     """Execute an INSERT query and return the last row ID."""
     with get_db_connection(db_path) as conn:
         cursor = conn.execute(query, params)
@@ -522,7 +523,7 @@ def execute_insert(db_path: Path, query: str, params: tuple = ()) -> int:
         return cursor.lastrowid
 
 
-def execute_update(db_path: Path, query: str, params: tuple = ()) -> int:
+def execute_update(db_path: Path = GLOBAL_DB_PATH, query: str="", params: tuple = ()) -> int:
     """Execute an UPDATE/DELETE query and return number of affected rows."""
     with get_db_connection(db_path) as conn:
         cursor = conn.execute(query, params)
@@ -530,7 +531,7 @@ def execute_update(db_path: Path, query: str, params: tuple = ()) -> int:
         return cursor.rowcount
 
 
-def validate_schema_integrity(db_path: Path) -> bool:
+def validate_schema_integrity(db_path: Path = GLOBAL_DB_PATH) -> bool:
     """Validate that the database schema is complete and correct."""
     try:
         with get_db_connection(db_path) as conn:
@@ -602,7 +603,7 @@ def validate_schema_integrity(db_path: Path) -> bool:
         return False
 
 
-def get_database_info(db_path: Path) -> Dict[str, Any]:
+def get_database_info(db_path: Path = GLOBAL_DB_PATH) -> Dict[str, Any]:
     """Get comprehensive information about the database."""
     info = {
         'path': str(db_path),

@@ -12,7 +12,6 @@ from .providers.llamacpp_provider import LlamaCppProvider
 from .tasks.registry import TaskRegistry
 from .settings import get_llm_settings
 from .context.manager import ContextManager
-from .templates.engine import TemplateEngine
 from i18n import _
 
 
@@ -25,7 +24,6 @@ class LLMService:
         self.task_registry = TaskRegistry()
         self.settings_manager = get_llm_settings()
         self.context_manager = ContextManager()
-        self.template_engine = TemplateEngine()
         self._initialized = False
         
     def initialize(self, provider_name: Optional[str] = None):
@@ -245,7 +243,7 @@ class LLMService:
             template_config = template_manager.get_template(task_id)
             if not template_config:
                 self.logger.warning(f"Enhanced template {task_id} not found, using fallback")
-                return self._generate_prompt(task_id, context)
+                return self._generate_fallback_prompt(task_id, context)
             
             # Use Jinja2 to render the template content
             from jinja2 import Template
@@ -257,36 +255,6 @@ class LLMService:
             
         except Exception as e:
             self.logger.error(f"Failed to generate enhanced prompt for {task_id}: {e}")
-            return self._generate_prompt(task_id, context)
-    
-    def _generate_prompt(self, task_id: str, context: Dict[str, Any]) -> str:
-        """
-        Generate prompt for task using legacy template engine (fallback).
-        
-        Args:
-            task_id: Task identifier
-            context: Context variables
-            
-        Returns:
-            Generated prompt string
-        """
-        try:
-            # Map task_id to template name
-            template_name = f"{task_id}.j2"
-            
-            # Check if template exists
-            if not self.template_engine.template_exists(template_name):
-                self.logger.warning(f"Template {template_name} not found, using fallback")
-                return self._generate_fallback_prompt(task_id, context)
-            
-            # Render template
-            prompt = self.template_engine.render_template(template_name, context)
-            
-            self.logger.debug(f"Prompt generated using legacy template {template_name}")
-            return prompt
-            
-        except Exception as e:
-            self.logger.error(f"Failed to generate prompt for {task_id}: {e}")
             return self._generate_fallback_prompt(task_id, context)
     
     def _generate_fallback_prompt(self, task_id: str, context: Dict[str, Any]) -> str:
@@ -350,7 +318,7 @@ Please continue the text in a natural way:"""
             'initialized': self.is_initialized(),
             'provider': self.provider.__class__.__name__ if self.provider else None,
             'available_tasks': len(self.task_registry.get_task_ids()),
-            'available_templates': len(self.template_engine.list_templates()),
+            'available_templates': len(get_template_manager().get_template_list()),
             'current_context': self.context_manager.get_context_summary()
         }
     
@@ -358,19 +326,13 @@ Please continue the text in a natural way:"""
         """Get context manager instance."""
         return self.context_manager
     
-    def get_template_engine(self) -> TemplateEngine:
-        """Get template engine instance."""
-        return self.template_engine
-    
     def update_scene_context(self, scene_id: int, scene_title: str, scene_content: str):
         """Update current scene context."""
         self.context_manager.set_scene_context(scene_id, scene_title, scene_content)
     
-    def update_project_context(self, project_name: str, project_path: Optional[str] = None):
+    def update_project_context(self, project_name: str, project_id: Optional[int] = None):
         """Update current project context."""
-        from pathlib import Path
-        path = Path(project_path) if project_path else None
-        self.context_manager.set_project_context(project_name, path)
+        self.context_manager.set_project_context(project_name, project_id)
     
     def update_text_selection(self, selected_text: str, current_text: str = ""):
         """Update current text selection context."""

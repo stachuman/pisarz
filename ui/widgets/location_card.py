@@ -22,11 +22,11 @@ class LocationCard(QFrame):
         super().__init__(parent)
         self.location_id = location_id
         self.location_name = name
-        self.description = description
+        self.description = description or ""  # Ensure description is never None
         self.scene_count = scene_count
         self.character_count = character_count
-        self.location_type = location_type
-        self.atmosphere = atmosphere
+        self.location_type = location_type or ""  # Ensure type is never None
+        self.atmosphere = atmosphere or ""  # Ensure atmosphere is never None
         
         self.setup_ui()
         self.apply_theme()
@@ -138,7 +138,7 @@ class LocationCard(QFrame):
             tooltip_parts.append("")
         
         # Add description if available
-        if self.description.strip():
+        if self.description and self.description.strip():
             tooltip_parts.append(f"<i>{self.description[:150]}{'...' if len(self.description) > 150 else ''}</i>")
             tooltip_parts.append("")
         

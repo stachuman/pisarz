@@ -11,7 +11,7 @@ recursive-include i18n *.po *.mo *.pot
 recursive-include i18n/locales *
 
 # Include template files
-recursive-include templates *.j2 *.yaml *.yml
+recursive-include templates *.yaml *.yml
 
 # Include UI files
 recursive-include ui *.qml *.py

@@ -131,10 +131,11 @@ class NarrativeContextManager:
     Provides backward compatibility while using the new database layer.
     """
     
-    def __init__(self, project_path: Path):
-        """Initialize narrative context manager for a project."""
-        self.project_path = project_path
-        self.db_path = project_path / "pisarz.db"
+    def __init__(self, project_id: int = None):
+        """Initialize narrative context manager."""
+        from core.llm.settings import GLOBAL_DB_PATH
+        self.project_id = project_id  # Keep for backward compatibility
+        self.db_path = GLOBAL_DB_PATH
         self.context_repo = NarrativeContextRepository(self.db_path)
         self.logger = get_logger(__name__)
         

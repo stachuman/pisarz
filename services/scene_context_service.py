@@ -41,6 +41,10 @@ class SceneContextService:
             scene_characters = self._extract_scene_characters(scene_id, managers)
             scene_locations = self._extract_scene_locations(scene_id, managers)
             
+            # Ensure we have valid lists
+            scene_characters = scene_characters or []
+            scene_locations = scene_locations or []
+            
             self.logger.debug(f"Found {len(scene_characters)} characters, {len(scene_locations)} locations for scene {scene_id}")
             
             # Build complete context
@@ -48,6 +52,7 @@ class SceneContextService:
                 "scene_id": scene_id,
                 "scene_title": scene.get("title", ""),
                 "scene_content": scene.get("content_rtf", ""),
+                "project_description": getattr(managers.get("project_controller"), 'description', ''),
                 "project_name": project_name,
                 "template_type": template_name,
                 "characters": scene_characters,
@@ -74,6 +79,7 @@ class SceneContextService:
         try:
             # Get characters with roles for this scene
             character_role_pairs = character_manager.get_characters_for_scene_with_roles(scene_id)
+            character_role_pairs = character_role_pairs or []
             scene_characters = [
                 {
                     "id": char_dict["id"],
@@ -108,6 +114,7 @@ class SceneContextService:
         try:
             # Get locations with roles for this scene
             location_role_pairs = location_manager.get_scene_locations(scene_id)
+            location_role_pairs = location_role_pairs or []
             scene_locations = [
                 {
                     "id": location.id,

@@ -297,7 +297,8 @@ class EnhancedTemplateManager:
     def _build_additional_context(self, config: ContextConfig, scene_data: Dict[str, Any]) -> Dict[str, Any]:
         """Build additional context data based on configuration."""
         context = {}
-        
+        project_id = scene_data.get('project_id')
+
         # Use ContextFormatterService for consistent formatting
         from services import ContextFormatterService
         formatter = ContextFormatterService()
@@ -317,16 +318,16 @@ class EnhancedTemplateManager:
                 context['locations'] = formatter.format_locations_list(locations)
             else:
                 context['locations'] = []
-        
-        # Project info
+           # Project info
+
         if config.include_project_info:
-            context['project_name'] = scene_data.get('project_name', 'Current Project')
-            context['scene_id'] = scene_data.get('scene_id', '')
-        
+            #TODO - sprawdzić!
+            context['project_description'] = scene_data.get('project_description', '')
+            #context['scene_id'] = scene_data.get('scene_id', '')
+             
         # Narrative context (for templates that use it)
-        project_path = scene_data.get('project_path')
-        if project_path and hasattr(config, 'include_narrative_context') and config.include_narrative_context:
-            context['narrative_context'] = self._build_narrative_context(project_path)
+        if project_id and hasattr(config, 'include_narrative_context') and config.include_narrative_context:
+            context['narrative_context'] = self._build_narrative_context(project_id)
         elif 'narrative_context' in scene_data:
             # Allow manual narrative context injection
             context['narrative_context'] = scene_data['narrative_context']
@@ -485,14 +486,14 @@ class EnhancedTemplateManager:
         from core.utils.text_cleaner import clean_html_css
         return clean_html_css(content)
     
-    def _build_narrative_context(self, project_path) -> str:
+    def _build_narrative_context(self, project_id) -> str:
         """Build narrative context summary from project data."""
         try:
             from pathlib import Path
             from core.llm.context.narrative_context import NarrativeContextManager
             
             # Get narrative context manager
-            manager = NarrativeContextManager(Path(project_path))
+            manager = NarrativeContextManager(project_id)
             
             # Build context summary
             narrative_summary = manager.build_context_summary(max_length=1500)

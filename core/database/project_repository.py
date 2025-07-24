@@ -15,13 +15,22 @@ class Project:
     """Represents a project."""
     id: Optional[int] = None
     name: str = ""
+    title: str = ""  # Display title (can differ from directory name)
     description: str = ""
     author: str = ""
     genre: str = ""
-    target_audience: str = ""
+    language: str = "en"
+    target_word_count: int = 0
     status: str = "draft"
-    word_count_target: int = 0
+    tags: str = ""
+    publisher: str = ""
+    isbn: str = ""
+    publication_date: str = ""
+    copyright: str = ""
+    default_scene_template: str = ""
     auto_backup_enabled: bool = True
+    daily_word_goal: int = 500
+    weekly_word_goal: int = 3500
     created_at: Optional[str] = None
     modified_at: Optional[str] = None
 

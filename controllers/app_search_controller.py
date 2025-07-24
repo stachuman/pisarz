@@ -20,12 +20,12 @@ class AppSearchController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.search_manager: Optional[SearchManager] = None
-        self.current_project_path: Optional[str] = None
+        self.current_project_id: Optional[int] = None
         
-    def set_manager(self, search_manager: SearchManager, project_path: str):
-        """Set the current search manager and project path."""
+    def set_manager(self, search_manager: SearchManager, project_id: int):
+        """Set the current search manager and project ID."""
         self.search_manager = search_manager
-        self.current_project_path = project_path
+        self.current_project_id = project_id
         
     def show_search_view(self):
         """Show search view."""
@@ -41,12 +41,11 @@ class AppSearchController(QObject):
             return False
             
         try:
-            # Get project ID
-            if not self.current_project_path:
+            # Use current project ID
+            if not self.current_project_id:
                 return False
                 
-            project_data = project_manager.get_project_data(Path(self.current_project_path))
-            project_id = project_data['id'] if project_data else None
+            project_id = self.current_project_id
             
             if not project_id:
                 return False

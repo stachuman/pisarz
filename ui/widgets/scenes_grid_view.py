@@ -171,8 +171,9 @@ class ScenesGridView(QWidget):
                 scene_id = scene.get('id')
                 if scene_id:
                     # Get characters for this scene
-                    characters = self.character_manager.get_characters_for_scene(scene_id)
-                    character_ids.update(char.get('id') for char in characters)
+                    characters = self.character_manager.get_characters_by_scene(scene_id)
+                    characters = characters or []
+                    character_ids.update(char.id if hasattr(char, 'id') else char.get('id') for char in characters)
                     
                     # Get locations for this scene
                     locations = self.location_manager.get_scene_locations(scene_id)
@@ -222,8 +223,9 @@ class ScenesGridView(QWidget):
             if selected_character_id is not None:
                 scene_id = scene.get('id')
                 if scene_id:
-                    scene_characters = self.character_manager.get_characters_for_scene(scene_id)
-                    character_ids = [char.get('id') for char in scene_characters]
+                    scene_characters = self.character_manager.get_characters_by_scene(scene_id)
+                    scene_characters = scene_characters or []
+                    character_ids = [char.id if hasattr(char, 'id') else char.get('id') for char in scene_characters]
                     if selected_character_id not in character_ids:
                         continue
             

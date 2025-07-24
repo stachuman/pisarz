@@ -92,6 +92,7 @@ class LLMContextService:
                     context_data.update({
                         "scene_title": scene.get("title", ""),
                         "project_name": getattr(managers.get('project_controller'), 'current_project_name', ''),
+                        #"project_description": getattr(managers.get("project_controller"), 'description', ''),
                         "character_count": len(context_data["characters"]),
                         "location_count": len(context_data["locations"])
                     })

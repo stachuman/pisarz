@@ -21,7 +21,7 @@ class CharacterCard(QFrame):
         super().__init__(parent)
         self.character_id = character_id
         self.character_name = name
-        self.description = description
+        self.description = description or ""  # Ensure description is never None
         self.location_manager = location_manager
         
         self.setup_ui()
@@ -67,7 +67,8 @@ class CharacterCard(QFrame):
         layout.addLayout(header_layout)
         
         # Description preview
-        preview_text = self.description[:60] + "..." if len(self.description) > 60 else self.description
+        description_safe = self.description or ""
+        preview_text = description_safe[:60] + "..." if len(description_safe) > 60 else description_safe
         if not preview_text.strip():
             preview_text = _("Character description...")
             
@@ -157,8 +158,9 @@ class CharacterCard(QFrame):
         tooltip_parts.append("")
         
         # Add description if available
-        if self.description.strip():
-            tooltip_parts.append(f"<i>{self.description[:150]}{'...' if len(self.description) > 150 else ''}</i>")
+        description_text = self.description or ""
+        if description_text and description_text.strip():
+            tooltip_parts.append(f"<i>{description_text[:150]}{'...' if len(description_text) > 150 else ''}</i>")
             tooltip_parts.append("")
         
         try:
@@ -229,12 +231,13 @@ class CharacterCard(QFrame):
     def update_character_info(self, name, description):
         """Update character information and refresh display."""
         self.character_name = name
-        self.description = description
+        self.description = description or ""  # Ensure description is never None
         
         self.name_label.setText(name)
         
         # Update description preview
-        preview_text = description[:60] + "..." if len(description) > 60 else description
+        description_safe = self.description or ""
+        preview_text = description_safe[:60] + "..." if len(description_safe) > 60 else description_safe
         if not preview_text.strip():
             preview_text = _("Character description...")
         self.description_label.setText(preview_text)

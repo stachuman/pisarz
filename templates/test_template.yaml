@@ -1,0 +1,38 @@
+context_config:
+  default_context_length: 500
+  include_characters: true
+  include_locations: true
+  include_project_info: false
+  include_scene_content: true
+  max_context_chars: 2000
+  scene_summary_length: 500
+  scene_summary_source: scene_beginning
+  selection_priority: true
+  use_selection: true
+  word_boundary_trim: true
+format_version: '2.0'
+llm_params:
+  custom_params: {}
+  max_tokens: 512
+  repeat_penalty: 1.1
+  temperature: 0.7
+  top_k: 40
+  top_p: 0.9
+metadata:
+  author: System
+  category: writing
+  created_date: null
+  description: Continue writing the current scene based on context
+  modified_date: null
+  name: Test Template
+  tags: []
+  template_id: test_template
+  version: '1.0'
+template_content: 'This is a test template: {{ current_text }}'
+ui_config:
+  allow_context_editing: false
+  auto_apply_selection: true
+  confirm_before_execution: false
+  preview_length: 100
+  show_context_preview: true
+  show_params_editor: true

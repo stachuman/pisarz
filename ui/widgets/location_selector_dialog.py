@@ -135,7 +135,8 @@ class LocationSelectorDialog(QDialog):
     def _load_locations(self):
         """Load available locations from the database."""
         try:
-            all_locations = self.location_manager.get_locations(self.project_id)
+            # Use get_locations_by_project() to get Location objects (not dictionaries)
+            all_locations = self.location_manager.get_locations_by_project(self.project_id)
             
             # Filter out already linked locations
             self.available_locations = [

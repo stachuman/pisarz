@@ -92,6 +92,10 @@ class TemplateEditorDialog(QDialog):
         save_file_btn.clicked.connect(self.save_template_file)
         button_layout.addWidget(save_file_btn)
         
+        save_as_btn = QPushButton(_("Save as New Template"))
+        save_as_btn.clicked.connect(self.save_as_new_template)
+        button_layout.addWidget(save_as_btn)
+        
         # Standard dialog buttons
         cancel_btn = QPushButton(_("Cancel"))
         cancel_btn.clicked.connect(self.reject)
@@ -689,25 +693,120 @@ class TemplateEditorDialog(QDialog):
                 QMessageBox.critical(self, _("Error"), _("Failed to load template file."))
     
     def save_template_file(self):
-        """Save template to file."""
+        """Save template to file with enhanced file selection."""
         if not self.save_template_data():
             return
         
         file_dialog = QFileDialog(self)
-        file_dialog.setNameFilter(_("Template Files (*.json *.yaml *.yml)"))
+        file_dialog.setWindowTitle(_("Save Template to File"))
+        file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
         file_dialog.setFileMode(QFileDialog.FileMode.AnyFile)
+        file_dialog.setNameFilter(_("YAML Templates (*.yaml);;YML Templates (*.yml);;JSON Templates (*.json);;All Template Files (*.yaml *.yml *.json)"))
         file_dialog.setDefaultSuffix("yaml")
         
-        suggested_name = f"{self.template_config.metadata.template_id}.yaml"
+        # Set default directory to user's templates directory or Documents
+        try:
+            from core.llm.templates import get_template_manager
+            template_manager = get_template_manager()
+            default_dir = template_manager.templates_dir
+        except:
+            from PySide6.QtCore import QStandardPaths
+            default_dir = Path(QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation))
+        
+        file_dialog.setDirectory(str(default_dir))
+        
+        # Suggest filename based on template name and ID
+        template_name = self.template_config.metadata.name or self.template_config.metadata.template_id
+        safe_name = "".join(c for c in template_name if c.isalnum() or c in (' ', '-', '_')).strip()
+        safe_name = safe_name.replace(' ', '_')
+        suggested_name = f"{safe_name}.yaml"
         file_dialog.selectFile(suggested_name)
         
         if file_dialog.exec():
             filepath = Path(file_dialog.selectedFiles()[0])
             
-            if self.template_config.save_to_file(filepath):
-                QMessageBox.information(self, _("Success"), _("Template saved to file successfully."))
+            try:
+                if self.template_config.save_to_file(filepath):
+                    QMessageBox.information(
+                        self, 
+                        _("Success"), 
+                        _("Template '{}' saved to:\n{}").format(
+                            self.template_config.metadata.name, 
+                            str(filepath)
+                        )
+                    )
+                else:
+                    QMessageBox.critical(self, _("Error"), _("Failed to save template to file."))
+            except Exception as e:
+                QMessageBox.critical(self, _("Error"), _("Failed to save template to file: {}").format(str(e)))
+    
+    def save_as_new_template(self):
+        """Save current template as a new template with different ID."""
+        if not self.save_template_data():
+            return
+        
+        from PySide6.QtWidgets import QInputDialog
+        
+        # Get new template ID from user
+        current_id = self.template_config.metadata.template_id
+        new_id, ok = QInputDialog.getText(
+            self,
+            _("Save as New Template"),
+            _("Enter new template ID:"),
+            text=f"{current_id}_copy"
+        )
+        
+        if not ok or not new_id.strip():
+            return
+        
+        new_id = new_id.strip()
+        
+        # Check if template ID already exists
+        try:
+            from core.llm.templates import get_template_manager
+            template_manager = get_template_manager()
+            
+            if template_manager.get_template(new_id):
+                result = QMessageBox.question(
+                    self,
+                    _("Template Exists"),
+                    _("Template ID '{}' already exists. Overwrite?").format(new_id),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                if result != QMessageBox.StandardButton.Yes:
+                    return
+            
+            # Create copy of current template with new ID
+            import copy
+            new_template = copy.deepcopy(self.template_config)
+            new_template.metadata.template_id = new_id
+            
+            # Suggest new name based on ID
+            if new_template.metadata.name:
+                new_template.metadata.name = f"{new_template.metadata.name} (Copy)"
             else:
-                QMessageBox.critical(self, _("Error"), _("Failed to save template to file."))
+                new_template.metadata.name = new_id.replace('_', ' ').title()
+            
+            # Save new template to manager
+            success = template_manager.add_template(new_template, save_to_file=True)
+            
+            if success:
+                QMessageBox.information(
+                    self,
+                    _("Success"),
+                    _("New template '{}' created successfully!\n\nTemplate ID: {}").format(
+                        new_template.metadata.name,
+                        new_id
+                    )
+                )
+                # Emit signal to refresh template list
+                self.template_saved.emit(new_id)
+            else:
+                QMessageBox.critical(self, _("Error"), _("Failed to create new template."))
+                
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to create new template: {}").format(str(e)))
     
     def save_template(self):
         """Save template and close dialog."""

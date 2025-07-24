@@ -388,17 +388,26 @@ class SceneContextPanel(QWidget):
             self._update_characters_list()
             self._update_relationships()
             
-        except:
-            pass
+        except Exception as e:
+            self.logger.error(f"Error in _load_scene_context: {e}")
+            import traceback
+            traceback.print_exc()
             # Silently handle error - scene context won't be loaded
     
     def _update_locations_list(self):
         """Update the locations list widget."""
         self.locations_list.clear()
         
-        for location_item in self.scene_locations:
+        if not self.scene_locations:
+            return
+        
+        for idx, location_item in enumerate(self.scene_locations):
             try:
                 # Handle different possible formats
+                if location_item is None:
+                    continue
+                    
+                # The LocationManager.get_scene_locations() now returns (Location, role) tuples
                 if isinstance(location_item, tuple) and len(location_item) == 2:
                     location, role = location_item
                 elif isinstance(location_item, dict):
@@ -406,53 +415,57 @@ class SceneContextPanel(QWidget):
                     location = location_item
                     role = ""
                 else:
-                    print(f"Unexpected location item format: {location_item}")
                     continue
                 
-                # Handle both dict and object formats for location
+                # Extract location data (handle both dict and object formats)
                 if isinstance(location, dict):
                     location_name = location.get('name', 'Unknown Location')
                     location_id = location.get('id')
                 else:
+                    # Location dataclass object
                     location_name = getattr(location, 'name', 'Unknown Location')
                     location_id = getattr(location, 'id', None)
                 
+                # Create display text
                 item_text = location_name
                 if role:
                     item_text += f" ({role})"
                 
+                # Create list item
                 item = QListWidgetItem(item_text)
                 if location_id:
                     item.setData(Qt.UserRole, location_id)
                 self.locations_list.addItem(item)
                 
             except Exception as e:
-                print(f"Error processing location item: {e}")
+                self.logger.error(f"Error processing location item {idx}: {e}")
                 continue
     
     def _update_characters_list(self):
         """Update the characters list widget."""
         self.characters_list.clear()
         
-        for character_item in self.scene_characters:
+        if not self.scene_characters:
+            return
+        
+        for idx, character_item in enumerate(self.scene_characters):
             try:
                 # Handle different possible formats
-                if isinstance(character_item, tuple) and len(character_item) == 2:
+                if character_item is None:
+                    continue
+                    
+                # The CharacterManager.get_characters_for_scene_with_roles() 
+                # returns a list of character dictionaries with embedded 'role' field
+                if isinstance(character_item, dict):
+                    character = character_item
+                    role = character_item.get('role', '')
+                elif isinstance(character_item, tuple) and len(character_item) == 2:
+                    # Legacy tuple format (character, role)
                     character, role = character_item
-                elif isinstance(character_item, dict):
-                    # Check if it's a character dict with role field (new format)
-                    if 'role' in character_item:
-                        character = character_item
-                        role = character_item.get('role', '')
-                    else:
-                        # Legacy format - character dict without role
-                        character = character_item
-                        role = ""
                 else:
-                    print(f"Unexpected character item format: {character_item}")
                     continue
                 
-                # Handle both dict and object formats for character
+                # Extract character data (handle both dict and object formats)
                 if isinstance(character, dict):
                     character_name = character.get('name', 'Unknown Character')
                     character_id = character.get('id')
@@ -460,17 +473,19 @@ class SceneContextPanel(QWidget):
                     character_name = getattr(character, 'name', 'Unknown Character')
                     character_id = getattr(character, 'id', None)
                 
+                # Create display text
                 item_text = character_name
                 if role:
                     item_text += f" ({role})"
                 
+                # Create list item
                 list_item = QListWidgetItem(item_text)
                 if character_id:
                     list_item.setData(Qt.UserRole, character_id)
                 self.characters_list.addItem(list_item)
                 
             except Exception as e:
-                print(f"Error processing character item: {e}")
+                self.logger.error(f"Error processing character item {idx}: {e}")
                 continue
     
     def _update_relationships(self):
@@ -481,6 +496,8 @@ class SceneContextPanel(QWidget):
             # Find character-location relationships within this scene
             for item in self.scene_characters:
                 try:
+                    if item is None:
+                        continue
                     if isinstance(item, tuple) and len(item) == 2:
                         character, char_role = item
                     elif isinstance(item, dict):
@@ -674,6 +691,10 @@ class SceneContextPanel(QWidget):
         """Refresh the entire context panel."""
         self._refresh_all_data()
         self._load_scene_context()
+    
+    def refresh(self):
+        """Alias for refresh_context() for backward compatibility."""
+        self.refresh_context()
     
     def _on_location_selected_from_dialog(self, location_id, role):
         """Handle location selection from selector dialog."""

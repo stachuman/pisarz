@@ -102,6 +102,7 @@ class CharacterRepository(BaseRepository[Character]):
             ORDER BY c.importance DESC, c.name ASC
         """
         rows = self.execute_custom_query(query, [scene_id])
+        
         result = []
         for row in rows:
             try:
@@ -120,13 +121,19 @@ class CharacterRepository(BaseRepository[Character]):
             except Exception as e:
                 self.logger.error(f"Error processing character with role from scene {scene_id}: {e}")
                 continue
+        
         return result
     
     def link_to_scene(self, character_id: int, scene_id: int, role: str = "") -> bool:
         """Link a character to a scene."""
         try:
-            query = "INSERT OR REPLACE INTO scene_characters (scene_id, character_id, role) VALUES (?, ?, ?)"
-            self.execute_custom_query(query, [scene_id, character_id, role])
+            # Use direct database connection with commit for INSERT operation
+            from core.db import get_db_connection
+            with get_db_connection(self.db_path) as conn:
+                query = "INSERT OR REPLACE INTO scene_characters (scene_id, character_id, role) VALUES (?, ?, ?)"
+                cursor = conn.execute(query, [scene_id, character_id, role])
+                conn.commit()
+            
             return True
         except Exception as e:
             self.logger.error(f"Error linking character {character_id} to scene {scene_id}: {e}")
@@ -135,8 +142,13 @@ class CharacterRepository(BaseRepository[Character]):
     def unlink_from_scene(self, character_id: int, scene_id: int) -> bool:
         """Unlink a character from a scene."""
         try:
-            query = "DELETE FROM scene_characters WHERE scene_id = ? AND character_id = ?"
-            self.execute_custom_query(query, [scene_id, character_id])
+            # Use direct database connection with commit for DELETE operation
+            from core.db import get_db_connection
+            with get_db_connection(self.db_path) as conn:
+                query = "DELETE FROM scene_characters WHERE scene_id = ? AND character_id = ?"
+                cursor = conn.execute(query, [scene_id, character_id])
+                conn.commit()
+            
             return True
         except Exception as e:
             self.logger.error(f"Error unlinking character {character_id} from scene {scene_id}: {e}")
@@ -149,8 +161,9 @@ class CharacterManager:
     Provides backward compatibility while using the new database layer.
     """
     
-    def __init__(self, db_path: Path):
-        self.db_path = db_path
+    def __init__(self, db_path: Path = None):
+        from core.llm.settings import GLOBAL_DB_PATH
+        self.db_path = db_path or GLOBAL_DB_PATH
         self.character_repo = CharacterRepository(db_path)
     
     def create_character(self, project_id: int, name: str, **kwargs) -> Optional[int]:

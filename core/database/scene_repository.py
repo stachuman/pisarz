@@ -119,8 +119,9 @@ class SceneManager:
     Provides backward compatibility while using the new database layer.
     """
     
-    def __init__(self, db_path: Path):
-        self.db_path = db_path
+    def __init__(self, db_path: Path = None):
+        from core.llm.settings import GLOBAL_DB_PATH
+        self.db_path = db_path or GLOBAL_DB_PATH
         self.scene_repo = SceneRepository(db_path)
     
     def create_scene(self, project_id: int, title: str, **kwargs) -> Optional[int]:

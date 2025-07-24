@@ -44,7 +44,7 @@ class CharactersGridView(BaseGridView):
         card = CharacterCard(
             character_id=item['id'],
             name=item['name'],
-            description=item.get('description', ''),
+            description=item.get('description') or '',  # Ensure never None
             location_manager=self.location_manager
         )
         card.clicked.connect(self.characterSelected.emit)

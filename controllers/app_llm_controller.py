@@ -303,13 +303,13 @@ class AppLLMController(QObject):
         except Exception as e:
             self.logger.error(f"Failed to update scene context: {e}")
     
-    def update_project_context(self, project_name: str, project_path: str = None):
+    def update_project_context(self, project_name: str, project_id: int = None):
         """Update current project context."""
         if not self.is_initialized():
             return
         
         try:
-            self.llm_service.update_project_context(project_name, project_path)
+            self.llm_service.update_project_context(project_name, project_id)
             self.logger.debug(f"Project context updated: {project_name}")
             
         except Exception as e:

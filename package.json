@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@nova-mcp/mcp-nova": "^0.2.3"
+  }
+}

@@ -165,7 +165,8 @@ class SceneCard(QFrame):
         
         try:
             if self.character_manager and scene_id:
-                characters = self.character_manager.get_characters_for_scene(scene_id)
+                characters = self.character_manager.get_characters_by_scene(scene_id)
+                characters = characters or []
                 character_count = len(characters)
             
             if self.location_manager and scene_id:
@@ -196,9 +197,10 @@ class SceneCard(QFrame):
                     context_parts.append(location_text)
             
             if self.character_manager and scene_id:
-                characters = self.character_manager.get_characters_for_scene(scene_id)
+                characters = self.character_manager.get_characters_by_scene(scene_id)
+                characters = characters or []
                 if characters:
-                    char_names = [char.get('name', 'Unknown') for char in characters[:3]]  # Show first 3
+                    char_names = [char.name if hasattr(char, 'name') else char.get('name', 'Unknown') for char in characters[:3]]  # Show first 3
                     if len(characters) > 3:
                         char_text = f"👤 {', '.join(char_names)}..."
                     else:
@@ -233,11 +235,13 @@ class SceneCard(QFrame):
             
             # Add character information
             if self.character_manager and scene_id:
-                characters = self.character_manager.get_characters_for_scene(scene_id)
+                characters = self.character_manager.get_characters_by_scene(scene_id)
+                characters = characters or []
                 if characters:
                     tooltip_parts.append("<b>👥 Characters:</b>")
                     for character in characters:
-                        tooltip_parts.append(f"  • {character.get('name', 'Unknown')}")
+                        name = character.name if hasattr(character, 'name') else character.get('name', 'Unknown')
+                        tooltip_parts.append(f"  • {name}")
                     tooltip_parts.append("")
             
             # Add relationships if we have both managers
@@ -262,14 +266,16 @@ class SceneCard(QFrame):
         
         try:
             # Get scene characters and locations
-            characters = self.character_manager.get_characters_for_scene(scene_id)
+            characters = self.character_manager.get_characters_by_scene(scene_id)
+            characters = characters or []
             locations = self.location_manager.get_scene_locations(scene_id)
+            locations = locations or []
             
             scene_location_ids = [loc.id for loc, role in locations]
             
             for character in characters:
-                char_id = character.get('id')
-                char_name = character.get('name', 'Unknown')
+                char_id = character.id if hasattr(character, 'id') else character.get('id')
+                char_name = character.name if hasattr(character, 'name') else character.get('name', 'Unknown')
                 
                 # Get all character-location relationships
                 char_locations = self.location_manager.get_character_locations(char_id)

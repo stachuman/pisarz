@@ -8,7 +8,9 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from PySide6.QtCore import QSettings
 from core.logging_config import get_logger
+from pathlib import Path
 
+GLOBAL_DB_PATH: Path = Path.home() / "pisarz_db" / "pisarz.db"
 
 @dataclass
 class LLMProviderConfig:

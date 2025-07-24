@@ -13,7 +13,7 @@ from i18n import _
 class ProjectsView(QWidget):
     """Widok z listą projektów - główny ekran aplikacji."""
     
-    projectSelected = Signal(str, str)      # path, name
+    projectSelected = Signal(int, str)      # project_id, name
     newProjectRequested = Signal(str)       # name
     settingsRequested = Signal()            # settings dialog
     

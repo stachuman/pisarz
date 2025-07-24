@@ -52,8 +52,9 @@ class BaseRepository(Generic[T]):
     - required_fields: List[str] - Fields required for creation
     """
     
-    def __init__(self, db_path: Path):
-        self.db_path = db_path
+    def __init__(self, db_path: Path = None):
+        from core.llm.settings import GLOBAL_DB_PATH
+        self.db_path = db_path or GLOBAL_DB_PATH
         self.query_builder = QueryBuilder()
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
     

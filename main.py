@@ -186,6 +186,13 @@ class PisarzApp(QMainWindow):
         self.narrative_context_action.triggered.connect(self.toggle_narrative_context)
         tools_menu.addAction(self.narrative_context_action)
         
+        # Templates action
+        tools_menu.addSeparator()
+        templates_action = QAction(_("Templates"), self)
+        templates_action.setShortcut(QKeySequence("Ctrl+T"))
+        templates_action.triggered.connect(self.show_templates)
+        tools_menu.addAction(templates_action)
+        
         # Settings action (if not already present)
         if not hasattr(self, 'settings_action'):
             tools_menu.addSeparator()
@@ -423,18 +430,17 @@ class PisarzApp(QMainWindow):
                                    show_to_user=True, parent_widget=self,
                                    custom_message=message)
         
-    def _on_project_data_loaded(self, project_path: str, project_name: str, managers_dict: dict):
+    def _on_project_data_loaded(self, project_id: int, project_name: str, managers_dict: dict):
         """Handle project data loaded signal."""
         # Set managers in controllers
-        project_id = managers_dict['project_data']['id']
         self.scene_controller.set_scene_manager(managers_dict['scene_manager'], project_id)
         self.character_controller.set_managers(
             managers_dict['character_manager'], 
             managers_dict['scene_manager'], 
-            project_path
+            project_id
         )
-        self.location_controller.set_manager(managers_dict['location_manager'], project_path)
-        self.search_controller.set_manager(managers_dict['search_manager'], project_path)
+        self.location_controller.set_managers(managers_dict['location_manager'], managers_dict['scene_manager'], project_id)
+        self.search_controller.set_manager(managers_dict['search_manager'], project_id)
         
         # Show project view
         self.ui_controller.show_project_view(
@@ -445,15 +451,16 @@ class PisarzApp(QMainWindow):
         )
         
         # Update LLM context with project info
-        self.llm_controller.update_project_context(project_name, project_path)
+        self.llm_controller.update_project_context(project_name, project_id)
         
         # Initialize narrative context panel with current project
-        self.narrative_context_panel.set_project(Path(project_path))
+        if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
+            self.narrative_context_panel.set_project(project_id, project_name)
         
         # Set up narrative context manager for project tree
-        from core.llm.context.narrative_context import NarrativeContextManager
+        from core.database.narrative_context_repository import NarrativeContextManager
         try:
-            narrative_manager = NarrativeContextManager(Path(project_path))
+            narrative_manager = NarrativeContextManager()
             self.project_tree.set_narrative_context_manager(narrative_manager)
         except Exception as e:
             self.logger.warning(f"Failed to set up narrative context manager: {e}")
@@ -466,11 +473,10 @@ class PisarzApp(QMainWindow):
         """Handle scene opened signal."""
         # Get project managers
         managers = self.project_controller.get_current_managers()
-        project_path, _project_name = self.project_controller.get_current_project_info()
+        project_id, _project_name = self.project_controller.get_current_project_info()
         
-        if project_path:
-            project_data = self.project_controller.get_project_data(Path(project_path))
-            project_id = project_data['id'] if project_data else None
+        if project_id:
+            project_data = self.project_controller.get_project_data(project_id)
             
             self.workspace.open_editor_for_scene(
                 content, 
@@ -529,7 +535,7 @@ class PisarzApp(QMainWindow):
         projects = self.project_controller.list_projects()
         self.ui_controller.show_projects_view(projects)
             
-    def on_project_selected(self, project_path: str, project_name: str) -> None:
+    def on_project_selected(self, project_id: int, project_name: str) -> None:
         """Obsługa wyboru projektu - przejście do widoku projektu."""
         
         # Auto-save current scene before switching projects
@@ -543,7 +549,7 @@ class PisarzApp(QMainWindow):
         self.current_category = None
         
         # Use project management service
-        success = self.project_management_service.handle_project_selection(project_path, project_name)
+        success = self.project_management_service.handle_project_selection(project_id, project_name)
         if not success:
             self.show_projects_view()
             
@@ -556,12 +562,11 @@ class PisarzApp(QMainWindow):
             if not managers['scene_manager']:
                 return
                 
-            project_path, _project_name = self.project_controller.get_current_project_info()
-            if not project_path:
+            project_id, _project_name = self.project_controller.get_current_project_info()
+            if not project_id:
                 return
-                
-            project_data = self.project_controller.get_project_data(Path(project_path))
-            project_id = project_data['id'] if project_data else None
+            project_data = self.project_controller.get_project_data(project_id)
+
             
             if category == "scenes":
                 scenes = self.scene_controller.get_scenes_list()
@@ -634,18 +639,18 @@ class PisarzApp(QMainWindow):
         if not managers['character_manager']:
             return
             
-        project_path, _project_name = self.project_controller.get_current_project_info()
-        if project_path:
-            project_data = self.project_controller.get_project_data(Path(project_path))
+        project_id, _project_name = self.project_controller.get_current_project_info()
+        if project_id:
+            project_data = self.project_controller.get_project_data(project_id)
             characters = self.character_controller.get_characters_list(project_data['id'])
             self.ui_controller.refresh_characters_data(characters, managers['location_manager'])
     
     def _refresh_locations_data(self):
         """Odśwież dane lokacji zachowując selekcję."""
-        project_path, _project_name = self.project_controller.get_current_project_info()
-        if project_path:
-            project_data = self.project_controller.get_project_data(Path(project_path))
-            locations = self.location_controller.get_locations_list(project_data['id'])
+        project_id, _project_name = self.project_controller.get_current_project_info()
+        if project_id:
+            project_data = self.project_controller.get_project_data(project_id)
+            locations = self.location_controller.get_locations_list(project_id)
             self.ui_controller.refresh_locations_data(locations)
             
     def create_new_project(self, name: str) -> None:
@@ -839,6 +844,16 @@ class PisarzApp(QMainWindow):
     def show_settings(self):
         """Pokaż dialog ustawień."""
         self.settings_service.show_settings_dialog()
+    
+    def show_templates(self):
+        """Show templates management dialog."""
+        try:
+            from ui.widgets.templates_list_dialog import TemplatesListDialog
+            dialog = TemplatesListDialog(self)
+            dialog.exec()
+        except Exception as e:
+            self.logger.error(f"Error opening templates dialog: {e}")
+            QMessageBox.critical(self, _("Error"), _("Failed to open templates manager: {}").format(str(e)))
         
     def on_theme_changed(self, theme_name):
         """Obsługa zmiany motywu."""
@@ -1043,13 +1058,13 @@ class PisarzApp(QMainWindow):
         """Handle request to edit generated context for a scene."""
         try:
             # Get narrative context manager
-            project_path, _project_name = self.project_controller.get_current_project_info()
-            if not project_path:
+            project_id, _project_name = self.project_controller.get_current_project_info()
+            if not project_id:
                 self.status_bar.showMessage(_("No project loaded"))
                 return
             
-            from core.llm.context.narrative_context import NarrativeContextManager
-            narrative_manager = NarrativeContextManager(Path(project_path))
+            from core.database.narrative_context_repository import NarrativeContextManager
+            narrative_manager = NarrativeContextManager()
             
             # Get existing context for the scene
             existing_context = narrative_manager.get_contexts_by_scene(scene_id) # get_context_for_scene(scene_id)
@@ -1170,12 +1185,12 @@ class PisarzApp(QMainWindow):
             managers = self.project_controller.get_current_managers()
             scene_manager = managers.get('scene_manager')
             if scene_manager:
-                current_project_path, project_name = self.project_controller.get_current_project_info()
-                if current_project_path:
+                current_project_id, project_name = self.project_controller.get_current_project_info()
+                if current_project_id:
                     from pathlib import Path
-                    project_data = self.project_controller.get_project_data(Path(current_project_path))
+                    project_data = self.project_controller.get_project_data(current_project_id)
                     if project_data:
-                        scenes = scene_manager.get_scenes_by_project(project_data['id'])
+                        scenes = scene_manager.get_scenes_by_project(current_project_id)
                         self.project_tree.load_scenes(scenes)
             
             # Also refresh the narrative context panel

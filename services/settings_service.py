@@ -125,8 +125,8 @@ class SettingsService:
         """
         try:
             # Get current project info
-            project_path, project_name = self.main_window.project_controller.get_current_project_info()
-            if not project_path:
+            project_id, project_name = self.main_window.project_controller.get_current_project_info()
+            if not project_id:
                 self._show_error(_("Error"), _("No project loaded"))
                 return False
             
@@ -137,7 +137,7 @@ class SettingsService:
                 self._show_error(_("Error"), _("Project manager not available"))
                 return False
             
-            project_data = project_manager.get_project_data(Path(project_path))
+            project_data = project_manager.get_project_data(project_id)
             if not project_data:
                 self._show_error(_("Error"), _("Could not load project data"))
                 return False
@@ -174,15 +174,14 @@ class SettingsService:
                 self.logger.error("Project manager not available")
                 return False
             
-            # Get current project path
-            project_path, _ = self.main_window.project_controller.get_current_project_info()
-            if not project_path:
-                self.logger.error("No current project path available")
+            # Get current project ID
+            project_id, _ = self.main_window.project_controller.get_current_project_info()
+            if not project_id:
+                self.logger.error("No current project ID available")
                 return False
             
             # Update project properties
-            from pathlib import Path
-            success = project_manager.update_project_properties(Path(project_path), properties)
+            success = project_manager.update_project_properties(project_id, properties)
             if success:
                 self.logger.info("Project properties saved successfully")
                 

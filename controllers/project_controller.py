@@ -1,23 +1,21 @@
-"""Project controller for managing project-related operations."""
+"""Project controller using project_id as primary key."""
 
-from pathlib import Path
 from typing import Optional
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QMessageBox
 
-from core.project import ProjectManager
-from core.scene import SceneManager
-from core.character import CharacterManager
-from core.location import LocationManager
-from core.search import SearchManager
+from core.database.project_manager import ProjectManager
+from core.database.scene_repository import SceneManager
+from core.database.character_repository import CharacterManager
+from core.database.location_repository import LocationManager
+from core.database.search_repository import SearchManager
 from i18n import _
 
 
 class ProjectController(QObject):
-    """Controller for managing project operations."""
+    """Handles project operations using project_id as primary key."""
     
-    # Signals
-    projectLoaded = Signal(str, str)  # project_path, project_name
+    # Updated signals to use project_id
+    projectLoaded = Signal(int, str)  # project_id, project_name
     projectListLoaded = Signal(list)  # projects list
     projectCreated = Signal(str)  # project_name
     error = Signal(str, str)  # title, message
@@ -25,7 +23,7 @@ class ProjectController(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.project_manager = ProjectManager()
-        self.current_project_path = None
+        self.current_project_id: Optional[int] = None
         self.current_project_name = ""
         self.current_scene_manager = None
         self.current_character_manager = None
@@ -40,65 +38,107 @@ class ProjectController(QObject):
         except Exception as e:
             self.error.emit(_("Error"), _("Failed to load projects: {}").format(e))
     
-    def select_project(self, project_path: str, project_name: str):
-        """Select and load a project."""
-        self.current_project_path = project_path
+    def select_project(self, project_id: int, project_name: str):
+        """Select and load a project by project_id."""
+        self.current_project_id = project_id
         self.current_project_name = project_name
         
         try:
             # Initialize managers for the selected project
-            db_path = Path(project_path) / "pisarz.db"
-            self.current_scene_manager = SceneManager(db_path)
-            self.current_character_manager = CharacterManager(db_path)
-            self.current_location_manager = LocationManager(db_path)
-            self.current_search_manager = SearchManager(db_path)
+            self.current_scene_manager = SceneManager()
+            self.current_character_manager = CharacterManager()
+            self.current_location_manager = LocationManager()
+            self.current_search_manager = SearchManager()
             
-            # Emit success signal
-            self.projectLoaded.emit(project_path, project_name)
+            self.projectLoaded.emit(project_id, project_name)
             
         except Exception as e:
             self.error.emit(_("Error"), _("Failed to load project: {}").format(e))
     
-    def create_new_project(self, name: str):
+    def select_project_by_name(self, project_name: str):
+        """Select and load a project by name."""
+        try:
+            project_id = self.project_manager.get_project_id_by_name(project_name)
+            if project_id is None:
+                self.error.emit(_("Error"), _("Project not found: {}").format(project_name))
+                return
+            
+            self.select_project(project_id, project_name)
+            
+        except Exception as e:
+            self.error.emit(_("Error"), _("Failed to load project: {}").format(e))
+    
+    def create_new_project(self, project_name: str, **kwargs):
         """Create a new project."""
         try:
-            success = self.project_manager.create_project(name)
-            if success:
-                self.projectCreated.emit(name)
+            project_id = self.project_manager.create_project(project_name, **kwargs)
+            if project_id:
+                self.projectCreated.emit(project_name)
+                # Auto-select the newly created project
+                self.select_project(project_id, project_name)
             else:
                 self.error.emit(_("Error"), _("Failed to create project"))
+                
+        except ValueError as e:
+            # Handle validation errors (like duplicate names)
+            self.error.emit(_("Error"), str(e))
         except Exception as e:
             self.error.emit(_("Error"), _("Failed to create project: {}").format(e))
     
+    def get_current_project_info(self) -> tuple[Optional[int], str]:
+        """Get current project ID and name."""
+        return self.current_project_id, self.current_project_name
+    
+    def get_project_id(self) -> Optional[int]:
+        """Get current project ID."""
+        return self.current_project_id
+    
+    def get_project_name(self) -> str:
+        """Get current project name."""
+        return self.current_project_name
+    
+    def has_current_project(self) -> bool:
+        """Check if there is a currently loaded project."""
+        return self.current_project_id is not None
+    
     def get_project_data(self) -> Optional[dict]:
         """Get current project data."""
-        if not self.current_project_path:
+        if not self.current_project_id:
             return None
+        
         try:
-            return self.project_manager.get_project_data(Path(self.current_project_path))
+            return self.project_manager.get_project_data(self.current_project_id)
         except Exception as e:
             self.error.emit(_("Error"), _("Failed to get project data: {}").format(e))
             return None
     
-    def get_project_id(self) -> Optional[int]:
-        """Get current project ID."""
-        project_data = self.get_project_data()
-        return project_data['id'] if project_data else None
+    def update_project_properties(self, properties: dict) -> bool:
+        """Update current project properties."""
+        if not self.current_project_id:
+            self.error.emit(_("Error"), _("No project loaded"))
+            return False
+        
+        try:
+            success = self.project_manager.update_project_properties(
+                self.current_project_id, properties
+            )
+            
+            if success:
+                # Update local project name if it was changed
+                if 'name' in properties:
+                    self.current_project_name = properties['name']
+            
+            return success
+            
+        except Exception as e:
+            self.error.emit(_("Error"), _("Failed to update project: {}").format(e))
+            return False
     
-    def get_current_managers(self) -> dict:
-        """Get current managers dictionary."""
-        return {
-            'project_manager': self.project_manager,
-            'scene_manager': self.current_scene_manager,
-            'character_manager': self.current_character_manager,
-            'location_manager': self.current_location_manager,
-            'search_manager': self.current_search_manager
-        }
-    
-    def has_active_project(self) -> bool:
-        """Check if there's an active project."""
-        return self.current_project_path is not None
-    
-    def get_current_project_info(self) -> tuple:
-        """Get current project path and name."""
-        return self.current_project_path, self.current_project_name
+    def close_current_project(self):
+        """Close the current project."""
+        self.current_project_id = None
+        self.current_project_name = ""
+        self.current_scene_manager = None
+        self.current_character_manager = None
+        self.current_location_manager = None
+        self.current_search_manager = None

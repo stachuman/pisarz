@@ -22,9 +22,10 @@ class LocationsGridView(QWidget):
     location_selected = Signal(int, str)  # location_id, name
     location_edited = Signal(int)  # location_id
     
-    def __init__(self, location_manager, project_id, parent=None):
+    def __init__(self, location_manager, project_id, scene_manager=None, parent=None):
         super().__init__(parent)
         self.location_manager = location_manager
+        self.scene_manager = scene_manager
         self.project_id = project_id
         self.locations = []
         self.filtered_locations = []
@@ -290,7 +291,10 @@ class LocationsGridView(QWidget):
     
     def _create_new_location(self):
         """Create a new location."""
-        dialog = LocationEditorDialog(self.location_manager, self.project_id, parent=self)
+        # Get all scenes in project for linking
+        all_scenes = self.scene_manager.get_scenes_by_project(self.project_id) if self.scene_manager else []
+        
+        dialog = LocationEditorDialog(self.location_manager, self.project_id, scenes_data=all_scenes, parent=self)
         dialog.accepted.connect(self.refresh_locations)
         dialog.show()
     
@@ -298,10 +302,14 @@ class LocationsGridView(QWidget):
         """Edit an existing location."""
         location = self.location_manager.get_location_object(location_id)
         if location:
+            # Get all scenes in project for linking
+            all_scenes = self.scene_manager.get_scenes_by_project(self.project_id) if self.scene_manager else []
+            
             dialog = LocationEditorDialog(
                 self.location_manager, 
                 self.project_id, 
                 location=location,
+                scenes_data=all_scenes,
                 parent=self
             )
             dialog.accepted.connect(lambda: (

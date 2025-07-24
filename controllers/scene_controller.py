@@ -68,7 +68,10 @@ class SceneController(QObject):
             return
             
         try:
-            scene_id = scene_manager.create_scene(title)
+            project_id = self.project_controller.get_project_id()
+            if project_id is None:
+                return
+            scene_id = scene_manager.create_scene(project_id, title)
             if scene_id:
                 self.sceneCreated.emit(scene_id, title)
                 self._refresh_scenes_data()

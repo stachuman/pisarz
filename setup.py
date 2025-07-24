@@ -70,7 +70,7 @@ setup(
     include_package_data=True,
     package_data={
         'i18n': ['locales/*/LC_MESSAGES/*.mo', 'locales/*/LC_MESSAGES/*.po'],
-        'templates': ['*.j2', '*.yaml'],
+        'templates': ['*.yaml', '*.yml'],
         'ui': ['llm/*.qml'],
     },
     zip_safe=False,

@@ -11,7 +11,7 @@ from ..styles.themes import ThemeManager
 class ProjectCard(QFrame):
     """Karta projektu - imituje QML GridView."""
     
-    projectSelected = Signal(str, str)  # path, name
+    projectSelected = Signal(int, str)  # project_id, name
     
     def __init__(self, project_data, parent=None):
         super().__init__(parent)
@@ -76,5 +76,5 @@ class ProjectCard(QFrame):
     def mousePressEvent(self, event):
         """Obsługa kliknięcia na kartę."""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.projectSelected.emit(self.project_data["path"], self.project_data["name"])
+            self.projectSelected.emit(self.project_data["id"], self.project_data["name"])
         super().mousePressEvent(event)

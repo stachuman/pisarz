@@ -25,14 +25,14 @@ class AppCharacterController(QObject):
         super().__init__(parent)
         self.character_manager: Optional[CharacterManager] = None
         self.scene_manager: Optional[SceneManager] = None
-        self.current_project_path: Optional[str] = None
+        self.current_project_id: Optional[int] = None
         self.character_editor_windows: Dict[int, CharacterEditorDialog] = {}
         
-    def set_managers(self, character_manager: CharacterManager, scene_manager: SceneManager, project_path: str):
-        """Set the current managers and project path."""
+    def set_managers(self, character_manager: CharacterManager, scene_manager: SceneManager, project_id: int):
+        """Set the current managers and project ID."""
         self.character_manager = character_manager
         self.scene_manager = scene_manager
-        self.current_project_path = project_path
+        self.current_project_id = project_id
         
     def open_character_editor(self, character_id: int, character_name: str, project_manager) -> bool:
         """Open character editor dialog."""
@@ -82,21 +82,21 @@ class AppCharacterController(QObject):
     
     def create_character(self, name: str, project_manager) -> bool:
         """Create a new character."""
-        if not self.character_manager or not self.current_project_path:
+        if not self.character_manager or not self.current_project_id:
             return False
             
         try:
-            # Get project ID
-            project_data = project_manager.get_project_data(Path(self.current_project_path))
+            # Get project data
+            project_data = project_manager.get_project_data(self.current_project_id)
             if not project_data:
                 return False
                 
-            character_id = self.character_manager.create_character(project_data['id'], name)
+            character_id = self.character_manager.create_character(self.current_project_id, name)
             
             # Open character editor for new character
             character_data = self.character_manager.get_character(character_id)
             if character_data:
-                all_scenes = self.scene_manager.get_scenes_by_project(project_data['id'])
+                all_scenes = self.scene_manager.get_scenes_by_project(self.current_project_id)
                 
                 # Check if window is already open
                 if character_id in self.character_editor_windows:

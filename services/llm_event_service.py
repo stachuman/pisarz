@@ -33,8 +33,8 @@ class LLMEventService:
                 self._show_status_message(_("No scene manager available"))
                 return False
             
-            project_path, project_name = self.main_window.project_controller.get_current_project_info()
-            if not project_path:
+            project_id, project_name = self.main_window.project_controller.get_current_project_info()
+            if not project_id:
                 self._show_status_message(_("No project loaded"))
                 return False
             
@@ -85,14 +85,14 @@ class LLMEventService:
         """
         try:
             # Get narrative context manager
-            project_path, _project_name = self.main_window.project_controller.get_current_project_info()
-            if not project_path:
+            project_id, _project_name = self.main_window.project_controller.get_current_project_info()
+            if not project_id:
                 self._show_status_message(_("No project loaded"))
                 return False
             
             from pathlib import Path
             from core.llm.context.narrative_context import NarrativeContextManager
-            narrative_manager = NarrativeContextManager(Path(project_path))
+            narrative_manager = NarrativeContextManager(project_id)
             
             # Get existing context for the scene
             existing_context = narrative_manager.get_contexts_by_scene(scene_id)

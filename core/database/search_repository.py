@@ -292,9 +292,10 @@ class SearchManager:
     Provides backward compatibility while using the new database layer.
     """
     
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path = None):
         """Initialize search manager."""
-        self.db_path = db_path
+        from core.llm.settings import GLOBAL_DB_PATH
+        self.db_path = db_path or GLOBAL_DB_PATH
         self.search_repo = SearchRepository(db_path)
     
     def search(self, query: str, search_filter: SearchFilter = None) -> List[SearchResult]:

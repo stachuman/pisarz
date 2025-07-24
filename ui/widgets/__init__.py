@@ -18,6 +18,7 @@ from .search_result_card import SearchResultCard
 from .find_replace_dialog import FindReplaceDialog
 from .llm_assistant_panel import LLMAssistantPanel
 from .template_editor_dialog import TemplateEditorDialog
+from .templates_list_dialog import TemplatesListDialog
 from .narrative_context_panel import NarrativeContextPanel
 
-__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ProjectPropertiesDialog', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog', 'LLMAssistantPanel', 'TemplateEditorDialog', 'NarrativeContextPanel']
+__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ProjectPropertiesDialog', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog', 'LLMAssistantPanel', 'TemplateEditorDialog', 'TemplatesListDialog', 'NarrativeContextPanel']

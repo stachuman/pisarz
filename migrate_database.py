@@ -816,7 +816,7 @@ def main():
         if args.projects_dir:
             projects_root = Path(args.projects_dir)
         else:
-            projects_root = Path.home() / "Pisarz Projects"
+            projects_root = Path.home() / "pisarz_db"
         
         databases = find_project_databases(projects_root)
         

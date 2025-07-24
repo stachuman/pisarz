@@ -40,7 +40,7 @@ class ContextManager(QObject):
         self.current_scene_title: str = ""
         self.current_scene_content: str = ""
         self.current_project_name: str = ""
-        self.current_project_path: Optional[Path] = None
+        self.current_project_id: Optional[int] = None
         
         # Text state
         self.current_text: str = ""
@@ -84,19 +84,19 @@ class ContextManager(QObject):
         except Exception as e:
             self.logger.error(_("Failed to set scene context: {}").format(str(e)))
     
-    def set_project_context(self, project_name: str, project_path: Optional[Path] = None):
+    def set_project_context(self, project_name: str, project_id: Optional[int] = None):
         """
         Update project context information.
         
         Args:
             project_name: Name of the current project
-            project_path: Path to the project file
+            project_id: ID of the current project
         """
         try:
-            self.logger.debug(_("Setting project context - Name: {}").format(project_name))
+            self.logger.debug(_("Setting project context - Name: {}, ID: {}").format(project_name, project_id))
             
             self.current_project_name = project_name
-            self.current_project_path = project_path
+            self.current_project_id = project_id
             
             # Trigger context update
             self._schedule_context_update()
@@ -205,7 +205,7 @@ class ContextManager(QObject):
                 scene_content=self.current_scene_content,
                 scene_id=self.current_scene_id,
                 project_name=self.current_project_name,
-                project_path=self.current_project_path
+                project_id=self.current_project_id
             )
             
             return context
