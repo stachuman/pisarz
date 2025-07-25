@@ -24,8 +24,9 @@ class CustomPromptDialog(QDialog):
         super().__init__(parent)
         self.scene_content = scene_content
         self.selected_text = selected_text
+        self.llm_panel = parent  # Store reference to LLM panel for getting real data
         self.setup_ui()
-        self.update_context_preview()
+        self.update_context_preview()  # Auto-refresh on open
         
     def setup_ui(self):
         """Setup the dialog UI."""
@@ -50,6 +51,7 @@ class CustomPromptDialog(QDialog):
         self.instruction_edit = QTextEdit()
         self.instruction_edit.setPlaceholderText(_("Enter your custom instruction here...\nExample: 'Rewrite this scene in a more dramatic tone' or 'Add more dialogue between characters'"))
         self.instruction_edit.setMinimumHeight(120)
+        self.instruction_edit.textChanged.connect(self.update_context_preview)
         self.instruction_edit.setStyleSheet("""
             QTextEdit {
                 border: 1px solid #dee2e6;
@@ -87,6 +89,12 @@ class CustomPromptDialog(QDialog):
         self.include_locations_cb.setChecked(True)
         self.include_locations_cb.toggled.connect(self.update_context_preview)
         left_column.addWidget(self.include_locations_cb)
+        
+        self.include_project_description_cb = QCheckBox(_("Include project description"))
+        self.include_project_description_cb.setChecked(True)
+        self.include_project_description_cb.toggled.connect(self.update_context_preview)
+        left_column.addWidget(self.include_project_description_cb)
+        
         
         left_column.addStretch()
         
@@ -138,7 +146,7 @@ class CustomPromptDialog(QDialog):
         # Max tokens
         self.max_tokens_spin = QSpinBox()
         self.max_tokens_spin.setRange(100, 20000)
-        self.max_tokens_spin.setValue(8000)
+        self.max_tokens_spin.setValue(self._get_default_max_tokens())
         params_layout.addRow(_("Max tokens:"), self.max_tokens_spin)
         
         # Repetition penalty
@@ -181,39 +189,13 @@ class CustomPromptDialog(QDialog):
         
         self.cancel_button = QPushButton(_("Cancel"))
         self.cancel_button.clicked.connect(self.reject)
-        self.cancel_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
         button_layout.addWidget(self.cancel_button)
         
         button_layout.addStretch()
         
-        self.execute_button = QPushButton(_("🚀 Execute Prompt"))
+        self.execute_button = QPushButton(_("Execute Prompt"))
         self.execute_button.clicked.connect(self.execute_custom_prompt)
-        self.execute_button.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 11pt;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-        """)
+        self.execute_button.setDefault(True)  # Make it the default button
         button_layout.addWidget(self.execute_button)
         
         layout.addLayout(button_layout)
@@ -225,49 +207,43 @@ class CustomPromptDialog(QDialog):
         self.custom_length_spin.setEnabled(checked)
         
     def update_context_preview(self):
-        """Update the context preview based on current settings."""
+        """Update the context preview to show exactly what will be sent to LLM."""
         try:
-            # Check if scene context is enabled
-            if not self.include_scene_context_cb.isChecked():
-                self.context_preview.setPlainText(_("No scene context - instruction only"))
+            instruction = self.instruction_edit.toPlainText().strip()
+            if not instruction:
+                self.context_preview.setPlainText(_("Enter an instruction to see preview"))
                 return
             
-            portion_text = self.text_portion_combo.currentText()
-            context_text = ""
+            # Build the same config as real execution
+            config = {
+                "instruction": instruction,
+                "text_portion": self.text_portion_combo.currentText(),
+                "custom_length": self.custom_length_spin.value(),
+                "include_characters": self.include_characters_cb.isChecked(),
+                "include_locations": self.include_locations_cb.isChecked(),
+                "include_project_description": self.include_project_description_cb.isChecked(),
+                "include_scene_content": self.include_scene_context_cb.isChecked(),
+                "scene_content": self.scene_content,
+                "selected_text": self.selected_text
+            }
             
-            # Clean HTML/CSS from content first
-            clean_scene_content = self._clean_html_css(self.scene_content) if self.scene_content else ""
-            clean_selected_text = self._clean_html_css(self.selected_text) if self.selected_text else ""
+            # Create the exact same template content as the real execution
+            template_content = self._build_template_content(config)
             
-            # Use exact text matching instead of substring matching to fix selection bug
-            if portion_text == _("🎯 Selected text only") and clean_selected_text:
-                context_text = clean_selected_text
-            elif portion_text == _("📄 Full scene"):
-                context_text = clean_scene_content
-            elif portion_text == _("⬆️ Beginning of scene"):
-                length = self.custom_length_spin.value()
-                context_text = clean_scene_content[:length]
-                if len(clean_scene_content) > length:
-                    context_text += "..."
-            elif portion_text == _("⬇️ End of scene"):
-                length = self.custom_length_spin.value()
-                if len(clean_scene_content) > length:
-                    context_text = "..." + clean_scene_content[-length:]
-                else:
-                    context_text = clean_scene_content
-            elif portion_text == _("🎚️ Custom length from end"):
-                length = self.custom_length_spin.value()
-                context_text = clean_scene_content[-length:] if clean_scene_content else ""
-            elif portion_text == _("🎯 Selection + context") and clean_selected_text:
-                # Show selection plus some context
-                context_text = f"SELECTED: {clean_selected_text}\n\nCONTEXT: {clean_scene_content[:2000]}..."
-            else:
-                context_text = clean_scene_content[:self.custom_length_spin.value()]
+            # Get context data like the real execution does
+            context_data = self._build_context_data(config)
             
-            # Show full preview without truncation
-            final_preview = f"Preview ({len(context_text)} characters):\n\n{context_text}"
-            self.context_preview.setPlainText(final_preview)
+            # Render template using Jinja2 - same as real execution
+            from jinja2 import Template, TemplateError
+            template = Template(template_content)
+            rendered_prompt = template.render(context_data)
             
+            # Show the exact prompt that will be sent to LLM
+            self.context_preview.setPlainText(f"=== EXACT LLM PROMPT ===\n\n{rendered_prompt}")
+            
+        except TemplateError as e:
+            error_msg = f"Template Error: {str(e)}"
+            self.context_preview.setPlainText(error_msg)
         except Exception as e:
             error_msg = f"Error generating preview: {e}"
             self.context_preview.setPlainText(error_msg)
@@ -276,6 +252,180 @@ class CustomPromptDialog(QDialog):
         """Clean HTML tags and CSS from content to produce plain text."""
         from core.utils.text_cleaner import clean_html_css
         return clean_html_css(content)
+    
+    def _build_template_content(self, config: dict) -> str:
+        """Build Jinja2 template content from custom prompt config - same as LLM assistant panel."""
+        instruction = config.get('instruction', '')
+        include_characters = config.get('include_characters', False)
+        include_locations = config.get('include_locations', False)
+        include_project_description = config.get('include_project_description', False)
+        
+        # Create template that conditionally includes scene content
+        template_parts = [instruction]
+        
+        # Add conditional character section only if enabled
+        if include_characters:
+            template_parts.append("""
+{% if characters and characters|length > 0 %}
+
+Postacie w scenie:
+{% for character in characters %}
+- {{ character }}
+{% endfor %}
+{% endif %}""")
+        
+        # Add conditional location section only if enabled
+        if include_locations:
+            template_parts.append("""
+{% if locations and locations|length > 0 %}
+
+Lokalizacje:
+{% for location in locations %}
+- {{ location }}
+{% endfor %}
+{% endif %}""")
+        
+        # Add conditional project description section only if enabled
+        if include_project_description:
+            template_parts.append("""
+{% if project_description %}
+
+Opis projektu:
+{{ project_description }}
+{% endif %}""")
+        
+        # Add scene content section (controlled by include_scene_content flag)
+        if config.get('include_scene_content', True):
+            template_parts.append("""
+{% if current_text or selected_text %}
+
+--- TEKST DO ANALIZY ---
+
+{% if has_selection %}
+{{ selected_text }}
+{% else %}
+{{ current_text }}
+{% endif %}
+
+{% if scene_summary and scene_summary != (selected_text if has_selection else current_text) %}
+
+Dodatkowy kontekst sceny:
+{{ scene_summary }}
+{% endif %}
+{% endif %}""")
+        
+        return "\n".join(template_parts)
+    
+    def _build_context_data(self, config: dict) -> dict:
+        """Build context data for template rendering - same logic as real execution."""
+        # Clean HTML/CSS from content first
+        clean_scene_content = self._clean_html_css(config.get('scene_content', '')) if config.get('scene_content') else ""
+        clean_selected_text = self._clean_html_css(config.get('selected_text', '')) if config.get('selected_text') else ""
+        
+        # Extract current text based on text portion selection
+        current_text = self._extract_current_text(config, clean_scene_content, clean_selected_text)
+        
+        # Build context data
+        context_data = {
+            'current_text': current_text,
+            'selected_text': clean_selected_text,
+            'has_selection': bool(clean_selected_text.strip()),
+            'scene_summary': self._build_scene_summary(config, clean_scene_content, clean_selected_text),
+            'scene_content': clean_scene_content,
+            'characters': self._get_characters_list(config),
+            'locations': self._get_locations_list(config),
+            'project_description': self._get_project_description(config),
+            'scene_id': getattr(self, 'current_scene_id', None),
+            'project_name': self._get_project_name()
+        }
+        
+        return context_data
+    
+    def _extract_current_text(self, config: dict, clean_scene_content: str, clean_selected_text: str) -> str:
+        """Extract current text based on text portion selection."""
+        portion_text = config.get('text_portion', '')
+        
+        if portion_text == _("🎯 Selected text only") and clean_selected_text:
+            return clean_selected_text
+        elif portion_text == _("📄 Full scene"):
+            return clean_scene_content
+        elif portion_text == _("⬆️ Beginning of scene"):
+            length = config.get('custom_length', 8000)
+            return clean_scene_content[:length]
+        elif portion_text == _("⬇️ End of scene"):
+            length = config.get('custom_length', 8000)
+            if len(clean_scene_content) > length:
+                return clean_scene_content[-length:]
+            else:
+                return clean_scene_content
+        elif portion_text == _("🎚️ Custom length from end"):
+            length = config.get('custom_length', 8000)
+            return clean_scene_content[-length:] if clean_scene_content else ""
+        elif portion_text == _("🎯 Selection + context") and clean_selected_text:
+            # Return selection plus some context
+            context_length = min(2000, len(clean_scene_content))
+            return f"{clean_selected_text}\n\n--- CONTEXT ---\n{clean_scene_content[:context_length]}"
+        else:
+            return clean_scene_content[:config.get('custom_length', 8000)]
+    
+    def _build_scene_summary(self, config: dict, clean_scene_content: str, clean_selected_text: str) -> str:
+        """Build scene summary - simplified version for preview."""
+        # For preview, just use beginning of scene as summary if it's different from current text
+        summary_length = 500
+        if clean_scene_content:
+            summary = clean_scene_content[:summary_length]
+            if len(clean_scene_content) > summary_length:
+                summary += "..."
+            return summary
+        return ""
+    
+    def _get_characters_list(self, config: dict) -> list:
+        """Get real characters list from LLM panel."""
+        if not config.get('include_characters', False):
+            return []
+        
+        if self.llm_panel and hasattr(self.llm_panel, 'additional_context'):
+            return self.llm_panel.additional_context.get('characters', [])
+        return []
+    
+    def _get_locations_list(self, config: dict) -> list:
+        """Get real locations list from LLM panel."""
+        if not config.get('include_locations', False):
+            return []
+            
+        if self.llm_panel and hasattr(self.llm_panel, 'additional_context'):
+            return self.llm_panel.additional_context.get('locations', [])
+        return []
+    
+    def _get_project_description(self, config: dict) -> str:
+        """Get real project description from LLM panel."""
+        if not config.get('include_project_description', False):
+            return ""
+            
+        if self.llm_panel and hasattr(self.llm_panel, 'additional_context'):
+            return self.llm_panel.additional_context.get('project_description', '')
+        return ""
+    
+    def _get_project_name(self) -> str:
+        """Get real project name from LLM panel."""
+        if self.llm_panel and hasattr(self.llm_panel, 'additional_context'):
+            return self.llm_panel.additional_context.get('project_name', '')
+        return ""
+    
+    def _get_default_max_tokens(self) -> int:
+        """Get default max tokens from LLM configuration."""
+        try:
+            from core.llm.settings import get_llm_settings
+            llm_settings = get_llm_settings()
+            current_provider_config = llm_settings.get_current_provider_config()
+            
+            if current_provider_config:
+                return current_provider_config.get_setting('max_tokens', 8000)
+            return 8000
+            
+        except Exception as e:
+            # Fallback to reasonable default if can't access settings
+            return 8000
     
     def execute_custom_prompt(self):
         """Execute the custom prompt."""
@@ -293,6 +443,7 @@ class CustomPromptDialog(QDialog):
             "custom_length": self.custom_length_spin.value(),
             "include_characters": self.include_characters_cb.isChecked(),
             "include_locations": self.include_locations_cb.isChecked(),
+            "include_project_description": self.include_project_description_cb.isChecked(),
             "include_scene_content": self.include_scene_context_cb.isChecked(),
             "temperature": self.temperature_slider.value() / 10.0,
             "max_tokens": self.max_tokens_spin.value(),

@@ -1,77 +1,102 @@
-metadata:
-  name: "Rewrite Scene"
-  template_id: "rewrite_scene"
-  description: "Rewrite the selected text with improved style and clarity"
-  category: "editing"
-  version: "2.0"
-  author: "System"
-  tags: ["editing", "rewrite", "improvement"]
-
 context_config:
-  use_selection: true
-  selection_priority: true
   default_context_length: 800
-  scene_summary_length: 600
-  scene_summary_source: "selection"
-  include_characters: true
-  include_locations: true
-  include_project_info: false
   max_context_chars: 2500
+  scene_summary_length: 600
+  scene_summary_source: selection
+  selection_priority: true
+  use_selection: true
   word_boundary_trim: true
-
+format_version: '2.0'
 llm_params:
-  max_tokens: 1200
-  temperature: 0.7
-  top_p: 0.9
-  top_k: 40
-  repeat_penalty: 1.1
   custom_params: {}
+  max_tokens: 1200
+  repeat_penalty: 1.1
+  temperature: 0.7
+  top_k: 40
+  top_p: 0.9
+metadata:
+  author: System
+  category: editing
+  created_date: null
+  description: Rewrite the selected text with improved style and clarity
+  modified_date: null
+  name: Rewrite Scene
+  tags:
+  - editing
+  - rewrite
+  - improvement
+  template_id: rewrite_scene
+  version: '2.0'
+template_content: 'Przepisz następujący fragment tekstu, poprawiając styl, płynność
+  narracji i klarowność.
 
-ui_config:
-  show_context_preview: true
-  allow_context_editing: true
-  preview_length: 200
-  show_params_editor: true
-  auto_apply_selection: true
-  confirm_before_execution: true
-
-format_version: "2.0"
-
-template_content: |
-  Przepisz następujący fragment tekstu, poprawiając styl, płynność narracji i klarowność.
 
   Przepisz tekst zachowując:
+
   - Główną treść i wydarzenia
+
   - Charakter postaci
+
   - Klimat sceny
+
   - Długość zbliżoną do oryginału
 
+
   Popraw:
+
   - Styl i płynność
+
   - Dialogi (jeśli występują)
+
   - Opis akcji i emocji
+
   - Gramatykę i składnię
 
+
   {% if characters %}
+
   Postacie:
+
   {% for character in characters %}
+
   - {{ character }}
+
   {% endfor %}
+
   {% endif %}
 
+
   {% if locations %}
+
   Lokalizacje:
+
   {% for location in locations %}
+
   - {{ location }}
+
   {% endfor %}
+
   {% endif %}
+
 
   --- ORYGINALNY FRAGMENT ---
 
+
   {{ selected_text }}
+
 
   {% if scene_summary and scene_summary != selected_text %}
 
+
   Kontekst sceny:
+
   {{ scene_summary }}
-  {% endif %}
+
+  {% endif %}'
+ui_config:
+  allow_context_editing: true
+  auto_apply_selection: true
+  confirm_before_execution: true
+  preview_length: 200
+  show_context_preview: true
+  show_params_editor: true

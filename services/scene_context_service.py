@@ -52,7 +52,7 @@ class SceneContextService:
                 "scene_id": scene_id,
                 "scene_title": scene.get("title", ""),
                 "scene_content": scene.get("content_rtf", ""),
-                "project_description": getattr(managers.get("project_controller"), 'description', ''),
+                "project_description": getattr(managers.get("project_controller"), 'project_description', ''),
                 "project_name": project_name,
                 "template_type": template_name,
                 "characters": scene_characters,
@@ -78,8 +78,8 @@ class SceneContextService:
             
         try:
             # Get characters with roles for this scene
-            character_role_pairs = character_manager.get_characters_for_scene_with_roles(scene_id)
-            character_role_pairs = character_role_pairs or []
+            character_dicts = character_manager.get_characters_for_scene_with_roles(scene_id)
+            character_dicts = character_dicts or []
             scene_characters = [
                 {
                     "id": char_dict["id"],
@@ -92,9 +92,9 @@ class SceneContextService:
                     "location": char_dict.get("location", ""),
                     "description": char_dict.get("description", ""),
                     "notes": char_dict.get("notes", ""),
-                    "role": role or "participant"
+                    "role": char_dict.get("role", "participant")
                 }
-                for char_dict, role in character_role_pairs
+                for char_dict in character_dicts
             ]
             self.logger.debug(f"Extracted {len(scene_characters)} characters for scene {scene_id}")
             

@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+.claude
 build/
 develop-eggs/
 dist/
@@ -19,6 +20,7 @@ wheels/
 pip-wheel-metadata/
 share/python-wheels/
 node_modules/
+logs/
 *.egg-info/
 .installed.cfg
 *.egg

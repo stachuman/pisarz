@@ -34,7 +34,7 @@ class PisarzApp(QMainWindow):
         
         # Initialize error handling and logging
         self.error_handler = get_error_handler()
-        self.logger = setup_logging(log_level="DEBUG", console_logging=True)
+        self.logger = setup_logging(log_level="INFO", console_logging=True)
         
         # Initialize controllers
         self.project_controller = AppProjectController(self)

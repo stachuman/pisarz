@@ -1,8 +1,5 @@
 context_config:
   default_context_length: 14000
-  include_characters: true
-  include_locations: true
-  include_project_info: false
   max_context_chars: 20000
   scene_summary_length: 6000
   scene_summary_source: scene_beginning

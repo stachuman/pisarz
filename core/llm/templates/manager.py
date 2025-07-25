@@ -14,6 +14,7 @@ from .config import (
     EnhancedTemplateConfig, ContextConfig, ContextSource, 
     create_default_template
 )
+import re
 
 
 class EnhancedTemplateManager:
@@ -181,7 +182,7 @@ class EnhancedTemplateManager:
             ))
             
             enhanced_context.update(self._build_additional_context(
-                context_config, scene_data
+                context_config, scene_data, template.template_content
             ))
             
             # Add metadata
@@ -199,14 +200,6 @@ class EnhancedTemplateManager:
                                 selected_text: str, current_text: str) -> Dict[str, Any]:
         """Build selection-related context."""
         context = {}
-        
-        # Check if scene content should be included
-        if not config.include_scene_content:
-            # Scene content disabled - return empty context
-            context['current_text'] = ''
-            context['selected_text'] = ''
-            context['has_selection'] = False
-            return context
         
         # Handle text selection
         if config.use_selection and selected_text.strip():
@@ -241,11 +234,6 @@ class EnhancedTemplateManager:
                            selected_text: str) -> Dict[str, Any]:
         """Build scene summary based on configuration."""
         context = {}
-        
-        # Check if scene content should be included
-        if not config.include_scene_content:
-            context['scene_summary'] = ''
-            return context
         
         summary_length = config.scene_summary_length
         source = config.scene_summary_source
@@ -294,43 +282,46 @@ class EnhancedTemplateManager:
         context['scene_summary'] = summary.strip()
         return context
     
-    def _build_additional_context(self, config: ContextConfig, scene_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Build additional context data based on configuration."""
+    def _build_additional_context(self, config: ContextConfig, scene_data: Dict[str, Any], template_content: str) -> Dict[str, Any]:
+        """Build additional context data based on template variables."""
         context = {}
         project_id = scene_data.get('project_id')
+        
+        # Parse template to detect used variables
+        used_vars = self.get_template_variables(template_content)
 
         # Use ContextFormatterService for consistent formatting
         from services import ContextFormatterService
         formatter = ContextFormatterService()
         
-        # Characters - create full descriptions from character objects
-        if config.include_characters:
+        # Characters - populate if used in template
+        if 'characters' in used_vars:
             characters = scene_data.get('characters', [])
             if isinstance(characters, list):
                 context['characters'] = formatter.format_characters_list(characters)
             else:
                 context['characters'] = []
         
-        # Locations - create full descriptions from location objects
-        if config.include_locations:
+        # Locations - populate if used in template
+        if 'locations' in used_vars:
             locations = scene_data.get('locations', [])
             if isinstance(locations, list):
                 context['locations'] = formatter.format_locations_list(locations)
             else:
                 context['locations'] = []
-           # Project info
-
-        if config.include_project_info:
-            #TODO - sprawdzić!
+                
+        # Project info - populate if used in template
+        if 'project_description' in used_vars:
             context['project_description'] = scene_data.get('project_description', '')
-            #context['scene_id'] = scene_data.get('scene_id', '')
              
-        # Narrative context (for templates that use it)
-        if project_id and hasattr(config, 'include_narrative_context') and config.include_narrative_context:
-            context['narrative_context'] = self._build_narrative_context(project_id)
-        elif 'narrative_context' in scene_data:
-            # Allow manual narrative context injection
-            context['narrative_context'] = scene_data['narrative_context']
+        # Narrative context - populate if used in template
+        if 'narrative_context' in used_vars:
+            if project_id:
+                context['narrative_context'] = self._build_narrative_context(project_id)
+            elif 'narrative_context' in scene_data:
+                context['narrative_context'] = scene_data['narrative_context']
+            else:
+                context['narrative_context'] = ''
         
         return context
     
@@ -455,6 +446,22 @@ class EnhancedTemplateManager:
             })
         
         return sorted(template_list, key=lambda x: x['name'])
+    
+    def get_template_variables(self, template_content: str) -> set:
+        """Parse template content and return set of used variables."""
+        if not template_content:
+            return set()
+            
+        # Find {{ variable }} patterns
+        variable_pattern = r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)'
+        # Find {% if variable %} patterns  
+        if_pattern = r'\{\%\s*if\s+([a-zA-Z_][a-zA-Z0-9_]*)'
+        
+        variables = set()
+        variables.update(re.findall(variable_pattern, template_content))
+        variables.update(re.findall(if_pattern, template_content))
+        
+        return variables
     
     def refresh_templates(self):
         """Refresh templates by reloading from files."""

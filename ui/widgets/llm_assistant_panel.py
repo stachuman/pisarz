@@ -238,23 +238,6 @@ class EnhancedResponseArea(QWidget):
         self.copy_button.setEnabled(False)
         self.copy_button.setToolTip(_("Copy response to clipboard"))
         self.copy_button.setFixedSize(70, 30)
-        self.copy_button.setStyleSheet("""
-            QPushButton {
-                background-color: #17a2b8;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 12pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #138496;
-            }
-            QPushButton:disabled {
-                background-color: #e0e0e0;
-                color: #888888;
-            }
-        """)
         actions_layout.addWidget(self.copy_button)
         
         # Select All button
@@ -262,23 +245,6 @@ class EnhancedResponseArea(QWidget):
         self.select_all_button.setEnabled(False)
         self.select_all_button.setToolTip(_("Select all response text"))
         self.select_all_button.setFixedSize(70, 30)
-        self.select_all_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6f42c1;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 12pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #5a32a3;
-            }
-            QPushButton:disabled {
-                background-color: #e0e0e0;
-                color: #888888;
-            }
-        """)
         self.select_all_button.clicked.connect(self.select_all_text)
         actions_layout.addWidget(self.select_all_button)
         
@@ -287,23 +253,6 @@ class EnhancedResponseArea(QWidget):
         self.insert_button.setEnabled(False)
         self.insert_button.setToolTip(_("Insert response into current document"))
         self.insert_button.setFixedSize(70, 30)
-        self.insert_button.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 12pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-            QPushButton:disabled {
-                background-color: #e0e0e0;
-                color: #888888;
-            }
-        """)
         actions_layout.addWidget(self.insert_button)
         
         # Add to Narrative Context button
@@ -311,23 +260,6 @@ class EnhancedResponseArea(QWidget):
         self.add_to_narrative_button.setEnabled(False)
         self.add_to_narrative_button.setToolTip(_("Add response to Narrative Context"))
         self.add_to_narrative_button.setFixedSize(70, 30)
-        self.add_to_narrative_button.setStyleSheet("""
-            QPushButton {
-                background-color: #fd7e14;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 12pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #e8680a;
-            }
-            QPushButton:disabled {
-                background-color: #e0e0e0;
-                color: #888888;
-            }
-        """)
         actions_layout.addWidget(self.add_to_narrative_button)
         
         # Clear button
@@ -335,23 +267,6 @@ class EnhancedResponseArea(QWidget):
         self.clear_button.setEnabled(False)
         self.clear_button.setToolTip(_("Clear response area"))
         self.clear_button.setFixedSize(70, 30)
-        self.clear_button.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 12pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-            QPushButton:disabled {
-                background-color: #e0e0e0;
-                color: #888888;
-            }
-        """)
         actions_layout.addWidget(self.clear_button)
         
         actions_layout.addStretch()
@@ -520,21 +435,6 @@ class LLMAssistantPanel(QWidget):
         self.refresh_templates_button = QPushButton("🔄")
         self.refresh_templates_button.setFixedSize(24, 24)
         self.refresh_templates_button.setToolTip(_("Refresh templates from disk"))
-        self.refresh_templates_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                border-radius: 3px;
-                font-size: 10pt;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-            QPushButton:pressed {
-                background-color: #4e555b;
-            }
-        """)
         self.refresh_templates_button.clicked.connect(self.refresh_templates)
         template_layout.addWidget(self.refresh_templates_button)
         
@@ -576,20 +476,6 @@ class LLMAssistantPanel(QWidget):
         
         # Edit template button
         self.edit_template_button = QPushButton(_("🛠️ Edit"))
-        self.edit_template_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-weight: bold;
-                min-width: 60px;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
         self.edit_template_button.setToolTip(_("Edit selected template"))
         self.edit_template_button.clicked.connect(self.edit_selected_template)
         controls_layout.addWidget(self.edit_template_button)
@@ -599,40 +485,12 @@ class LLMAssistantPanel(QWidget):
         
         # Execute button
         self.execute_button = QPushButton(_("Execute"))
-        self.execute_button.setStyleSheet("""
-            QPushButton {
-                background-color: #007acc;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 9pt;
-            }
-            QPushButton:hover {
-                background-color: #0056b3;
-            }
-        """)
         self.execute_button.clicked.connect(self.execute_selected_task)
         self.execute_button.setVisible(False)  # Hide regular execute button
         execute_layout.addWidget(self.execute_button)
         
         # Streaming Execute button
         self.execute_streaming_button = QPushButton(_("🔄 Execute"))
-        self.execute_streaming_button.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 9pt;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-        """)
         self.execute_streaming_button.clicked.connect(self.execute_selected_task_streaming)
         execute_layout.addWidget(self.execute_streaming_button)
         
@@ -640,20 +498,6 @@ class LLMAssistantPanel(QWidget):
         
         # Stop button (initially hidden)
         self.stop_button = QPushButton(_("⏹️ Stop"))
-        self.stop_button.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 9pt;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-        """)
         self.stop_button.clicked.connect(self.stop_streaming_task)
         self.stop_button.setVisible(False)
         controls_layout.addWidget(self.stop_button)
@@ -846,12 +690,12 @@ class LLMAssistantPanel(QWidget):
     def set_scene_context(self, scene_id: int, content: str):
         """Set the current scene context."""
         self.current_scene_id = scene_id
-        self.current_scene_content = content
+        self.current_scene_content = content or ""
         self.additional_context = {}  # Reset additional context when scene changes
-        self.logger.debug(f"Scene context set: ID={scene_id}, content length={len(content)}")
+        self.logger.debug(f"Scene context set: ID={scene_id}, content length={len(self.current_scene_content)}")
         
         # Update status to show context is available
-        if content.strip():
+        if self.current_scene_content.strip():
             self.update_status(_("Ready - Scene context loaded"), "success")
         else:
             self.update_status(_("Ready - No scene content"), "warning")
@@ -1566,6 +1410,7 @@ class LLMAssistantPanel(QWidget):
                 'current_text': self._extract_custom_context(config),  # Use existing extraction logic
                 'characters': self.additional_context.get('characters', []),
                 'locations': self.additional_context.get('locations', []),
+                'project_description': self.additional_context.get('project_description', ''),
                 'project_name': self.additional_context.get('project_name', ''),
                 'scene_title': self.additional_context.get('scene_title', ''),
                 'scene_id': self.current_scene_id,
@@ -1617,9 +1462,6 @@ class LLMAssistantPanel(QWidget):
         
         # Create context config based on custom prompt settings
         context_config = ContextConfig(
-            include_characters=config.get('include_characters', False),
-            include_locations=config.get('include_locations', False),
-            include_scene_content=config.get('include_scene_content', True),  # Default true for compatibility
             use_selection=True,
             selection_priority=True,
             default_context_length=config.get('custom_length', 8000),
@@ -1678,6 +1520,7 @@ class LLMAssistantPanel(QWidget):
         instruction = config.get('instruction', '')
         include_characters = config.get('include_characters', False)
         include_locations = config.get('include_locations', False)
+        include_project_description = config.get('include_project_description', False)
         
         # Create template that conditionally includes scene content
         template_parts = [instruction]
@@ -1704,8 +1547,18 @@ Lokalizacje:
 {% endfor %}
 {% endif %}""")
         
-        # Add scene content section (controlled by include_scene_content in ContextConfig)
-        template_parts.append("""
+        # Add conditional project description section only if enabled
+        if include_project_description:
+            template_parts.append("""
+{% if project_description %}
+
+Opis projektu:
+{{ project_description }}
+{% endif %}""")
+        
+        # Add scene content section (controlled by include_scene_content flag)
+        if config.get('include_scene_content', True):
+            template_parts.append("""
 {% if current_text or selected_text %}
 
 --- TEKST DO ANALIZY ---

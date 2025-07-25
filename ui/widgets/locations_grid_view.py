@@ -61,19 +61,6 @@ class LocationsGridView(QWidget):
         
         # New location button
         self.new_location_button = QPushButton(_("New Location"))
-        self.new_location_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1976d2;
-            }
-        """)
         header_layout.addWidget(self.new_location_button)
         
         layout.addLayout(header_layout)
@@ -151,19 +138,6 @@ class LocationsGridView(QWidget):
         empty_layout.addWidget(empty_text)
         
         self.empty_create_button = QPushButton(_("Create First Location"))
-        self.empty_create_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 12px 24px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1976d2;
-            }
-        """)
         empty_layout.addWidget(self.empty_create_button)
         
         self.empty_state.setLayout(empty_layout)

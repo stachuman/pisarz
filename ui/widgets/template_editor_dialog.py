@@ -72,12 +72,10 @@ class TemplateEditorDialog(QDialog):
         layout.addWidget(self.tab_widget)
         
         # Setup tabs
-        self.setup_metadata_tab()
-        self.setup_context_tab()
         self.setup_llm_params_tab()
-        self.setup_ui_config_tab()
         self.setup_template_tab()
         self.setup_preview_tab()
+        self.setup_metadata_tab()
         
         # Buttons
         button_layout = QHBoxLayout()
@@ -87,10 +85,6 @@ class TemplateEditorDialog(QDialog):
         load_btn = QPushButton(_("Load Template"))
         load_btn.clicked.connect(self.load_template_file)
         button_layout.addWidget(load_btn)
-        
-        save_file_btn = QPushButton(_("Save to File"))
-        save_file_btn.clicked.connect(self.save_template_file)
-        button_layout.addWidget(save_file_btn)
         
         save_as_btn = QPushButton(_("Save as New Template"))
         save_as_btn.clicked.connect(self.save_as_new_template)
@@ -159,78 +153,6 @@ class TemplateEditorDialog(QDialog):
         
         self.tab_widget.addTab(widget, _("Metadata"))
     
-    def setup_context_tab(self):
-        """Setup context configuration tab."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # Selection group
-        selection_group = QGroupBox(_("Text Selection"))
-        selection_layout = QFormLayout(selection_group)
-        
-        self.use_selection_cb = QCheckBox()
-        self.use_selection_cb.setChecked(True)
-        selection_layout.addRow(_("Use Selected Text:"), self.use_selection_cb)
-        
-        self.selection_priority_cb = QCheckBox()
-        self.selection_priority_cb.setChecked(True)
-        selection_layout.addRow(_("Selection Priority:"), self.selection_priority_cb)
-        
-        layout.addWidget(selection_group)
-        
-        # Context length group
-        context_group = QGroupBox(_("Context Configuration"))
-        context_layout = QFormLayout(context_group)
-        
-        self.default_context_spin = QSpinBox()
-        self.default_context_spin.setRange(50, 300000)
-        self.default_context_spin.setValue(500)
-        self.default_context_spin.setSuffix(" " + _("characters"))
-        context_layout.addRow(_("Default Context Length:"), self.default_context_spin)
-        
-        self.scene_summary_spin = QSpinBox()
-        self.scene_summary_spin.setRange(50, 100000)
-        self.scene_summary_spin.setValue(300)
-        self.scene_summary_spin.setSuffix(" " + _("characters"))
-        context_layout.addRow(_("Scene Summary Length:"), self.scene_summary_spin)
-        
-        self.summary_source_combo = QComboBox()
-        for source in ContextSource:
-            self.summary_source_combo.addItem(source.value, source)
-        context_layout.addRow(_("Summary Source:"), self.summary_source_combo)
-        
-        self.max_context_spin = QSpinBox()
-        self.max_context_spin.setRange(100, 500000)
-        self.max_context_spin.setValue(2000)
-        self.max_context_spin.setSuffix(" " + _("characters"))
-        context_layout.addRow(_("Max Context Length:"), self.max_context_spin)
-        
-        layout.addWidget(context_group)
-        
-        # Additional data group
-        additional_group = QGroupBox(_("Additional Data"))
-        additional_layout = QFormLayout(additional_group)
-        
-        self.include_characters_cb = QCheckBox()
-        self.include_characters_cb.setChecked(True)
-        additional_layout.addRow(_("Include Characters:"), self.include_characters_cb)
-        
-        self.include_locations_cb = QCheckBox()
-        self.include_locations_cb.setChecked(True)
-        additional_layout.addRow(_("Include Locations:"), self.include_locations_cb)
-        
-        self.include_project_cb = QCheckBox()
-        additional_layout.addRow(_("Include Project Info:"), self.include_project_cb)
-        
-        self.word_boundary_cb = QCheckBox()
-        self.word_boundary_cb.setChecked(True)
-        additional_layout.addRow(_("Trim at Word Boundaries:"), self.word_boundary_cb)
-        
-        layout.addWidget(additional_group)
-        layout.addStretch()
-        
-        self.tab_widget.addTab(widget, _("Context"))
-    
     def setup_llm_params_tab(self):
         """Setup LLM parameters tab."""
         widget = QWidget()
@@ -249,7 +171,6 @@ class TemplateEditorDialog(QDialog):
         self.max_tokens_spin.setRange(1, 100000)
         self.max_tokens_spin.setValue(512)
         self.max_tokens_spin.valueChanged.connect(self.update_character_estimate)
-        self.max_tokens_spin.valueChanged.connect(self.update_context_suggestions)
         tokens_layout.addWidget(self.max_tokens_spin)
         
         self.char_estimate_label = QLabel(_("≈ 2048 characters"))
@@ -367,44 +288,6 @@ class TemplateEditorDialog(QDialog):
         
         self.tab_widget.addTab(widget, _("LLM Parameters"))
     
-    def setup_ui_config_tab(self):
-        """Setup UI configuration tab."""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # UI behavior group
-        ui_group = QGroupBox(_("UI Behavior"))
-        ui_layout = QFormLayout(ui_group)
-        
-        self.show_context_preview_cb = QCheckBox()
-        self.show_context_preview_cb.setChecked(True)
-        ui_layout.addRow(_("Show Context Preview:"), self.show_context_preview_cb)
-        
-        self.allow_context_editing_cb = QCheckBox()
-        ui_layout.addRow(_("Allow Context Editing:"), self.allow_context_editing_cb)
-        
-        self.preview_length_spin = QSpinBox()
-        self.preview_length_spin.setRange(50, 500)
-        self.preview_length_spin.setValue(100)
-        self.preview_length_spin.setSuffix(" " + _("characters"))
-        ui_layout.addRow(_("Preview Length:"), self.preview_length_spin)
-        
-        self.show_params_editor_cb = QCheckBox()
-        self.show_params_editor_cb.setChecked(True)
-        ui_layout.addRow(_("Show Parameters Editor:"), self.show_params_editor_cb)
-        
-        self.auto_apply_selection_cb = QCheckBox()
-        self.auto_apply_selection_cb.setChecked(True)
-        ui_layout.addRow(_("Auto Apply Selection:"), self.auto_apply_selection_cb)
-        
-        self.confirm_execution_cb = QCheckBox()
-        ui_layout.addRow(_("Confirm Before Execution:"), self.confirm_execution_cb)
-        
-        layout.addWidget(ui_group)
-        layout.addStretch()
-        
-        self.tab_widget.addTab(widget, _("UI Settings"))
-    
     def setup_template_tab(self):
         """Setup template content editor tab."""
         widget = QWidget()
@@ -494,24 +377,7 @@ class TemplateEditorDialog(QDialog):
             self.author_edit.setText(self.template_config.metadata.author)
             self.tags_edit.setText(", ".join(self.template_config.metadata.tags))
             
-            # Context config
-            context = self.template_config.context_config
-            self.use_selection_cb.setChecked(context.use_selection)
-            self.selection_priority_cb.setChecked(context.selection_priority)
-            self.default_context_spin.setValue(context.default_context_length)
-            self.scene_summary_spin.setValue(context.scene_summary_length)
-            
-            # Find and set summary source
-            for i in range(self.summary_source_combo.count()):
-                if self.summary_source_combo.itemData(i) == context.scene_summary_source:
-                    self.summary_source_combo.setCurrentIndex(i)
-                    break
-            
-            self.max_context_spin.setValue(context.max_context_chars)
-            self.include_characters_cb.setChecked(context.include_characters)
-            self.include_locations_cb.setChecked(context.include_locations)
-            self.include_project_cb.setChecked(context.include_project_info)
-            self.word_boundary_cb.setChecked(context.word_boundary_trim)
+            # Context config - using defaults since UI was removed
             
             # LLM params
             params = self.template_config.llm_params
@@ -527,21 +393,13 @@ class TemplateEditorDialog(QDialog):
                     json.dumps(params.custom_params, indent=2, ensure_ascii=False)
                 )
             
-            # UI config
-            ui = self.template_config.ui_config
-            self.show_context_preview_cb.setChecked(ui.show_context_preview)
-            self.allow_context_editing_cb.setChecked(ui.allow_context_editing)
-            self.preview_length_spin.setValue(ui.preview_length)
-            self.show_params_editor_cb.setChecked(ui.show_params_editor)
-            self.auto_apply_selection_cb.setChecked(ui.auto_apply_selection)
-            self.confirm_execution_cb.setChecked(ui.confirm_before_execution)
+            # UI config - using defaults since UI was removed
             
             # Template content
             self.template_editor.setPlainText(self.template_config.template_content)
             
-            # Update character estimate and context suggestions
+            # Update character estimate
             self.update_character_estimate()
-            self.update_context_suggestions()
             
             self.logger.debug("Template data loaded into UI")
             
@@ -567,18 +425,7 @@ class TemplateEditorDialog(QDialog):
             else:
                 self.template_config.metadata.tags = []
             
-            # Context config
-            context = self.template_config.context_config
-            context.use_selection = self.use_selection_cb.isChecked()
-            context.selection_priority = self.selection_priority_cb.isChecked()
-            context.default_context_length = self.default_context_spin.value()
-            context.scene_summary_length = self.scene_summary_spin.value()
-            context.scene_summary_source = self.summary_source_combo.currentData()
-            context.max_context_chars = self.max_context_spin.value()
-            context.include_characters = self.include_characters_cb.isChecked()
-            context.include_locations = self.include_locations_cb.isChecked()
-            context.include_project_info = self.include_project_cb.isChecked()
-            context.word_boundary_trim = self.word_boundary_cb.isChecked()
+            # Context config - keep defaults since UI was removed
             
             # LLM params
             params = self.template_config.llm_params
@@ -600,14 +447,7 @@ class TemplateEditorDialog(QDialog):
             else:
                 params.custom_params = {}
             
-            # UI config
-            ui = self.template_config.ui_config
-            ui.show_context_preview = self.show_context_preview_cb.isChecked()
-            ui.allow_context_editing = self.allow_context_editing_cb.isChecked()
-            ui.preview_length = self.preview_length_spin.value()
-            ui.show_params_editor = self.show_params_editor_cb.isChecked()
-            ui.auto_apply_selection = self.auto_apply_selection_cb.isChecked()
-            ui.confirm_before_execution = self.confirm_execution_cb.isChecked()
+            # UI config - keep defaults since UI was removed
             
             # Template content
             self.template_config.template_content = self.template_editor.toPlainText()
@@ -639,36 +479,46 @@ class TemplateEditorDialog(QDialog):
         return True
     
     def update_preview(self):
-        """Update template preview with sample data."""
+        """Update template preview with real context data from current scene using exact same functions as real execution."""
         try:
             if not self.save_template_data():
                 return
             
-            # Create sample context
-            sample_context = {
-                'current_text': "Przykładowy tekst do kontynuacji...",
-                'selected_text': "zaznaczony fragment",
-                'scene_summary': "To jest przykładowe podsumowanie sceny z kontekstem.",
-                'has_selection': True,
-                'characters': ["Jan", "Anna", "Marek"],
-                'locations': ["Kawiarnia", "Park"],
-                'project_name': "Mój Projekt",
-                'scene_id': "scene_001"
-            }
+            # Get main window - same as real execution
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance()
             
-            # Try to render template
+            main_window = None
+            for widget in app.topLevelWidgets():
+                if hasattr(widget, 'project_controller') and hasattr(widget, 'llm_panel'):
+                    main_window = widget
+                    break
+            
+            # Use exactly the same build_context method as real LLM execution
+            context_data = main_window.llm_panel.build_context()
+            
+            # Use the template manager to build enhanced context (full chain) - same as real execution
+            from core.llm.templates import get_template_manager
+            template_manager = get_template_manager()
+            
+            # Build enhanced context using the same chain as real execution
+            enhanced_context = template_manager.build_enhanced_context(
+                self.template_config.metadata.template_id, 
+                context_data
+            )
+            
+            # Render template using Jinja2 - same as real execution
             from jinja2 import Template, TemplateError
+            template = Template(self.template_config.template_content)
+            rendered = template.render(enhanced_context)
             
-            try:
-                template = Template(self.template_config.template_content)
-                rendered = template.render(sample_context)
-                self.preview_text.setPlainText(rendered)
-                self.preview_text.setStyleSheet("color: black;")
+            self.preview_text.setPlainText(rendered)
+            self.preview_text.setStyleSheet("color: black;")
                 
-            except TemplateError as e:
-                error_text = f"Template Error: {str(e)}"
-                self.preview_text.setPlainText(error_text)
-                self.preview_text.setStyleSheet("color: red;")
+        except TemplateError as e:
+            error_text = f"Template Error: {str(e)}"
+            self.preview_text.setPlainText(error_text)
+            self.preview_text.setStyleSheet("color: red;")
                 
         except Exception as e:
             self.logger.error(f"Error updating preview: {e}")
@@ -691,54 +541,6 @@ class TemplateEditorDialog(QDialog):
                 QMessageBox.information(self, _("Success"), _("Template loaded successfully."))
             else:
                 QMessageBox.critical(self, _("Error"), _("Failed to load template file."))
-    
-    def save_template_file(self):
-        """Save template to file with enhanced file selection."""
-        if not self.save_template_data():
-            return
-        
-        file_dialog = QFileDialog(self)
-        file_dialog.setWindowTitle(_("Save Template to File"))
-        file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
-        file_dialog.setFileMode(QFileDialog.FileMode.AnyFile)
-        file_dialog.setNameFilter(_("YAML Templates (*.yaml);;YML Templates (*.yml);;JSON Templates (*.json);;All Template Files (*.yaml *.yml *.json)"))
-        file_dialog.setDefaultSuffix("yaml")
-        
-        # Set default directory to user's templates directory or Documents
-        try:
-            from core.llm.templates import get_template_manager
-            template_manager = get_template_manager()
-            default_dir = template_manager.templates_dir
-        except:
-            from PySide6.QtCore import QStandardPaths
-            default_dir = Path(QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation))
-        
-        file_dialog.setDirectory(str(default_dir))
-        
-        # Suggest filename based on template name and ID
-        template_name = self.template_config.metadata.name or self.template_config.metadata.template_id
-        safe_name = "".join(c for c in template_name if c.isalnum() or c in (' ', '-', '_')).strip()
-        safe_name = safe_name.replace(' ', '_')
-        suggested_name = f"{safe_name}.yaml"
-        file_dialog.selectFile(suggested_name)
-        
-        if file_dialog.exec():
-            filepath = Path(file_dialog.selectedFiles()[0])
-            
-            try:
-                if self.template_config.save_to_file(filepath):
-                    QMessageBox.information(
-                        self, 
-                        _("Success"), 
-                        _("Template '{}' saved to:\n{}").format(
-                            self.template_config.metadata.name, 
-                            str(filepath)
-                        )
-                    )
-                else:
-                    QMessageBox.critical(self, _("Error"), _("Failed to save template to file."))
-            except Exception as e:
-                QMessageBox.critical(self, _("Error"), _("Failed to save template to file: {}").format(str(e)))
     
     def save_as_new_template(self):
         """Save current template as a new template with different ID."""
@@ -809,10 +611,26 @@ class TemplateEditorDialog(QDialog):
             QMessageBox.critical(self, _("Error"), _("Failed to create new template: {}").format(str(e)))
     
     def save_template(self):
-        """Save template and close dialog."""
-        if self.validate_template():
-            self.template_saved.emit(self.template_config.metadata.template_id)
-            self.accept()
+        """Save template to file and template manager, then close dialog."""
+        if not self.validate_template():
+            return
+            
+        try:
+            # Get template manager
+            from core.llm.templates import get_template_manager
+            template_manager = get_template_manager()
+            
+            # Save to template manager (which automatically saves to file)
+            success = template_manager.add_template(self.template_config, save_to_file=True)
+            
+            if success:
+                self.template_saved.emit(self.template_config.metadata.template_id)
+                self.accept()
+            else:
+                QMessageBox.critical(self, _("Error"), _("Failed to save template."))
+                
+        except Exception as e:
+            QMessageBox.critical(self, _("Error"), _("Failed to save template: {}").format(str(e)))
     
     def get_template_config(self) -> EnhancedTemplateConfig:
         """Get the current template configuration."""
@@ -844,28 +662,6 @@ class TemplateEditorDialog(QDialog):
         # Polish might be slightly different, but this is a good approximation
         estimated_chars = tokens * 4
         self.char_estimate_label.setText(_("≈ {} characters").format(estimated_chars))
-    
-    def update_context_suggestions(self):
-        """Update context length suggestions based on max_tokens."""
-        tokens = self.max_tokens_spin.value()
-        
-        # For large token counts, suggest reasonable context lengths
-        if tokens >= 10000:  # Large context window
-            # Suggest using 30-40% of available tokens for context
-            suggested_context_chars = int(tokens * 0.35 * 4)  # 35% of tokens * 4 chars/token
-            suggested_summary_chars = int(tokens * 0.15 * 4)  # 15% of tokens * 4 chars/token
-            
-            # Auto-update if current values are too small
-            if self.default_context_spin.value() < suggested_context_chars:
-                self.default_context_spin.setValue(suggested_context_chars)
-            
-            if self.scene_summary_spin.value() < suggested_summary_chars:
-                self.scene_summary_spin.setValue(suggested_summary_chars)
-                
-            # Set max_context to be larger than default_context
-            max_context_chars = int(tokens * 0.5 * 4)  # 50% of tokens * 4 chars/token
-            if self.max_context_spin.value() < max_context_chars:
-                self.max_context_spin.setValue(max_context_chars)
     
     def use_default_parameter(self, param_name: str):
         """Apply default LLM parameter from current provider."""

@@ -37,10 +37,6 @@ class ContextConfig:
     default_context_length: int = 500
     scene_summary_length: int = 500  # Default, can be overridden by template
     scene_summary_source: ContextSource = ContextSource.SCENE_BEGINNING
-    include_characters: bool = True
-    include_locations: bool = True
-    include_project_info: bool = False
-    include_scene_content: bool = True  # New: Allow disabling scene content entirely
     max_context_chars: int = 2000
     word_boundary_trim: bool = True
     

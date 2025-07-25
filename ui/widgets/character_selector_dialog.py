@@ -103,22 +103,6 @@ class CharacterSelectorDialog(QDialog):
         self.select_button = QPushButton(_("Select Character"))
         self.select_button.setDefault(True)
         self.select_button.setEnabled(False)
-        self.select_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2196f3;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1976d2;
-            }
-            QPushButton:disabled {
-                background-color: #bdc3c7;
-            }
-        """)
         
         button_layout.addWidget(self.cancel_button)
         button_layout.addWidget(self.select_button)
