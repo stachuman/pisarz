@@ -37,7 +37,7 @@ class TemplateEditorDialog(BaseDialog):
         
         # Set window properties
         title = _("New Template") if self.is_new_template else _("Edit Template")
-        window_title = f"{title} - {self.template_config.name}"
+        window_title = f"{title} - {self.template_config}"
         
         # Initialize BaseDialog
         super().__init__(title=window_title, width=900, height=700, modal=True, parent=parent)

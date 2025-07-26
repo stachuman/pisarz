@@ -3,7 +3,7 @@
 from typing import Optional
 from PySide6.QtCore import QObject, Signal
 
-from core.scene import SceneManager
+from core.database.scene_repository import SceneManager
 from i18n import _
 
 

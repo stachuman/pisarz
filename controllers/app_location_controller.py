@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, Dict
 from PySide6.QtCore import QObject, Signal
 
-from core.location import LocationManager
+from core.database.location_repository import LocationManager
 from ui.widgets.location_editor_dialog import LocationEditorDialog
 from i18n import _
 

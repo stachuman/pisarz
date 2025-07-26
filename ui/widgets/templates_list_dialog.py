@@ -45,7 +45,7 @@ class TemplatesListDialog(BaseDialog):
         """Setup the user interface."""
         # Title
         title_label = QLabel(_("Templates Manager"))
-        title_label.setFont(self.font_manager.get_font(14, bold=True))
+        title_label.setFont(self.font_manager.get_font(14))
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.add_content_widget(title_label)
         

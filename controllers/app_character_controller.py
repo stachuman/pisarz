@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional, Dict
 from PySide6.QtCore import QObject, Signal
 
-from core.character import CharacterManager
-from core.scene import SceneManager
+from core.database.character_repository import CharacterManager
+from core.database.scene_repository import SceneManager
 from ui.widgets import CharacterEditorDialog
 from i18n import _
 
