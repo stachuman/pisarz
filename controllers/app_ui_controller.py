@@ -91,11 +91,11 @@ class AppUIController(QObject):
                 self.statusMessage.emit(_("Characters view ({} characters)").format(len(characters)))
                 
             elif category == "locations":
+                locations = data_dict.get('locations', [])
                 location_manager = data_dict.get('location_manager')
                 scene_manager = data_dict.get('scene_manager')
                 project_id = data_dict.get('project_id')
-                self.workspace.show_locations_grid(location_manager, project_id, scene_manager)
-                locations = location_manager.get_locations(project_id) if location_manager else []
+                self.workspace.show_locations_grid(locations, location_manager, project_id, scene_manager)
                 self.statusMessage.emit(_("Locations view ({} locations)").format(len(locations)))
                 
             elif category == "search":

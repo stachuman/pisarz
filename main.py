@@ -2,13 +2,12 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-                              QSplitter, QStatusBar, QMessageBox, QStackedWidget, QMenuBar)
+                              QSplitter, QStatusBar, QMessageBox, QStackedWidget)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut, QAction
 
-from core.error_handler import get_error_handler, ErrorLevel, ErrorCategory
+from core.error_handler import get_error_handler, ErrorCategory
 from core.logging_config import setup_logging
 
 from controllers.app_project_controller import AppProjectController
@@ -19,8 +18,7 @@ from controllers.app_search_controller import AppSearchController
 from controllers.app_ui_controller import AppUIController
 from controllers.app_focus_controller import AppFocusController
 from controllers.app_llm_controller import AppLLMController
-from ui.widgets import (ProjectsView, ProjectTreeView, Workspace, SettingsDialog,
-                       CharactersGridView, CharacterEditorDialog, ProjectPropertiesDialog,
+from ui.widgets import (ProjectsView, ProjectTreeView, Workspace,
                        LLMAssistantPanel, NarrativeContextPanel)
 from services import LLMEventService, UIEventService, ProjectManagementService, SettingsService
 from i18n import _
@@ -582,9 +580,12 @@ class PisarzApp(QMainWindow):
                     'location_manager': managers['location_manager']
                 }
             elif category == "locations":
+                locations = self.location_controller.get_locations_list(project_id) if project_id else []
                 data_dict = {
+                    'locations': locations,
                     'location_manager': managers['location_manager'],
-                    'project_id': project_id
+                    'project_id': project_id,
+                    'scene_manager': managers['scene_manager']
                 }
             elif category == "search":
                 data_dict = {}

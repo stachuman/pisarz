@@ -17,7 +17,7 @@ class CharactersGridView(BaseGridView):
     characterDeleteRequested = Signal(int)  # character_id
     
     def __init__(self, parent=None):
-        super().__init__(title=_("Characters"), icon="📝", parent=parent)
+        super().__init__(title=_("Characters"), icon="📝", new_item_label=_("New Character"), parent=parent)
         self.characters = []
         self.location_manager = None
         self.setup_connections()

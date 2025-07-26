@@ -204,7 +204,7 @@ class AppLocationController(QObject):
         if not self.location_manager:
             return []
         try:
-            return self.location_manager.get_locations(project_id)
+            return self.location_manager.get_location_objects(project_id)
         except Exception as e:
             self.errorOccurred.emit(_("Error"), _("Failed to load locations: {}").format(e))
             return []

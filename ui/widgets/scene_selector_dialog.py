@@ -4,64 +4,65 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QListWidget, QListWidgetItem, 
                               QLineEdit, QComboBox, QSpinBox, QFormLayout,
                               QGroupBox, QMessageBox, QSplitter, QTextEdit)
+
+from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
 from i18n import _
 
 
-class SceneSelector(QDialog):
+class SceneSelector(BaseDialog):
     """Dialog for selecting scenes to link to a character."""
     
     scenesSelected = Signal(list)  # List of (scene_id, role, importance) tuples
     
     def __init__(self, scenes_data, already_linked_scene_ids=None, parent=None):
-        super().__init__(parent)
         self.scenes_data = scenes_data
         self.already_linked_scene_ids = set(already_linked_scene_ids or [])
         self.selected_scenes = []
+        
+        super().__init__(
+            title=_("Select Scenes to Link"),
+            width=600,
+            height=500,
+            modal=True,
+            parent=parent
+        )
+        
         self.setup_ui()
         self.load_scenes()
         
     def setup_ui(self):
         """Setup the scene selector dialog UI."""
-        self.setWindowTitle(_("Select Scenes to Link"))
-        self.setMinimumSize(600, 500)
-        self.setModal(True)
-        
-        layout = QVBoxLayout(self)
         
         # Search box
         search_layout = QHBoxLayout()
         search_label = QLabel(_("Search:"))
-        self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText(_("Search scenes by title..."))
+        self.search_edit = self.create_line_input(_("Search scenes by title..."))
         self.search_edit.textChanged.connect(self.filter_scenes)
         search_layout.addWidget(search_label)
         search_layout.addWidget(self.search_edit)
-        layout.addLayout(search_layout)
+        self.add_content_layout(search_layout)
         
         # Splitter for main content
         splitter = QSplitter(Qt.Orientation.Horizontal)
         
         # Left side - Available scenes
-        scenes_widget = QGroupBox(_("Available Scenes"))
-        scenes_layout = QVBoxLayout(scenes_widget)
+        scenes_widget, scenes_layout = self.create_form_section(_("Available Scenes"))
         
         self.scenes_list = QListWidget()
-        self.scenes_list.setFont(QFont("Arial", 10))
+        self.scenes_list.setFont(self.font_manager.get_font(10))
         self.scenes_list.itemClicked.connect(self.on_scene_clicked)
         self.scenes_list.itemDoubleClicked.connect(self.on_scene_double_clicked)
         scenes_layout.addWidget(self.scenes_list)
         
         # Right side - Link details
-        details_widget = QGroupBox(_("Link Details"))
-        details_layout = QVBoxLayout(details_widget)
+        details_widget, details_layout = self.create_form_section(_("Link Details"))
         
         # Current scene info
-        self.scene_info_label = QLabel(_("Select a scene to see details"))
-        self.scene_info_label.setFont(QFont("Arial", 9))
-        self.scene_info_label.setStyleSheet("color: #666; margin-bottom: 10px;")
+        self.scene_info_label = self.create_info_label(_("Select a scene to see details"), "muted")
+        self.scene_info_label.setFont(self.font_manager.get_font(9))
         self.scene_info_label.setWordWrap(True)
         details_layout.addWidget(self.scene_info_label)
         
@@ -92,41 +93,23 @@ class SceneSelector(QDialog):
         details_layout.addLayout(form_layout)
         
         # Add to selection button
-        self.add_scene_btn = QPushButton(_("Add Scene"))
+        self.add_scene_btn = self.create_custom_button(_("Add Scene"), self.add_scene_to_selection, "primary")
         self.add_scene_btn.setEnabled(False)
-        self.add_scene_btn.clicked.connect(self.add_scene_to_selection)
-        self.add_scene_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-            }
-        """)
         details_layout.addWidget(self.add_scene_btn)
         
         # Selected scenes list
         selected_label = QLabel(_("Selected Scenes:"))
-        selected_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        selected_label.setFont(self.font_manager.get_font(9, bold=True))
         details_layout.addWidget(selected_label)
         
         self.selected_list = QListWidget()
-        self.selected_list.setFont(QFont("Arial", 9))
+        self.selected_list.setFont(self.font_manager.get_font(9))
         self.selected_list.setMaximumHeight(100)
         details_layout.addWidget(self.selected_list)
         
         # Remove selected button
-        self.remove_btn = QPushButton(_("Remove Selected"))
+        self.remove_btn = self.create_custom_button(_("Remove Selected"), self.remove_selected_scene, "secondary")
         self.remove_btn.setEnabled(False)
-        self.remove_btn.clicked.connect(self.remove_selected_scene)
         self.selected_list.itemClicked.connect(lambda: self.remove_btn.setEnabled(True))
         details_layout.addWidget(self.remove_btn)
         
@@ -137,39 +120,18 @@ class SceneSelector(QDialog):
         splitter.addWidget(details_widget)
         splitter.setSizes([400, 200])
         
-        layout.addWidget(splitter)
+        self.add_content_widget(splitter)
         
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        # Buttons using BaseDialog functionality
+        self.add_button_stretch()
         
-        self.cancel_btn = QPushButton(_("Cancel"))
-        self.cancel_btn.clicked.connect(self.reject)
-        button_layout.addWidget(self.cancel_btn)
+        self.cancel_btn = self.create_custom_button(_("Cancel"), self.reject, "secondary")
+        self.add_button(self.cancel_btn)
         
-        self.link_btn = QPushButton(_("Link Scenes"))
+        self.link_btn = self.create_custom_button(_("Link Scenes"), self.accept_selection, "primary")
         self.link_btn.setEnabled(False)
         self.link_btn.setDefault(True)
-        self.link_btn.clicked.connect(self.accept_selection)
-        self.link_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #007bff;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #0056b3;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-            }
-        """)
-        button_layout.addWidget(self.link_btn)
-        
-        layout.addLayout(button_layout)
+        self.add_button(self.link_btn)
         
     def load_scenes(self):
         """Load available scenes into the list."""

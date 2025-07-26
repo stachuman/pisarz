@@ -26,40 +26,8 @@ QFrame:hover {
 }
 """
 
-# Button Styles
-NEW_PROJECT_BUTTON_STYLE = """
-QPushButton {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 8px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 11px;
-}
-QPushButton:hover {
-    background-color: #2980b9;
-}
-"""
-
-NEW_SCENE_BUTTON_STYLE = """
-QPushButton {
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    padding: 8px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 11px;
-}
-QPushButton:hover {
-    background-color: #c0392b;
-}
-QPushButton:disabled {
-    background-color: #bdc3c7;
-    color: #7f8c8d;
-}
-"""
+# Legacy button styles - deprecated in favor of theme-based styling
+# Use EnhancedThemeManager.get_theme_colors() with accent colors instead
 
 # Text Colors
 HEADER_COLOR = "color: #2c3e50; padding: 10px;"

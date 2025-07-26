@@ -1,32 +1,18 @@
-context_config:
-  default_context_length: 14000
-  max_context_chars: 20000
-  scene_summary_length: 6000
-  scene_summary_source: scene_beginning
-  selection_priority: true
-  use_selection: true
-  word_boundary_trim: true
-format_version: '2.0'
-llm_params:
-  custom_params: {}
-  max_tokens: 10000
-  repeat_penalty: 1.05
-  temperature: 0.8
-  top_k: 50
-  top_p: 0.95
-metadata:
-  author: System
-  category: writing
-  created_date: null
-  description: Continue writing the current scene with enhanced context and parameters
-  modified_date: null
-  name: Continue Scene (Enhanced)
-  tags:
+# Metadata fields
+name: Continue Scene (Enhanced)
+template_id: continue_scene
+description: Continue writing the current scene with enhanced context and parameters
+category: writing
+version: '2.0'
+author: System
+created_date: null
+modified_date: null
+tags:
   - writing
   - continuation
   - scene
-  template_id: continue_scene
-  version: '2.0'
+
+# Template content
 template_content: |
   Kontynuuj tę scenę, pisząc naturalną kontynuację (2-3 akapity), zachowując styl i ton tekstu.
 
@@ -65,10 +51,31 @@ template_content: |
   {% endif %}
 
   {% endif %}
-ui_config:
-  allow_context_editing: false
-  auto_apply_selection: true
-  confirm_before_execution: false
-  preview_length: 150
-  show_context_preview: true
-  show_params_editor: true
+
+# Context configuration
+use_selection: true
+selection_priority: true
+default_context_length: 14000
+scene_summary_length: 6000
+scene_summary_source: scene_beginning
+max_context_chars: 20000
+word_boundary_trim: true
+
+# LLM parameters
+max_tokens: 10000
+temperature: 0.8
+top_p: 0.95
+top_k: 50
+repeat_penalty: 1.05
+custom_params: {}
+
+# UI configuration
+show_context_preview: true
+allow_context_editing: false
+preview_length: 150
+show_params_editor: true
+auto_apply_selection: true
+confirm_before_execution: false
+
+# Format version
+format_version: '3.0'

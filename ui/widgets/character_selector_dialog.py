@@ -7,27 +7,32 @@ Provides a dialog for selecting existing characters to link to the current scene
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QListWidget, 
                                QListWidgetItem, QPushButton, QLabel, QLineEdit,
                                QComboBox, QMessageBox, QGroupBox)
+
+from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from i18n import _
 
 
-class CharacterSelectorDialog(QDialog):
+class CharacterSelectorDialog(BaseDialog):
     """Dialog for selecting characters to link to a scene."""
     
     # Signals
     character_selected = Signal(int, str)  # character_id, role
     
     def __init__(self, character_manager, project_id, already_linked_character_ids=None, parent=None):
-        super().__init__(parent)
         self.character_manager = character_manager
         self.project_id = project_id
         self.already_linked_character_ids = set(already_linked_character_ids or [])
         self.available_characters = []
         
-        self.setWindowTitle(_("Select Character"))
-        self.setModal(True)
-        self.resize(450, 400)
+        super().__init__(
+            title=_("Select Character"),
+            width=450,
+            height=400,
+            modal=True,
+            parent=parent
+        )
         
         self._setup_ui()
         self._connect_signals()
@@ -35,44 +40,30 @@ class CharacterSelectorDialog(QDialog):
     
     def _setup_ui(self):
         """Set up the user interface."""
-        layout = QVBoxLayout()
-        layout.setSpacing(16)
-        
         # Title
         title = QLabel(_("Select Character for Scene"))
-        title_font = QFont()
-        title_font.setPointSize(14)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        layout.addWidget(title)
+        title.setFont(self.font_manager.get_font(14, bold=True))
+        self.add_content_widget(title)
         
         # Search
-        search_layout = QHBoxLayout()
-        search_label = QLabel(_("Search:"))
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText(_("Filter characters by name..."))
-        search_layout.addWidget(search_label)
-        search_layout.addWidget(self.search_input)
-        layout.addLayout(search_layout)
+        search_layout, self.search_input = self.create_search_widget(_("Filter characters by name..."), self._filter_characters)
+        self.add_content_layout(search_layout)
         
         # Available characters
-        characters_group = QGroupBox(_("Available Characters"))
-        characters_layout = QVBoxLayout()
+        characters_group, characters_layout = self.create_form_section(_("Available Characters"))
         
-        self.characters_list = QListWidget()
+        self.characters_list = self.create_selection_list_widget(self._select_character, self._on_selection_changed)
         self.characters_list.setMinimumHeight(200)
         characters_layout.addWidget(self.characters_list)
         
-        characters_group.setLayout(characters_layout)
-        layout.addWidget(characters_group)
+        self.add_content_widget(characters_group)
         
         # Role selection
-        role_group = QGroupBox(_("Character Role in Scene"))
-        role_layout = QHBoxLayout()
+        role_group, role_layout = self.create_form_section(_("Character Role in Scene"))
         
         role_label = QLabel(_("Role:"))
         self.role_combo = QComboBox()
-        self.role_combo.addItems([
+        roles = [
             _("Protagonist"),
             _("Supporting Character"),
             _("Antagonist"),
@@ -80,44 +71,28 @@ class CharacterSelectorDialog(QDialog):
             _("Mentioned Only"),
             _("Narrator"),
             _("Cameo")
-        ])
+        ]
+        self.role_combo.addItems(roles)
         self.role_combo.setCurrentText(_("Supporting Character"))
         
-        role_layout.addWidget(role_label)
-        role_layout.addWidget(self.role_combo)
-        role_layout.addStretch()
+        role_layout.addRow(role_label, self.role_combo)
         
-        role_group.setLayout(role_layout)
-        layout.addWidget(role_group)
+        self.add_content_widget(role_group)
         
         # Info label
-        self.info_label = QLabel()
-        self.info_label.setStyleSheet("color: #666; font-size: 12px;")
-        layout.addWidget(self.info_label)
+        self.info_label = self.create_info_label("", "muted")
+        self.info_label.setFont(self.font_manager.get_font(12))
+        self.add_content_widget(self.info_label)
         
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        
-        self.cancel_button = QPushButton(_("Cancel"))
-        self.select_button = QPushButton(_("Select Character"))
-        self.select_button.setDefault(True)
+        # Buttons using BaseDialog functionality
+        buttons = self.create_standard_buttons(_("Select Character"), self._select_character, _("Cancel"))
+        self.select_button = buttons['save']
         self.select_button.setEnabled(False)
-        
-        button_layout.addWidget(self.cancel_button)
-        button_layout.addWidget(self.select_button)
-        
-        layout.addLayout(button_layout)
-        
-        self.setLayout(layout)
     
     def _connect_signals(self):
         """Connect widget signals."""
-        self.search_input.textChanged.connect(self._filter_characters)
-        self.characters_list.itemSelectionChanged.connect(self._on_selection_changed)
-        self.characters_list.itemDoubleClicked.connect(self._select_character)
-        self.select_button.clicked.connect(self._select_character)
-        self.cancel_button.clicked.connect(self.reject)
+        # Search and list connections are handled by BaseDialog helpers
+        pass
     
     def _load_characters(self):
         """Load available characters from the database."""

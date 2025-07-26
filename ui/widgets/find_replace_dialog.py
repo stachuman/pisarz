@@ -2,12 +2,14 @@
 
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                                QLineEdit, QPushButton, QCheckBox, QFrame)
+
+from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QKeySequence, QShortcut
 from i18n import _
 
 
-class FindReplaceDialog(QDialog):
+class FindReplaceDialog(BaseDialog):
     """Dialog for finding and replacing text in the scene editor."""
     
     # Signals
@@ -17,11 +19,14 @@ class FindReplaceDialog(QDialog):
     replaceAll = Signal(str, str, bool, bool) # find_text, replace_text, match_case, whole_words
     
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(_("Find and Replace"))
+        super().__init__(
+            title=_("Find and Replace"),
+            width=400,
+            height=200,
+            modal=False,
+            parent=parent
+        )
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowStaysOnTopHint)
-        self.setModal(False)
-        self.resize(400, 200)
         
         # Current search state
         self.current_match = 0
@@ -32,29 +37,24 @@ class FindReplaceDialog(QDialog):
         
     def setup_ui(self):
         """Setup the dialog UI."""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(10)
-        
         # Find section
         find_layout = QHBoxLayout()
         find_layout.addWidget(QLabel(_("Find:")))
         
-        self.find_input = QLineEdit()
-        self.find_input.setPlaceholderText(_("Enter text to find..."))
+        self.find_input = self.create_line_input(_("Enter text to find..."))
         self.find_input.textChanged.connect(self.on_find_text_changed)
         find_layout.addWidget(self.find_input)
         
-        layout.addLayout(find_layout)
+        self.add_content_layout(find_layout)
         
         # Replace section
         replace_layout = QHBoxLayout()
         replace_layout.addWidget(QLabel(_("Replace:")))
         
-        self.replace_input = QLineEdit()
-        self.replace_input.setPlaceholderText(_("Enter replacement text..."))
+        self.replace_input = self.create_line_input(_("Enter replacement text..."))
         replace_layout.addWidget(self.replace_input)
         
-        layout.addLayout(replace_layout)
+        self.add_content_layout(replace_layout)
         
         # Options section
         options_layout = QHBoxLayout()
@@ -66,54 +66,43 @@ class FindReplaceDialog(QDialog):
         options_layout.addWidget(self.whole_words_cb)
         options_layout.addStretch()
         
-        layout.addLayout(options_layout)
+        self.add_content_layout(options_layout)
         
         # Status section
-        self.status_label = QLabel(_("Ready"))
-        self.status_label.setStyleSheet("color: #666; font-style: italic;")
-        layout.addWidget(self.status_label)
+        self.status_label = self.create_info_label(_("Ready"), "muted")
+        self.add_content_widget(self.status_label)
         
         # Separator
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setStyleSheet("color: #ccc;")
-        layout.addWidget(separator)
-        
-        # Buttons section
-        buttons_layout = QHBoxLayout()
+        self.add_content_widget(separator)
         
         # Find buttons
-        self.find_next_btn = QPushButton(_("Find Next"))
-        self.find_next_btn.clicked.connect(self.on_find_next)
+        self.find_next_btn = self.create_custom_button(_("Find Next"), self.on_find_next, "primary")
         self.find_next_btn.setEnabled(False)
-        buttons_layout.addWidget(self.find_next_btn)
+        self.add_button(self.find_next_btn)
         
-        self.find_prev_btn = QPushButton(_("Find Previous"))
-        self.find_prev_btn.clicked.connect(self.on_find_previous)
+        self.find_prev_btn = self.create_custom_button(_("Find Previous"), self.on_find_previous, "secondary")
         self.find_prev_btn.setEnabled(False)
-        buttons_layout.addWidget(self.find_prev_btn)
+        self.add_button(self.find_prev_btn)
         
-        buttons_layout.addStretch()
+        self.add_button_stretch()
         
         # Replace buttons
-        self.replace_btn = QPushButton(_("Replace"))
-        self.replace_btn.clicked.connect(self.on_replace)
+        self.replace_btn = self.create_custom_button(_("Replace"), self.on_replace, "secondary")
         self.replace_btn.setEnabled(False)
-        buttons_layout.addWidget(self.replace_btn)
+        self.add_button(self.replace_btn)
         
-        self.replace_all_btn = QPushButton(_("Replace All"))
-        self.replace_all_btn.clicked.connect(self.on_replace_all)
+        self.replace_all_btn = self.create_custom_button(_("Replace All"), self.on_replace_all, "secondary")
         self.replace_all_btn.setEnabled(False)
-        buttons_layout.addWidget(self.replace_all_btn)
+        self.add_button(self.replace_all_btn)
         
-        buttons_layout.addStretch()
+        self.add_button_stretch()
         
         # Close button
-        self.close_btn = QPushButton(_("Close"))
-        self.close_btn.clicked.connect(self.close)
-        buttons_layout.addWidget(self.close_btn)
-        
-        layout.addLayout(buttons_layout)
+        self.close_btn = self.create_custom_button(_("Close"), self.close, "secondary")
+        self.add_button(self.close_btn)
         
         # Set initial focus
         self.find_input.setFocus()

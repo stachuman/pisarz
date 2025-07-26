@@ -1,32 +1,16 @@
-context_config:
-  default_context_length: 4000
-  max_context_chars: 4000
-  scene_summary_length: 12000
-  scene_summary_source: full_scene
-  selection_priority: true
-  use_selection: true
-  word_boundary_trim: true
-format_version: '2.0'
-llm_params:
-  custom_params: {}
-  max_tokens: 4000
-  repeat_penalty: 1.08
-  temperature: 0.91
-  top_k: 45
-  top_p: 0.92
-metadata:
-  author: System
-  category: writing
-  created_date: null
-  description: Expand a scene with more detail, dialogue, and description
-  modified_date: null
-  name: Generate Character
-  tags:
-  - writing
-  - expansion
-  - detail
-  template_id: generate_character
-  version: '2.0'
+# Properly flattened template format v3.0
+name: Generate Character
+template_id: generate_character
+description: Expand a scene with more detail, dialogue, and description
+category: writing
+version: '2.0'
+author: System
+created_date: null
+modified_date: null
+tags:
+- writing
+- expansion
+- detail
 template_content: 'Wygeneruj postać na potrzeby książki
 
   {% if project_description %}
@@ -63,10 +47,23 @@ template_content: 'Wygeneruj postać na potrzeby książki
   Konflikty
 
   '
-ui_config:
-  allow_context_editing: false
-  auto_apply_selection: true
-  confirm_before_execution: false
-  preview_length: 180
-  show_context_preview: true
-  show_params_editor: true
+use_selection: true
+selection_priority: true
+default_context_length: 4000
+scene_summary_length: 12000
+scene_summary_source: full_scene
+max_context_chars: 4000
+word_boundary_trim: true
+max_tokens: 4000
+temperature: 0.91
+top_p: 0.92
+top_k: 45
+repeat_penalty: 1.08
+custom_params: {}
+show_context_preview: true
+allow_context_editing: false
+preview_length: 180
+show_params_editor: true
+auto_apply_selection: true
+confirm_before_execution: false
+format_version: '3.0'

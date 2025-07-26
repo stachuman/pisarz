@@ -3,7 +3,7 @@
 import logging
 from typing import Dict, Any, Optional
 from core.logging_config import get_logger
-from .llm_context_service import LLMContextService
+# Removed to avoid circular import - imported locally where needed
 from i18n import _
 
 
@@ -13,7 +13,6 @@ class LLMEventService:
     def __init__(self, main_window):
         self.logger = get_logger("services.llm_events")
         self.main_window = main_window
-        self.llm_context_service = LLMContextService()
     
     def handle_generate_context_request(self, scene_id: int, template_name: str) -> bool:
         """
@@ -38,8 +37,15 @@ class LLMEventService:
                 self._show_status_message(_("No project loaded"))
                 return False
             
-            # Prepare context using the service
-            context_data = self.llm_context_service.prepare_template_execution(
+            # Get LLM controller (import locally to avoid circular import)
+            from controllers.app_llm_controller import get_llm_controller
+            llm_controller = get_llm_controller()
+            if not llm_controller:
+                self._show_status_message(_("LLM controller not available"))
+                return False
+            
+            # Prepare context using the controller
+            context_data = llm_controller.prepare_template_execution(
                 scene_id, template_name, managers, project_name
             )
             
@@ -48,7 +54,7 @@ class LLMEventService:
                 return False
             
             # Validate context
-            if not self.llm_context_service.validate_template_context(context_data):
+            if not llm_controller.validate_template_context(context_data):
                 self._show_status_message(_("Invalid context data"))
                 return False
             

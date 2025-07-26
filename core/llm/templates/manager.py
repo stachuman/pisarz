@@ -11,7 +11,7 @@ from dataclasses import asdict
 
 from core.logging_config import get_logger
 from .config import (
-    EnhancedTemplateConfig, ContextConfig, ContextSource, 
+    TemplateConfig, ContextSource, 
     create_default_template
 )
 import re
@@ -24,7 +24,7 @@ class EnhancedTemplateManager:
         self.logger = get_logger("llm.template_manager")
         
         # Template storage
-        self.templates: Dict[str, EnhancedTemplateConfig] = {}
+        self.templates: Dict[str, TemplateConfig] = {}
         
         # Template directory
         if templates_dir:
@@ -46,7 +46,7 @@ class EnhancedTemplateManager:
         try:
             # Create default template
             default_template = create_default_template()
-            self.templates[default_template.metadata.template_id] = default_template
+            self.templates[default_template.template_id] = default_template
             
             self.logger.info("Default templates initialized")
             
@@ -59,36 +59,36 @@ class EnhancedTemplateManager:
             template_files = list(self.templates_dir.glob("*.yaml")) + list(self.templates_dir.glob("*.yml")) + list(self.templates_dir.glob("*.json"))
             
             for template_file in template_files:
-                template_config = EnhancedTemplateConfig.load_from_file(template_file)
+                template_config = TemplateConfig.load_from_file(template_file)
                 if template_config:
-                    self.templates[template_config.metadata.template_id] = template_config
-                    self.logger.debug(f"Loaded user template: {template_config.metadata.name}")
+                    self.templates[template_config.template_id] = template_config
+                    self.logger.debug(f"Loaded user template: {template_config.name}")
             
             self.logger.info(f"Loaded {len(template_files)} user templates")
             
         except Exception as e:
             self.logger.error(f"Error loading user templates: {e}")
     
-    def get_template(self, template_id: str) -> Optional[EnhancedTemplateConfig]:
+    def get_template(self, template_id: str) -> Optional[TemplateConfig]:
         """Get template by ID."""
         return self.templates.get(template_id)
     
-    def get_all_templates(self) -> Dict[str, EnhancedTemplateConfig]:
+    def get_all_templates(self) -> Dict[str, TemplateConfig]:
         """Get all available templates."""
         return self.templates.copy()
     
-    def get_templates_by_category(self, category: str) -> Dict[str, EnhancedTemplateConfig]:
+    def get_templates_by_category(self, category: str) -> Dict[str, TemplateConfig]:
         """Get templates by category."""
         return {
             template_id: template 
             for template_id, template in self.templates.items()
-            if template.metadata.category == category
+            if template.category == category
         }
     
-    def add_template(self, template_config: EnhancedTemplateConfig, save_to_file: bool = True) -> bool:
+    def add_template(self, template_config: TemplateConfig, save_to_file: bool = True) -> bool:
         """Add a new template."""
         try:
-            template_id = template_config.metadata.template_id
+            template_id = template_config.template_id
             
             # Validate template
             is_valid, errors = template_config.validate()
@@ -106,7 +106,7 @@ class EnhancedTemplateManager:
                     self.logger.error(f"Failed to save template to file: {filepath}")
                     return False
             
-            self.logger.info(f"Template added: {template_config.metadata.name}")
+            self.logger.info(f"Template added: {template_config.name}")
             return True
             
         except Exception as e:
@@ -147,7 +147,7 @@ class EnhancedTemplateManager:
                 self.logger.error(f"Template not found: {template_id}")
                 return scene_data
             
-            context_config = template.context_config
+            # Use template directly (flattened structure)
             enhanced_context = scene_data.copy()
             
             # Get basic scene data
@@ -174,20 +174,20 @@ class EnhancedTemplateManager:
             else:
                 # Use template configuration
                 enhanced_context.update(self._build_selection_context(
-                    context_config, clean_content, clean_selected_text, clean_current_text
+                    template, clean_content, clean_selected_text, clean_current_text
                 ))
             
             enhanced_context.update(self._build_scene_summary(
-                context_config, clean_content, clean_selected_text
+                template, clean_content, clean_selected_text
             ))
             
             enhanced_context.update(self._build_additional_context(
-                context_config, scene_data, template.template_content
+                template, scene_data, template.template_content
             ))
             
             # Add metadata
             enhanced_context['template_id'] = template_id
-            enhanced_context['template_name'] = template.metadata.name
+            enhanced_context['template_name'] = template.name
             
             self.logger.debug(f"Enhanced context built for template: {template_id}")
             return enhanced_context
@@ -196,7 +196,7 @@ class EnhancedTemplateManager:
             self.logger.error(f"Error building enhanced context: {e}")
             return scene_data
     
-    def _build_selection_context(self, config: ContextConfig, scene_content: str, 
+    def _build_selection_context(self, config: TemplateConfig, scene_content: str, 
                                 selected_text: str, current_text: str) -> Dict[str, Any]:
         """Build selection-related context."""
         context = {}
@@ -230,7 +230,7 @@ class EnhancedTemplateManager:
         
         return context
     
-    def _build_scene_summary(self, config: ContextConfig, scene_content: str, 
+    def _build_scene_summary(self, config: TemplateConfig, scene_content: str, 
                            selected_text: str) -> Dict[str, Any]:
         """Build scene summary based on configuration."""
         context = {}
@@ -282,7 +282,7 @@ class EnhancedTemplateManager:
         context['scene_summary'] = summary.strip()
         return context
     
-    def _build_additional_context(self, config: ContextConfig, scene_data: Dict[str, Any], template_content: str) -> Dict[str, Any]:
+    def _build_additional_context(self, config: TemplateConfig, scene_data: Dict[str, Any], template_content: str) -> Dict[str, Any]:
         """Build additional context data based on template variables."""
         context = {}
         project_id = scene_data.get('project_id')
@@ -357,7 +357,15 @@ class EnhancedTemplateManager:
         if not template:
             return {}
         
-        params = asdict(template.llm_params)
+        # Return LLM params from flattened structure
+        params = {
+            'max_tokens': template.max_tokens,
+            'temperature': template.temperature,
+            'top_p': template.top_p,
+            'top_k': template.top_k,
+            'repeat_penalty': template.repeat_penalty,
+            'custom_params': template.custom_params
+        }
         return params
     
     def get_template_ui_config(self, template_id: str) -> Dict[str, Any]:
@@ -366,7 +374,15 @@ class EnhancedTemplateManager:
         if not template:
             return {}
         
-        ui_config = asdict(template.ui_config)
+        # Return UI config from flattened structure
+        ui_config = {
+            'show_context_preview': template.show_context_preview,
+            'allow_context_editing': template.allow_context_editing,
+            'preview_length': template.preview_length,
+            'show_params_editor': template.show_params_editor,
+            'auto_apply_selection': template.auto_apply_selection,
+            'confirm_before_execution': template.confirm_before_execution
+        }
         return ui_config
     
     def refresh_templates(self):
@@ -376,7 +392,7 @@ class EnhancedTemplateManager:
         default_templates = {
             template_id: template 
             for template_id, template in self.templates.items()
-            if template.metadata.author == "System"
+            if template.author == "System"
         }
         self.templates = default_templates
         
@@ -423,12 +439,12 @@ class EnhancedTemplateManager:
     
     def import_template(self, filepath: Union[str, Path]) -> Optional[str]:
         """Import template from file."""
-        template_config = EnhancedTemplateConfig.load_from_file(filepath)
+        template_config = TemplateConfig.load_from_file(filepath)
         if not template_config:
             return None
         
         if self.add_template(template_config):
-            return template_config.metadata.template_id
+            return template_config.template_id
         
         return None
     
@@ -439,10 +455,10 @@ class EnhancedTemplateManager:
         for template_id, template in self.templates.items():
             template_list.append({
                 'id': template_id,
-                'name': template.metadata.name,
-                'description': template.metadata.description,
-                'category': template.metadata.category,
-                'version': template.metadata.version
+                'name': template.name,
+                'description': template.description,
+                'category': template.category,
+                'version': template.version
             })
         
         return sorted(template_list, key=lambda x: x['name'])
@@ -471,7 +487,7 @@ class EnhancedTemplateManager:
         user_templates = {
             template_id: template 
             for template_id, template in self.templates.items()
-            if template.metadata.author != "System"
+            if template.author != "System"
         }
         
         # Reinitialize

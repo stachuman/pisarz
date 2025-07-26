@@ -4,10 +4,10 @@ Provides comprehensive template editing with tabbed interface.
 """
 
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget,
+    QVBoxLayout, QHBoxLayout, QTabWidget, QWidget,
     QLabel, QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox,
-    QCheckBox, QComboBox, QPushButton, QGroupBox, QFormLayout,
-    QMessageBox, QFileDialog, QSplitter, QFrame, QScrollArea
+    QComboBox, QPushButton, QGroupBox, QFormLayout,
+    QMessageBox, QFileDialog
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QTextOption
@@ -17,26 +17,32 @@ from pathlib import Path
 
 from core.logging_config import get_logger
 from core.llm.templates.config import (
-    EnhancedTemplateConfig, TemplateMetadata, ContextConfig, 
-    LLMParams, UIConfig, ContextSource, create_default_template,
-    create_template_from_provider_defaults
+    TemplateConfig, ContextSource, 
+    create_default_template, create_template_from_provider_defaults
 )
 from core.llm.settings import get_llm_settings
+from ..base.base_dialog import BaseDialog
 from i18n import _
 
 
-class TemplateEditorDialog(QDialog):
+class TemplateEditorDialog(BaseDialog):
     """Dialog for editing LLM template configurations."""
     
     template_saved = Signal(str)  # template_id
     
-    def __init__(self, template_config: Optional[EnhancedTemplateConfig] = None, parent=None):
-        super().__init__(parent)
-        self.logger = get_logger("ui.template_editor")
-        
+    def __init__(self, template_config: Optional[TemplateConfig] = None, parent=None):
         # Initialize with provided config or create default
         self.template_config = template_config or create_default_template()
         self.is_new_template = template_config is None
+        
+        # Set window properties
+        title = _("New Template") if self.is_new_template else _("Edit Template")
+        window_title = f"{title} - {self.template_config.name}"
+        
+        # Initialize BaseDialog
+        super().__init__(title=window_title, width=900, height=700, modal=True, parent=parent)
+        
+        self.logger = get_logger("ui.template_editor")
         
         # Get LLM settings for reference values
         self.llm_settings = get_llm_settings()
@@ -46,30 +52,18 @@ class TemplateEditorDialog(QDialog):
         self.load_template_data()
         self.update_reference_values()
         
-        # Set window properties
-        title = _("New Template") if self.is_new_template else _("Edit Template")
-        self.setWindowTitle(f"{title} - {self.template_config.metadata.name}")
-        self.setMinimumSize(900, 700)
-        self.resize(1000, 800)
+        # Size is already set in BaseDialog constructor
     
     def setup_ui(self):
         """Setup the user interface."""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Title
-        title_label = QLabel(_("Template Editor"))
-        title_font = QFont()
-        title_font.setPointSize(16)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
+        # Add title section
+        title_label = self.create_section_title(_("Template Editor"), 16)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        self.add_content_widget(title_label)
         
         # Main content with tabs
-        self.tab_widget = QTabWidget()
-        layout.addWidget(self.tab_widget)
+        self.tab_widget = self.create_tab_widget()
+        self.add_content_widget(self.tab_widget)
         
         # Setup tabs
         self.setup_llm_params_tab()
@@ -77,30 +71,19 @@ class TemplateEditorDialog(QDialog):
         self.setup_preview_tab()
         self.setup_metadata_tab()
         
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        
-        # Load/Save buttons
-        load_btn = QPushButton(_("Load Template"))
-        load_btn.clicked.connect(self.load_template_file)
-        button_layout.addWidget(load_btn)
-        
-        save_as_btn = QPushButton(_("Save as New Template"))
-        save_as_btn.clicked.connect(self.save_as_new_template)
-        button_layout.addWidget(save_as_btn)
-        
-        # Standard dialog buttons
-        cancel_btn = QPushButton(_("Cancel"))
-        cancel_btn.clicked.connect(self.reject)
-        button_layout.addWidget(cancel_btn)
-        
-        save_btn = QPushButton(_("Save Template"))
+        # Create custom buttons
+        load_btn = self.create_custom_button(_("Load Template"), self.load_template_file, "secondary")
+        save_as_btn = self.create_custom_button(_("Save as New Template"), self.save_as_new_template, "secondary")
+        cancel_btn = self.create_custom_button(_("Cancel"), self.reject, "secondary")
+        save_btn = self.create_custom_button(_("Save Template"), self.save_template, "primary")
         save_btn.setDefault(True)
-        save_btn.clicked.connect(self.save_template)
-        button_layout.addWidget(save_btn)
         
-        layout.addLayout(button_layout)
+        # Add buttons with stretch
+        self.add_button_stretch()
+        self.add_button(load_btn)
+        self.add_button(save_as_btn)
+        self.add_button(cancel_btn)
+        self.add_button(save_btn)
     
     def setup_metadata_tab(self):
         """Setup metadata configuration tab."""
@@ -166,104 +149,35 @@ class TemplateEditorDialog(QDialog):
         params_layout = QFormLayout(params_group)
         
         # Max tokens with reference
-        tokens_layout = QHBoxLayout()
-        self.max_tokens_spin = QSpinBox()
-        self.max_tokens_spin.setRange(1, 100000)
-        self.max_tokens_spin.setValue(512)
-        self.max_tokens_spin.valueChanged.connect(self.update_character_estimate)
-        tokens_layout.addWidget(self.max_tokens_spin)
-        
-        self.char_estimate_label = QLabel(_("≈ 2048 characters"))
-        self.char_estimate_label.setStyleSheet("color: #666; font-size: 11px;")
-        tokens_layout.addWidget(self.char_estimate_label)
-        
-        self.max_tokens_default_btn = QPushButton(_("Use Default"))
-        self.max_tokens_default_btn.clicked.connect(lambda: self.use_default_parameter('max_tokens'))
-        tokens_layout.addWidget(self.max_tokens_default_btn)
-        
-        self.max_tokens_ref_label = QLabel()
-        self.max_tokens_ref_label.setStyleSheet("color: #666; font-size: 10px;")
-        tokens_layout.addWidget(self.max_tokens_ref_label)
-        tokens_layout.addStretch()
-        
+        tokens_layout, self.max_tokens_spin, self.max_tokens_ref_label = self.create_parameter_row(
+            1, 100000, 512, 'max_tokens', self.update_character_estimate, lambda: self.use_default_parameter('max_tokens')
+        )
+        self.char_estimate_label = self.create_info_label(_("≈ 2048 characters"), "muted")
+        tokens_layout.insertWidget(1, self.char_estimate_label)
         params_layout.addRow(_("Max Tokens:"), tokens_layout)
         
         # Temperature with reference
-        temp_layout = QHBoxLayout()
-        self.temperature_spin = QDoubleSpinBox()
-        self.temperature_spin.setRange(0.0, 2.0)
-        self.temperature_spin.setSingleStep(0.1)
-        self.temperature_spin.setDecimals(2)
-        self.temperature_spin.setValue(0.7)
-        temp_layout.addWidget(self.temperature_spin)
-        
-        self.temperature_default_btn = QPushButton(_("Use Default"))
-        self.temperature_default_btn.clicked.connect(lambda: self.use_default_parameter('temperature'))
-        temp_layout.addWidget(self.temperature_default_btn)
-        
-        self.temperature_ref_label = QLabel()
-        self.temperature_ref_label.setStyleSheet("color: #666; font-size: 10px;")
-        temp_layout.addWidget(self.temperature_ref_label)
-        temp_layout.addStretch()
-        
+        temp_layout, self.temperature_spin, self.temperature_ref_label = self.create_double_parameter_row(
+            0.0, 2.0, 0.1, 2, 0.7, 'temperature', lambda: self.use_default_parameter('temperature')
+        )
         params_layout.addRow(_("Temperature:"), temp_layout)
         
         # Top P with reference
-        topp_layout = QHBoxLayout()
-        self.top_p_spin = QDoubleSpinBox()
-        self.top_p_spin.setRange(0.0, 1.0)
-        self.top_p_spin.setSingleStep(0.1)
-        self.top_p_spin.setDecimals(2)
-        self.top_p_spin.setValue(0.9)
-        topp_layout.addWidget(self.top_p_spin)
-        
-        self.top_p_default_btn = QPushButton(_("Use Default"))
-        self.top_p_default_btn.clicked.connect(lambda: self.use_default_parameter('top_p'))
-        topp_layout.addWidget(self.top_p_default_btn)
-        
-        self.top_p_ref_label = QLabel()
-        self.top_p_ref_label.setStyleSheet("color: #666; font-size: 10px;")
-        topp_layout.addWidget(self.top_p_ref_label)
-        topp_layout.addStretch()
-        
+        topp_layout, self.top_p_spin, self.top_p_ref_label = self.create_double_parameter_row(
+            0.0, 1.0, 0.1, 2, 0.9, 'top_p', lambda: self.use_default_parameter('top_p')
+        )
         params_layout.addRow(_("Top P:"), topp_layout)
         
         # Top K with reference
-        topk_layout = QHBoxLayout()
-        self.top_k_spin = QSpinBox()
-        self.top_k_spin.setRange(1, 100)
-        self.top_k_spin.setValue(40)
-        topk_layout.addWidget(self.top_k_spin)
-        
-        self.top_k_default_btn = QPushButton(_("Use Default"))
-        self.top_k_default_btn.clicked.connect(lambda: self.use_default_parameter('top_k'))
-        topk_layout.addWidget(self.top_k_default_btn)
-        
-        self.top_k_ref_label = QLabel()
-        self.top_k_ref_label.setStyleSheet("color: #666; font-size: 10px;")
-        topk_layout.addWidget(self.top_k_ref_label)
-        topk_layout.addStretch()
-        
+        topk_layout, self.top_k_spin, self.top_k_ref_label = self.create_parameter_row(
+            1, 100, 40, 'top_k', None, lambda: self.use_default_parameter('top_k')
+        )
         params_layout.addRow(_("Top K:"), topk_layout)
         
         # Repeat penalty with reference
-        penalty_layout = QHBoxLayout()
-        self.repeat_penalty_spin = QDoubleSpinBox()
-        self.repeat_penalty_spin.setRange(0.5, 2.0)
-        self.repeat_penalty_spin.setSingleStep(0.1)
-        self.repeat_penalty_spin.setDecimals(2)
-        self.repeat_penalty_spin.setValue(1.1)
-        penalty_layout.addWidget(self.repeat_penalty_spin)
-        
-        self.repeat_penalty_default_btn = QPushButton(_("Use Default"))
-        self.repeat_penalty_default_btn.clicked.connect(lambda: self.use_default_parameter('repeat_penalty'))
-        penalty_layout.addWidget(self.repeat_penalty_default_btn)
-        
-        self.repeat_penalty_ref_label = QLabel()
-        self.repeat_penalty_ref_label.setStyleSheet("color: #666; font-size: 10px;")
-        penalty_layout.addWidget(self.repeat_penalty_ref_label)
-        penalty_layout.addStretch()
-        
+        penalty_layout, self.repeat_penalty_spin, self.repeat_penalty_ref_label = self.create_double_parameter_row(
+            0.5, 2.0, 0.1, 2, 1.1, 'repeat_penalty', lambda: self.use_default_parameter('repeat_penalty')
+        )
         params_layout.addRow(_("Repeat Penalty:"), penalty_layout)
         
         layout.addWidget(params_group)
@@ -294,12 +208,11 @@ class TemplateEditorDialog(QDialog):
         layout = QVBoxLayout(widget)
         
         # Template editor
-        editor_label = QLabel(_("Template Content (Jinja2 Format):"))
-        editor_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        editor_label = self.create_section_title(_("Template Content (Jinja2 Format)"), 10)
         layout.addWidget(editor_label)
         
         self.template_editor = QTextEdit()
-        self.template_editor.setFont(QFont("Consolas, Monaco, monospace", 10))
+        self.template_editor.setFont(self.font_manager.get_code_font(10))
         self.template_editor.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         self.template_editor.setPlaceholderText(_(
             "Enter your Jinja2 template here. Available variables:\n"
@@ -326,7 +239,7 @@ class TemplateEditorDialog(QDialog):
             "• {% for item in list %} ... {% endfor %} - Loops"
         ))
         help_text.setWordWrap(True)
-        help_text.setStyleSheet("color: #666666; padding: 5px;")
+        help_text.setStyleSheet(self.get_help_text_style())
         help_layout.addWidget(help_text)
         
         layout.addWidget(help_group)
@@ -341,21 +254,19 @@ class TemplateEditorDialog(QDialog):
         # Preview controls
         controls_layout = QHBoxLayout()
         
-        preview_btn = QPushButton(_("Update Preview"))
-        preview_btn.clicked.connect(self.update_preview)
+        preview_btn = self.create_custom_button(_("Update Preview"), self.update_preview, "secondary")
         controls_layout.addWidget(preview_btn)
         
         controls_layout.addStretch()
         layout.addLayout(controls_layout)
         
         # Preview content
-        preview_label = QLabel(_("Template Preview:"))
-        preview_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        preview_label = self.create_section_title(_("Template Preview"), 10)
         layout.addWidget(preview_label)
         
         self.preview_text = QTextEdit()
         self.preview_text.setReadOnly(True)
-        self.preview_text.setFont(QFont("Arial", 10))
+        self.preview_text.setFont(self.font_manager.get_font(10))
         layout.addWidget(self.preview_text)
         
         self.tab_widget.addTab(widget, _("Preview"))
@@ -364,33 +275,41 @@ class TemplateEditorDialog(QDialog):
         """Load template configuration data into UI."""
         try:
             # Metadata
-            self.name_edit.setText(self.template_config.metadata.name)
-            self.id_edit.setText(self.template_config.metadata.template_id)
-            self.description_edit.setPlainText(self.template_config.metadata.description)
+            metadata_fields = [
+                (self.name_edit, 'name'),
+                (self.id_edit, 'template_id'),
+                (self.version_edit, 'version'),
+                (self.author_edit, 'author')
+            ]
+            for field, attr in metadata_fields:
+                field.setText(getattr(self.template_config, attr, ''))
             
-            # Find and set category
-            index = self.category_combo.findText(self.template_config.metadata.category)
+            self.description_edit.setPlainText(self.template_config.description)
+            
+            # Set category
+            index = self.category_combo.findText(self.template_config.category)
             if index >= 0:
                 self.category_combo.setCurrentIndex(index)
             
-            self.version_edit.setText(self.template_config.metadata.version)
-            self.author_edit.setText(self.template_config.metadata.author)
-            self.tags_edit.setText(", ".join(self.template_config.metadata.tags))
+            self.tags_edit.setText(", ".join(self.template_config.tags))
             
             # Context config - using defaults since UI was removed
             
             # LLM params
-            params = self.template_config.llm_params
-            self.max_tokens_spin.setValue(params.max_tokens)
-            self.temperature_spin.setValue(params.temperature)
-            self.top_p_spin.setValue(params.top_p)
-            self.top_k_spin.setValue(params.top_k)
-            self.repeat_penalty_spin.setValue(params.repeat_penalty)
+            llm_params = [
+                (self.max_tokens_spin, 'max_tokens'),
+                (self.temperature_spin, 'temperature'),
+                (self.top_p_spin, 'top_p'),
+                (self.top_k_spin, 'top_k'),
+                (self.repeat_penalty_spin, 'repeat_penalty')
+            ]
+            for spin, attr in llm_params:
+                spin.setValue(getattr(self.template_config, attr))
             
-            if params.custom_params:
+            if self.template_config.custom_params:
                 import json
                 self.custom_params_edit.setPlainText(
-                    json.dumps(params.custom_params, indent=2, ensure_ascii=False)
+                    json.dumps(self.template_config.custom_params, indent=2, ensure_ascii=False)
                 )
             
             # UI config - using defaults since UI was removed
@@ -411,41 +330,48 @@ class TemplateEditorDialog(QDialog):
         """Save UI data back to template configuration."""
         try:
             # Metadata
-            self.template_config.metadata.name = self.name_edit.text().strip()
-            self.template_config.metadata.template_id = self.id_edit.text().strip()
-            self.template_config.metadata.description = self.description_edit.toPlainText().strip()
-            self.template_config.metadata.category = self.category_combo.currentText()
-            self.template_config.metadata.version = self.version_edit.text().strip() or "1.0"
-            self.template_config.metadata.author = self.author_edit.text().strip() or "User"
+            metadata_updates = [
+                ('name', self.name_edit.text().strip()),
+                ('template_id', self.id_edit.text().strip()),
+                ('description', self.description_edit.toPlainText().strip()),
+                ('category', self.category_combo.currentText()),
+                ('version', self.version_edit.text().strip() or "1.0"),
+                ('author', self.author_edit.text().strip() or "User")
+            ]
+            for attr, value in metadata_updates:
+                setattr(self.template_config, attr, value)
             
             # Parse tags
             tags_text = self.tags_edit.text().strip()
             if tags_text:
-                self.template_config.metadata.tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+                self.template_config.tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
             else:
-                self.template_config.metadata.tags = []
+                self.template_config.tags = []
             
             # Context config - keep defaults since UI was removed
             
             # LLM params
-            params = self.template_config.llm_params
-            params.max_tokens = self.max_tokens_spin.value()
-            params.temperature = self.temperature_spin.value()
-            params.top_p = self.top_p_spin.value()
-            params.top_k = self.top_k_spin.value()
-            params.repeat_penalty = self.repeat_penalty_spin.value()
+            llm_updates = [
+                ('max_tokens', self.max_tokens_spin.value()),
+                ('temperature', self.temperature_spin.value()),
+                ('top_p', self.top_p_spin.value()),
+                ('top_k', self.top_k_spin.value()),
+                ('repeat_penalty', self.repeat_penalty_spin.value())
+            ]
+            for attr, value in llm_updates:
+                setattr(self.template_config, attr, value)
             
             # Parse custom params
             custom_text = self.custom_params_edit.toPlainText().strip()
             if custom_text:
                 import json
                 try:
-                    params.custom_params = json.loads(custom_text)
+                    self.template_config.custom_params = json.loads(custom_text)
                 except json.JSONDecodeError as e:
                     QMessageBox.warning(self, _("Error"), _("Invalid JSON in custom parameters: {}").format(str(e)))
                     return False
             else:
-                params.custom_params = {}
+                self.template_config.custom_params = {}
             
             # UI config - keep defaults since UI was removed
             
@@ -503,7 +429,7 @@ class TemplateEditorDialog(QDialog):
             
             # Build enhanced context using the same chain as real execution
             enhanced_context = template_manager.build_enhanced_context(
-                self.template_config.metadata.template_id, 
+                self.template_config.template_id, 
                 context_data
             )
             
@@ -534,7 +460,7 @@ class TemplateEditorDialog(QDialog):
         if file_dialog.exec():
             filepath = Path(file_dialog.selectedFiles()[0])
             
-            template_config = EnhancedTemplateConfig.load_from_file(filepath)
+            template_config = TemplateConfig.load_from_file(filepath)
             if template_config:
                 self.template_config = template_config
                 self.load_template_data()
@@ -550,7 +476,7 @@ class TemplateEditorDialog(QDialog):
         from PySide6.QtWidgets import QInputDialog
         
         # Get new template ID from user
-        current_id = self.template_config.metadata.template_id
+        current_id = self.template_config.template_id
         new_id, ok = QInputDialog.getText(
             self,
             _("Save as New Template"),
@@ -582,13 +508,13 @@ class TemplateEditorDialog(QDialog):
             # Create copy of current template with new ID
             import copy
             new_template = copy.deepcopy(self.template_config)
-            new_template.metadata.template_id = new_id
+            new_template.template_id = new_id
             
             # Suggest new name based on ID
-            if new_template.metadata.name:
-                new_template.metadata.name = f"{new_template.metadata.name} (Copy)"
+            if new_template.name:
+                new_template.name = f"{new_template.name} (Copy)"
             else:
-                new_template.metadata.name = new_id.replace('_', ' ').title()
+                new_template.name = new_id.replace('_', ' ').title()
             
             # Save new template to manager
             success = template_manager.add_template(new_template, save_to_file=True)
@@ -598,7 +524,7 @@ class TemplateEditorDialog(QDialog):
                     self,
                     _("Success"),
                     _("New template '{}' created successfully!\n\nTemplate ID: {}").format(
-                        new_template.metadata.name,
+                        new_template.name,
                         new_id
                     )
                 )
@@ -624,7 +550,7 @@ class TemplateEditorDialog(QDialog):
             success = template_manager.add_template(self.template_config, save_to_file=True)
             
             if success:
-                self.template_saved.emit(self.template_config.metadata.template_id)
+                self.template_saved.emit(self.template_config.template_id)
                 self.accept()
             else:
                 QMessageBox.critical(self, _("Error"), _("Failed to save template."))
@@ -632,7 +558,7 @@ class TemplateEditorDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to save template: {}").format(str(e)))
     
-    def get_template_config(self) -> EnhancedTemplateConfig:
+    def get_template_config(self) -> TemplateConfig:
         """Get the current template configuration."""
         return self.template_config
     
@@ -644,12 +570,11 @@ class TemplateEditorDialog(QDialog):
         provider_name = self.llm_settings.get_current_provider()
         provider_display = self.llm_settings.get_provider_display_name(provider_name)
         
-        ref_info = QLabel(_("Current Provider: {}").format(provider_display))
-        ref_info.setStyleSheet("font-weight: bold; color: #333;")
+        ref_info = self.create_section_title(_("Current Provider: {}").format(provider_display), 11)
         ref_layout.addWidget(ref_info)
         
         help_text = QLabel(_("Template parameters override provider defaults. Click 'Use Default' to apply current provider settings."))
-        help_text.setStyleSheet("color: #666; font-size: 11px;")
+        help_text.setStyleSheet(self.get_muted_text_style())
         help_text.setWordWrap(True)
         ref_layout.addWidget(help_text)
         
@@ -716,3 +641,5 @@ class TemplateEditorDialog(QDialog):
             
         except Exception as e:
             self.logger.error(f"Error updating reference values: {e}")
+    
+    # Helper methods moved to BaseDialog

@@ -36,7 +36,7 @@ class ProjectPropertiesDialog(BaseDialog):
         """Setup the project properties dialog UI."""
         
         # Create tab widget for organizing properties
-        self.tab_widget = QTabWidget()
+        self.tab_widget = self.create_tab_widget()
         self.add_content_widget(self.tab_widget)
         
         # Create tabs
@@ -66,22 +66,19 @@ class ProjectPropertiesDialog(BaseDialog):
         scroll_layout = QFormLayout(scroll_widget)
         
         # Core Information Group
-        core_group = QGroupBox(_("Core Information"))
-        core_layout = QFormLayout(core_group)
+        core_group, core_layout = self.create_form_section(_("Core Information"))
         
         # Project Name (read-only, shows directory name)
-        self.name_label = QLabel()
-        self.name_label.setStyleSheet("color: #666; font-style: italic;")
+        self.name_label = self.create_info_label("", "muted")
+        self.name_label.setStyleSheet(self.get_muted_text_style() + "; font-style: italic;")
         core_layout.addRow(_("Project Name:"), self.name_label)
         
         # Display Title
-        self.title_edit = QLineEdit()
-        self.title_edit.setPlaceholderText(_("Enter project title..."))
+        self.title_edit = self.create_line_input(_("Enter project title..."))
         core_layout.addRow(_("Display Title:"), self.title_edit)
         
         # Author
-        self.author_edit = QLineEdit()
-        self.author_edit.setPlaceholderText(_("Enter author name..."))
+        self.author_edit = self.create_line_input(_("Enter author name..."))
         core_layout.addRow(_("Author:"), self.author_edit)
         
         # Genre
@@ -109,7 +106,7 @@ class ProjectPropertiesDialog(BaseDialog):
         
         # Language
         self.language_combo = QComboBox()
-        self.language_combo.addItems([
+        languages = [
             ("en", _("English")),
             ("pl", _("Polish")),
             ("de", _("German")),
@@ -119,33 +116,30 @@ class ProjectPropertiesDialog(BaseDialog):
             ("pt", _("Portuguese")),
             ("ru", _("Russian")),
             ("other", _("Other"))
-        ])
+        ]
+        for code, name in languages:
+            self.language_combo.addItem(name, code)
         core_layout.addRow(_("Language:"), self.language_combo)
         
         scroll_layout.addWidget(core_group)
         
         # Description Group
-        desc_group = QGroupBox(_("Description"))
-        desc_layout = QVBoxLayout(desc_group)
+        desc_group, desc_layout = self.create_form_section(_("Description"))
         
-        self.description_edit = QTextEdit()
-        self.description_edit.setPlaceholderText(_("Enter project description or synopsis..."))
+        self.description_edit = self.create_text_input(_("Enter project description or synopsis..."))
         self.description_edit.setMaximumHeight(120)
         desc_layout.addWidget(self.description_edit)
         
         scroll_layout.addWidget(desc_group)
         
         # Tags Group
-        tags_group = QGroupBox(_("Tags"))
-        tags_layout = QVBoxLayout(tags_group)
+        tags_group, tags_layout = self.create_form_section(_("Tags"))
         
-        self.tags_edit = QLineEdit()
-        self.tags_edit.setPlaceholderText(_("Enter tags separated by commas..."))
+        self.tags_edit = self.create_line_input(_("Enter tags separated by commas..."))
         tags_layout.addWidget(self.tags_edit)
         
-        tags_help = QLabel(_("Use tags to categorize and organize your projects"))
-        tags_help.setFont(QFont("Arial", 8))
-        tags_help.setStyleSheet("color: #666;")
+        tags_help = self.create_info_label(_("Use tags to categorize and organize your projects"), "muted")
+        tags_help.setFont(self.font_manager.get_font(8))
         tags_layout.addWidget(tags_help)
         
         scroll_layout.addWidget(tags_group)
@@ -166,12 +160,11 @@ class ProjectPropertiesDialog(BaseDialog):
         scroll_layout = QFormLayout(scroll_widget)
         
         # Writing Progress Group
-        progress_group = QGroupBox(_("Writing Progress"))
-        progress_layout = QFormLayout(progress_group)
+        progress_group, progress_layout = self.create_form_section(_("Writing Progress"))
         
         # Status
         self.status_combo = QComboBox()
-        self.status_combo.addItems([
+        statuses = [
             (_("Draft"), "draft"),
             (_("In Progress"), "in_progress"),
             (_("First Draft Complete"), "first_draft"),
@@ -182,7 +175,9 @@ class ProjectPropertiesDialog(BaseDialog):
             (_("Published"), "published"),
             (_("On Hold"), "on_hold"),
             (_("Abandoned"), "abandoned")
-        ])
+        ]
+        for display_name, value in statuses:
+            self.status_combo.addItem(display_name, value)
         progress_layout.addRow(_("Status:"), self.status_combo)
         
         # Target Word Count
@@ -195,8 +190,7 @@ class ProjectPropertiesDialog(BaseDialog):
         scroll_layout.addWidget(progress_group)
         
         # Writing Goals Group
-        goals_group = QGroupBox(_("Writing Goals"))
-        goals_layout = QFormLayout(goals_group)
+        goals_group, goals_layout = self.create_form_section(_("Writing Goals"))
         
         # Daily Word Goal
         self.daily_word_goal_spin = QSpinBox()
@@ -230,17 +224,14 @@ class ProjectPropertiesDialog(BaseDialog):
         scroll_layout = QFormLayout(scroll_widget)
         
         # Publishing Information Group
-        pub_group = QGroupBox(_("Publishing Information"))
-        pub_layout = QFormLayout(pub_group)
+        pub_group, pub_layout = self.create_form_section(_("Publishing Information"))
         
         # Publisher
-        self.publisher_edit = QLineEdit()
-        self.publisher_edit.setPlaceholderText(_("Enter publisher name..."))
+        self.publisher_edit = self.create_line_input(_("Enter publisher name..."))
         pub_layout.addRow(_("Publisher:"), self.publisher_edit)
         
         # ISBN
-        self.isbn_edit = QLineEdit()
-        self.isbn_edit.setPlaceholderText(_("Enter ISBN..."))
+        self.isbn_edit = self.create_line_input(_("Enter ISBN..."))
         pub_layout.addRow(_("ISBN:"), self.isbn_edit)
         
         # Publication Date
@@ -253,11 +244,9 @@ class ProjectPropertiesDialog(BaseDialog):
         scroll_layout.addWidget(pub_group)
         
         # Copyright Group
-        copyright_group = QGroupBox(_("Copyright"))
-        copyright_layout = QVBoxLayout(copyright_group)
+        copyright_group, copyright_layout = self.create_form_section(_("Copyright"))
         
-        self.copyright_edit = QTextEdit()
-        self.copyright_edit.setPlaceholderText(_("Enter copyright information..."))
+        self.copyright_edit = self.create_text_input(_("Enter copyright information..."))
         self.copyright_edit.setMaximumHeight(80)
         copyright_layout.addWidget(self.copyright_edit)
         
@@ -279,31 +268,27 @@ class ProjectPropertiesDialog(BaseDialog):
         scroll_layout = QVBoxLayout(scroll_widget)
         
         # Editor Settings Group
-        editor_group = QGroupBox(_("Editor Settings"))
-        editor_layout = QVBoxLayout(editor_group)
+        editor_group, editor_layout = self.create_form_section(_("Editor Settings"))
         
         # Default Scene Template
         template_label = QLabel(_("Default Scene Template:"))
         editor_layout.addWidget(template_label)
         
-        self.scene_template_edit = QTextEdit()
-        self.scene_template_edit.setPlaceholderText(_("Enter default RTF template for new scenes..."))
+        self.scene_template_edit = self.create_text_input(_("Enter default RTF template for new scenes..."))
         self.scene_template_edit.setMaximumHeight(100)
         editor_layout.addWidget(self.scene_template_edit)
         
         scroll_layout.addWidget(editor_group)
         
         # Backup Settings Group
-        backup_group = QGroupBox(_("Backup Settings"))
-        backup_layout = QVBoxLayout(backup_group)
+        backup_group, backup_layout = self.create_form_section(_("Backup Settings"))
         
         self.auto_backup_check = QCheckBox(_("Enable automatic backups"))
         self.auto_backup_check.setChecked(True)
         backup_layout.addWidget(self.auto_backup_check)
         
-        backup_help = QLabel(_("Automatically create backups of your project"))
-        backup_help.setFont(QFont("Arial", 8))
-        backup_help.setStyleSheet("color: #666;")
+        backup_help = self.create_info_label(_("Automatically create backups of your project"), "muted")
+        backup_help.setFont(self.font_manager.get_font(8))
         backup_layout.addWidget(backup_help)
         
         scroll_layout.addWidget(backup_group)

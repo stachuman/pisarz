@@ -150,19 +150,24 @@ class Workspace(QWidget):
         if self.locations_grid_view is None:
             self.locations_grid_view = LocationsGridView(location_manager, project_id, scene_manager)
             self.locations_grid_view.location_selected.connect(self.locationSelectedFromGrid.emit)
-            # Connect new location signal to our signal
-            self.locations_grid_view.new_location_button.clicked.connect(
-                lambda: self.newLocationRequestedFromGrid.emit("")
+            # Connect new location signal to our signal - now using newItemRequested from BaseGridView
+            self.locations_grid_view.newItemRequested.connect(
+                lambda title: self.newLocationRequestedFromGrid.emit(title)
             )
             self.workspace_stack.addWidget(self.locations_grid_view)
     
-    def show_locations_grid(self, location_manager=None, project_id=None, scene_manager=None):
+    def show_locations_grid(self, locations=None, location_manager=None, project_id=None, scene_manager=None):
         """Pokaż widok kafelków lokacji."""
         if location_manager and project_id:
             self.initialize_locations_grid(location_manager, project_id, scene_manager)
         
         if self.locations_grid_view:
-            self.locations_grid_view.refresh_locations()
+            if locations is not None:
+                # Load passed locations data (like characters grid does)
+                self.locations_grid_view.load_items(locations)
+            else:
+                # Fallback to refresh_locations() for backward compatibility
+                self.locations_grid_view.refresh_locations()
             # Find the index of locations grid view
             for i in range(self.workspace_stack.count()):
                 if self.workspace_stack.widget(i) is self.locations_grid_view:

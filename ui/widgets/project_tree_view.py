@@ -8,7 +8,8 @@ from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor, QPen, QAction
 from datetime import datetime
 from typing import Optional
 
-from ..styles.styles import HEADER_COLOR, NEW_SCENE_BUTTON_STYLE
+from ..styles.styles import HEADER_COLOR
+from ..base.enhanced_theme_manager import EnhancedThemeManager
 from core.logging_config import get_logger
 from i18n import _
 
@@ -42,7 +43,9 @@ class ProjectTreeView(QWidget):
         self.project_title_label = None
         self.logger = get_logger(__name__)
         self.narrative_context_manager = None  # Will be set externally
+        self.theme_manager = EnhancedThemeManager()
         self.setup_ui()
+        self.apply_theme()
         
     def setup_ui(self):
         """Konfiguracja drzewka nawigacji."""
@@ -53,42 +56,16 @@ class ProjectTreeView(QWidget):
         # Nagłówek z nazwą projektu
         header_layout = QHBoxLayout()
         
-        back_btn = QPushButton("← Projekty")
-        back_btn.clicked.connect(self.backToProjectsRequested.emit)
-        back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #95a5a6;
-                color: white;
-                border: none;
-                padding: 5px 10px;
-                border-radius: 3px;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: #7f8c8d;
-            }
-        """)
-        header_layout.addWidget(back_btn)
+        self.back_btn = QPushButton("← " + _("Projects"))
+        self.back_btn.clicked.connect(self.backToProjectsRequested.emit)
+        header_layout.addWidget(self.back_btn)
         
         header_layout.addStretch()
         
         # Project properties button
-        properties_btn = QPushButton("⚙️ " + _("Properties"))
-        properties_btn.clicked.connect(self.projectPropertiesRequested.emit)
-        properties_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                padding: 5px 10px;
-                border-radius: 3px;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-        """)
-        header_layout.addWidget(properties_btn)
+        self.properties_btn = QPushButton("⚙️ " + _("Properties"))
+        self.properties_btn.clicked.connect(self.projectPropertiesRequested.emit)
+        header_layout.addWidget(self.properties_btn)
         
         layout.addLayout(header_layout)
         
@@ -112,55 +89,20 @@ class ProjectTreeView(QWidget):
         layout.addLayout(self.actions_layout)
         
         # Przycisk nowa scena
-        self.new_scene_btn = QPushButton("+ Nowa Scena")
+        self.new_scene_btn = QPushButton(_("New Scene"))
         self.new_scene_btn.clicked.connect(self._on_new_scene_clicked)
-        self.new_scene_btn.setStyleSheet(NEW_SCENE_BUTTON_STYLE)
         self.actions_layout.addWidget(self.new_scene_btn)
         
         # Przycisk nowa postać (future)
         self.new_character_btn = QPushButton(_("New Character"))
         self.new_character_btn.clicked.connect(self._on_new_character_clicked)
         self.new_character_btn.setEnabled(True)
-        self.new_character_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f39c12;
-                color: white;
-                border: none;
-                padding: 8px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #e67e22;
-            }
-            QPushButton:disabled {
-                background-color: #bdc3c7;
-                color: #7f8c8d;
-            }
-        """)
         self.actions_layout.addWidget(self.new_character_btn)
         
         # Przycisk nowa lokacja
         self.new_location_btn = QPushButton(_("New Location"))
         self.new_location_btn.clicked.connect(self._on_new_location_clicked)
         self.new_location_btn.setEnabled(True)
-        self.new_location_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #27ae60;
-                color: white;
-                border: none;
-                padding: 8px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #229954;
-            }
-            QPushButton:disabled {
-                background-color: #bdc3c7;
-                color: #7f8c8d;
-            }
-        """)
         self.actions_layout.addWidget(self.new_location_btn)
         
         self._setup_tree_structure()
@@ -451,7 +393,7 @@ class ProjectTreeView(QWidget):
             # Determine context status and appropriate icon
             context_status = self._get_scene_context_status(scene)
             
-            scene_item = QTreeWidgetItem([scene.get("title", "Bez tytułu")])
+            scene_item = QTreeWidgetItem([scene.get("title", _("Untitled"))])
             scene_item.setIcon(0, self._create_icon(context_status))
             
             # Enhanced tooltip with context information
@@ -480,7 +422,7 @@ class ProjectTreeView(QWidget):
             self.scenes_item.addChild(scene_item)
             
         if not scenes:
-            empty_item = QTreeWidgetItem(["(brak scen)"])
+            empty_item = QTreeWidgetItem([_("(no scenes)")])
             empty_item.setIcon(0, self._create_icon("empty"))
             empty_item.setData(0, Qt.ItemDataRole.UserRole, {"type": "empty"})
             empty_item.setDisabled(True)
@@ -554,6 +496,57 @@ class ProjectTreeView(QWidget):
         if selected_data:
             self._restore_selection(selected_data)
             
+    def apply_theme(self):
+        """Apply standard theme styling to all buttons."""
+        colors = self.theme_manager.get_theme_colors()
+        
+        # Standard button style for all action buttons
+        button_style = f"""
+            QPushButton {{
+                background-color: {colors["accent"]};
+                color: white;
+                border: 1px solid {colors["accent"]};
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {colors["accent_hover"]};
+            }}
+            QPushButton:pressed {{
+                background-color: {colors["accent_pressed"]};
+            }}
+            QPushButton:disabled {{
+                background-color: {colors["border"]};
+                color: {colors["secondary_text"]};
+            }}
+        """
+        
+        # Secondary button style for navigation buttons
+        secondary_button_style = f"""
+            QPushButton {{
+                background-color: {colors["secondary_button"]};
+                color: white;
+                border: 1px solid {colors["secondary_button"]};
+                border-radius: 3px;
+                padding: 5px 10px;
+                font-size: 12px;
+            }}
+            QPushButton:hover {{
+                background-color: {colors["secondary_button_hover"]};
+            }}
+            QPushButton:pressed {{
+                background-color: {colors["secondary_button_pressed"]};
+            }}
+        """
+        
+        # Apply styles to buttons
+        self.back_btn.setStyleSheet(secondary_button_style)
+        self.properties_btn.setStyleSheet(button_style)
+        self.new_scene_btn.setStyleSheet(button_style)
+        self.new_character_btn.setStyleSheet(button_style)
+        self.new_location_btn.setStyleSheet(button_style)
+    
     def _restore_selection(self, selected_data):
         """Przywróć selekcję w drzewku."""
         self.tree.blockSignals(True)
@@ -682,7 +675,7 @@ class ProjectTreeView(QWidget):
             
     def _on_new_scene_clicked(self):
         """Obsługa kliknięcia przycisku nowa scena."""
-        title, ok = QInputDialog.getText(self, "Nowa Scena", "Tytuł sceny:")
+        title, ok = QInputDialog.getText(self, _("New Scene"), _("Scene title:"))
         if ok and title.strip():
             self.newSceneRequested.emit(title.strip())
             

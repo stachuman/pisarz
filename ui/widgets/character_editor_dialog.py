@@ -69,26 +69,21 @@ class CharacterEditorDialog(BaseDialog):
         layout = QVBoxLayout(tab)
         
         # === IDENTITY ===
-        identity_group = QGroupBox(_("Identity"))
-        identity_form = QFormLayout(identity_group)
+        identity_group, identity_form = self.create_form_section(_("Identity"))
         
-        self.name_edit = QLineEdit()
-        self.name_edit.setPlaceholderText(_("Enter character name..."))
+        self.name_edit = self.create_line_input(_("Enter character name..."))
         identity_form.addRow(_("Name") + "*:", self.name_edit)
 
-        self.full_name_edit = QLineEdit()
-        self.full_name_edit.setPlaceholderText(_("Full legal name"))
+        self.full_name_edit = self.create_line_input(_("Full legal name"))
         identity_form.addRow(_("Full Name") + ":", self.full_name_edit)
         
-        self.alias_edit = QLineEdit()
-        self.alias_edit.setPlaceholderText(_("Nickname, pseudonym, title"))
+        self.alias_edit = self.create_line_input(_("Nickname, pseudonym, title"))
         identity_form.addRow(_("Alias/Nickname") + ":", self.alias_edit)
         
         layout.addWidget(identity_group)
         
         # === DEMOGRAPHICS ===
-        demo_group = QGroupBox(_("Demographics"))
-        demo_form = QFormLayout(demo_group)
+        demo_group, demo_form = self.create_form_section(_("Demographics"))
         
         self.age_spin = QSpinBox()
         self.age_spin.setRange(0, 200)
@@ -102,19 +97,16 @@ class CharacterEditorDialog(BaseDialog):
         ])
         demo_form.addRow(_("Gender") + ":", self.gender_combo)
         
-        self.occupation_edit = QLineEdit()
-        self.occupation_edit.setPlaceholderText(_("Job, profession, role"))
+        self.occupation_edit = self.create_line_input(_("Job, profession, role"))
         demo_form.addRow(_("Occupation") + ":", self.occupation_edit)
         
-        self.location_edit = QLineEdit()
-        self.location_edit.setPlaceholderText(_("Where they live or come from"))
+        self.location_edit = self.create_line_input(_("Where they live or come from"))
         demo_form.addRow(_("Location") + ":", self.location_edit)
         
         layout.addWidget(demo_group)
         
         # === CHARACTER ROLE ===
-        role_group = QGroupBox(_("Character Role"))
-        role_layout = QVBoxLayout(role_group)
+        role_group, role_layout = self.create_form_section(_("Character Role"))
         
         importance_layout = QHBoxLayout()
         importance_layout.addWidget(QLabel(_("Importance") + ":"))
@@ -128,7 +120,7 @@ class CharacterEditorDialog(BaseDialog):
         ])
         importance_layout.addWidget(self.importance_combo)
         importance_layout.addStretch()
-        role_layout.addLayout(importance_layout)
+        role_layout.addRow(importance_layout)
         
         flags_layout = QHBoxLayout()
         self.protagonist_check = QCheckBox(_("Protagonist"))
@@ -136,7 +128,7 @@ class CharacterEditorDialog(BaseDialog):
         flags_layout.addWidget(self.protagonist_check)
         flags_layout.addWidget(self.antagonist_check)
         flags_layout.addStretch()
-        role_layout.addLayout(flags_layout)
+        role_layout.addRow(flags_layout)
         
         layout.addWidget(role_group)
         
@@ -178,9 +170,8 @@ class CharacterEditorDialog(BaseDialog):
         notes_group = QGroupBox(_("Character Notes"))
         notes_layout = QVBoxLayout(notes_group)
         
-        self.notes_edit = QTextEdit()
-        self.notes_edit.setPlaceholderText(_("Additional notes about the character, development ideas, story arc..."))
-        self.notes_edit.setFont(QFont("Arial", 10))
+        self.notes_edit = self.create_text_input(_("Additional notes about the character, development ideas, story arc..."))
+        self.notes_edit.setFont(self.font_manager.get_font(10))
         notes_layout.addWidget(self.notes_edit)
         
         layout.addWidget(notes_group)
@@ -199,8 +190,7 @@ class CharacterEditorDialog(BaseDialog):
         personality_group = QGroupBox(_("Personality"))
         personality_layout = QVBoxLayout(personality_group)
         
-        self.personality_edit = QTextEdit()
-        self.personality_edit.setPlaceholderText(_("Character traits, quirks, habits, behavioral patterns..."))
+        self.personality_edit = self.create_text_input(_("Character traits, quirks, habits, behavioral patterns..."))
         self.personality_edit.setMaximumHeight(100)
         personality_layout.addWidget(self.personality_edit)
         
@@ -210,8 +200,7 @@ class CharacterEditorDialog(BaseDialog):
         background_group = QGroupBox(_("Background"))
         background_layout = QVBoxLayout(background_group)
         
-        self.background_edit = QTextEdit()
-        self.background_edit.setPlaceholderText(_("Character history, upbringing, formative events, education..."))
+        self.background_edit = self.create_text_input(_("Character history, upbringing, formative events, education..."))
         self.background_edit.setMaximumHeight(100)
         background_layout.addWidget(self.background_edit)
         
@@ -221,8 +210,7 @@ class CharacterEditorDialog(BaseDialog):
         goals_group = QGroupBox(_("Goals & Motivations"))
         goals_layout = QVBoxLayout(goals_group)
         
-        self.goals_edit = QTextEdit()
-        self.goals_edit.setPlaceholderText(_("What they want, their aspirations, driving forces..."))
+        self.goals_edit = self.create_text_input(_("What they want, their aspirations, driving forces..."))
         self.goals_edit.setMaximumHeight(80)
         goals_layout.addWidget(self.goals_edit)
         
@@ -232,8 +220,7 @@ class CharacterEditorDialog(BaseDialog):
         conflicts_group = QGroupBox(_("Conflicts & Challenges"))
         conflicts_layout = QVBoxLayout(conflicts_group)
         
-        self.conflicts_edit = QTextEdit()
-        self.conflicts_edit.setPlaceholderText(_("Internal conflicts, external obstacles, fears, weaknesses..."))
+        self.conflicts_edit = self.create_text_input(_("Internal conflicts, external obstacles, fears, weaknesses..."))
         self.conflicts_edit.setMaximumHeight(80)
         conflicts_layout.addWidget(self.conflicts_edit)
         
@@ -243,8 +230,7 @@ class CharacterEditorDialog(BaseDialog):
         relationships_group = QGroupBox(_("Key Relationships"))
         relationships_layout = QVBoxLayout(relationships_group)
         
-        self.relationships_edit = QTextEdit()
-        self.relationships_edit.setPlaceholderText(_("Important connections with other characters, family, friends..."))
+        self.relationships_edit = self.create_text_input(_("Important connections with other characters, family, friends..."))
         self.relationships_edit.setMaximumHeight(80)
         relationships_layout.addWidget(self.relationships_edit)
         
@@ -293,16 +279,12 @@ class CharacterEditorDialog(BaseDialog):
         # Scene action buttons
         scene_buttons_layout = QHBoxLayout()
         
-        self.edit_scene_role_btn = QPushButton(_("Edit Role"))
+        self.edit_scene_role_btn = self.create_custom_button(_("Edit Role"), self.edit_scene_role, "secondary")
         self.edit_scene_role_btn.setEnabled(False)
-        self.edit_scene_role_btn.clicked.connect(self.edit_scene_role)
-        # Remove custom styling to use global professional theme
         scene_buttons_layout.addWidget(self.edit_scene_role_btn)
         
-        self.remove_scene_btn = QPushButton(_("Remove Scene"))
+        self.remove_scene_btn = self.create_custom_button(_("Remove Scene"), self.remove_scene_from_character, "secondary")
         self.remove_scene_btn.setEnabled(False)
-        self.remove_scene_btn.clicked.connect(self.remove_scene_from_character)
-        # Remove custom styling to use global professional theme
         scene_buttons_layout.addWidget(self.remove_scene_btn)
         
         scene_buttons_layout.addStretch()

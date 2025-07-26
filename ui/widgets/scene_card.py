@@ -8,6 +8,7 @@ from PySide6.QtGui import QFont, QColor, QAction
 from ..styles.styles import SECONDARY_TEXT_COLOR, SEPARATOR_COLOR
 from ..styles.themes import ThemeManager
 from core.error_handler import get_error_handler, ErrorCategory
+from i18n import _
 
 
 class SceneCard(QFrame):
@@ -39,7 +40,7 @@ class SceneCard(QFrame):
         header_layout = QHBoxLayout()
         
         # Tytuł sceny
-        title_label = QLabel(self.scene_data.get("title", "Bez tytułu"))
+        title_label = QLabel(self.scene_data.get("title", _("Untitled")))
         title_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         title_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         title_label.setWordWrap(True)
@@ -80,7 +81,7 @@ class SceneCard(QFrame):
         if content and len(content) > 0:
             preview = content[:60] + "..." if len(content) > 60 else content
         else:
-            preview = "Pusta scena"
+            preview = _("Empty scene")
             
         preview_label = QLabel(preview)
         preview_label.setFont(QFont("Arial", 9))

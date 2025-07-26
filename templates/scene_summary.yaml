@@ -1,32 +1,18 @@
-context_config:
-  default_context_length: 89600
-  max_context_chars: 128000
-  scene_summary_length: 38400
-  scene_summary_source: full_scene
-  selection_priority: false
-  use_selection: false
-  word_boundary_trim: true
-format_version: '2.0'
-llm_params:
-  custom_params: {}
-  max_tokens: 64000
-  repeat_penalty: 1.15
-  temperature: 0.3
-  top_k: 30
-  top_p: 0.8
-metadata:
-  author: System
-  category: analysis
-  created_date: null
-  description: Generate a concise summary of the scene for reference
-  modified_date: null
-  name: Create Scene Summary
-  tags:
+# Metadata fields
+name: Create Scene Summary
+template_id: scene_summary
+description: Generate a concise summary of the scene for reference
+category: analysis
+version: '2.0'
+author: System
+created_date: null
+modified_date: null
+tags:
   - summary
   - analysis
   - reference
-  template_id: scene_summary
-  version: '2.0'
+
+# Template content
 template_content: |
   Stwórz zwięzłe streszczenie następującej sceny w języku Polskim.
 
@@ -60,10 +46,31 @@ template_content: |
   {{ scene_summary }}
 
   Napisz w formacie 2-3 akapitów, koncentrując się na najważniejszych elementach.
-ui_config:
-  allow_context_editing: false
-  auto_apply_selection: false
-  confirm_before_execution: false
-  preview_length: 100
-  show_context_preview: false
-  show_params_editor: false
+
+# Context configuration
+use_selection: false
+selection_priority: false
+default_context_length: 89600
+scene_summary_length: 38400
+scene_summary_source: full_scene
+max_context_chars: 128000
+word_boundary_trim: true
+
+# LLM parameters
+max_tokens: 64000
+temperature: 0.3
+top_p: 0.8
+top_k: 30
+repeat_penalty: 1.15
+custom_params: {}
+
+# UI configuration
+show_context_preview: false
+allow_context_editing: false
+preview_length: 100
+show_params_editor: false
+auto_apply_selection: false
+confirm_before_execution: false
+
+# Format version
+format_version: '3.0'

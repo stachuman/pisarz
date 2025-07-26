@@ -11,47 +11,46 @@ from PySide6.QtWidgets import (
     QSplitter, QFrame, QHeaderView, QTableWidget, QTableWidgetItem,
     QAbstractItemView, QWidget, QFormLayout
 )
+
+from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from typing import Optional, Dict, Any
 
 from core.logging_config import get_logger
-from core.llm.templates import get_template_manager, EnhancedTemplateConfig
+from core.llm.templates import get_template_manager, TemplateConfig
 from i18n import _
 
 
-class TemplatesListDialog(QDialog):
+class TemplatesListDialog(BaseDialog):
     """Dialog for managing templates list."""
     
     def __init__(self, parent=None):
-        super().__init__(parent)
         self.logger = get_logger("ui.templates_list")
         self.template_manager = get_template_manager()
         self.current_template = None
         
-        self.setWindowTitle(_("Templates Manager"))
-        self.setMinimumSize(800, 600)
-        self.resize(1000, 700)
+        super().__init__(
+            title=_("Templates Manager"),
+            width=1000,
+            height=700,
+            modal=True,
+            parent=parent
+        )
         
         self.setup_ui()
         self.refresh_templates_list()
         
     def setup_ui(self):
         """Setup the user interface."""
-        layout = QVBoxLayout(self)
-        
         # Title
         title_label = QLabel(_("Templates Manager"))
-        title_font = QFont()
-        title_font.setPointSize(14)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
+        title_label.setFont(self.font_manager.get_font(14, bold=True))
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        self.add_content_widget(title_label)
         
         # Main content splitter
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
-        layout.addWidget(main_splitter)
         
         # Left panel - Templates list
         left_panel = self.create_templates_list_panel()
@@ -63,46 +62,35 @@ class TemplatesListDialog(QDialog):
         
         # Set splitter proportions
         main_splitter.setSizes([350, 650])
+        self.add_content_widget(main_splitter)
         
-        # Button bar
-        button_layout = QHBoxLayout()
-        
+        # Buttons using BaseDialog functionality
         # Left side buttons
-        new_btn = QPushButton(_("New Template"))
-        new_btn.clicked.connect(self.create_new_template)
-        button_layout.addWidget(new_btn)
+        new_btn = self.create_custom_button(_("New Template"), self.create_new_template, "primary")
+        self.add_button(new_btn)
         
-        edit_btn = QPushButton(_("Edit Template"))
-        edit_btn.clicked.connect(self.edit_selected_template)
-        button_layout.addWidget(edit_btn)
-        self.edit_btn = edit_btn
+        self.edit_btn = self.create_custom_button(_("Edit Template"), self.edit_selected_template, "secondary")
+        self.add_button(self.edit_btn)
         
-        delete_btn = QPushButton(_("Delete Template"))
-        delete_btn.clicked.connect(self.delete_selected_template)
-        button_layout.addWidget(delete_btn)
-        self.delete_btn = delete_btn
+        self.delete_btn = self.create_custom_button(_("Delete Template"), self.delete_selected_template, "secondary")
+        self.add_button(self.delete_btn)
         
-        button_layout.addStretch()
+        self.add_button_stretch()
         
         # Right side buttons
-        refresh_btn = QPushButton(_("Refresh"))
-        refresh_btn.clicked.connect(self.refresh_templates_list)
-        button_layout.addWidget(refresh_btn)
+        refresh_btn = self.create_custom_button(_("Refresh"), self.refresh_templates_list, "secondary")
+        self.add_button(refresh_btn)
         
-        close_btn = QPushButton(_("Close"))
-        close_btn.clicked.connect(self.close)
+        close_btn = self.create_custom_button(_("Close"), self.close, "secondary")
         close_btn.setDefault(True)
-        button_layout.addWidget(close_btn)
-        
-        layout.addLayout(button_layout)
+        self.add_button(close_btn)
         
         # Initially disable edit/delete buttons
         self.update_buttons_state()
         
     def create_templates_list_panel(self):
         """Create the templates list panel."""
-        panel = QGroupBox(_("Available Templates"))
-        layout = QVBoxLayout(panel)
+        panel, layout = self.create_form_section(_("Available Templates"))
         
         # Templates list widget
         self.templates_list = QListWidget()
@@ -118,8 +106,7 @@ class TemplatesListDialog(QDialog):
         
     def create_template_details_panel(self):
         """Create the template details panel."""
-        panel = QGroupBox(_("Template Details"))
-        layout = QVBoxLayout(panel)
+        panel, layout = self.create_form_section(_("Template Details"))
         
         # Create form layout for template info
         form_widget = QWidget()
@@ -148,7 +135,7 @@ class TemplatesListDialog(QDialog):
         desc_label = QLabel(_("Description:"))
         layout.addWidget(desc_label)
         
-        self.description_text = QTextEdit()
+        self.description_text = self.create_text_input(_("No description available"))
         self.description_text.setReadOnly(True)
         self.description_text.setMaximumHeight(100)
         layout.addWidget(self.description_text)
@@ -157,9 +144,9 @@ class TemplatesListDialog(QDialog):
         content_label = QLabel(_("Template Content (Preview):"))
         layout.addWidget(content_label)
         
-        self.template_content_preview = QTextEdit()
+        self.template_content_preview = self.create_text_input(_("No template selected"))
         self.template_content_preview.setReadOnly(True)
-        self.template_content_preview.setFont(QFont("Consolas", 9))
+        self.template_content_preview.setFont(self.font_manager.get_font(9, family="Consolas"))
         layout.addWidget(self.template_content_preview)
         
         return panel
@@ -237,20 +224,18 @@ class TemplatesListDialog(QDialog):
             
         self.update_buttons_state()
         
-    def display_template_details(self, template_config: EnhancedTemplateConfig):
+    def display_template_details(self, template_config: TemplateConfig):
         """Display template details in the right panel."""
         try:
-            metadata = template_config.metadata
-            
-            # Update labels
-            self.name_label.setText(metadata.name or "-")
-            self.id_label.setText(metadata.template_id or "-")
-            self.version_label.setText(metadata.version or "-")
-            self.author_label.setText(metadata.author or "-")
-            self.category_label.setText(metadata.category or "-")
+            # Update labels using flat attributes
+            self.name_label.setText(template_config.name or "-")
+            self.id_label.setText(template_config.template_id or "-")
+            self.version_label.setText(template_config.version or "-")
+            self.author_label.setText(template_config.author or "-")
+            self.category_label.setText(template_config.category or "-")
             
             # Description
-            description = metadata.description or _("No description available")
+            description = template_config.description or _("No description available")
             self.description_text.setText(description)
             
             # Template content preview (first 500 characters)
@@ -290,8 +275,8 @@ class TemplatesListDialog(QDialog):
             
             # Create default template
             new_template = create_default_template()
-            new_template.metadata.template_id = "new_template"
-            new_template.metadata.name = "New Template"
+            new_template.template_id = "new_template"
+            new_template.name = "New Template"
             
             # Open editor
             dialog = TemplateEditorDialog(new_template, self)
@@ -330,8 +315,8 @@ class TemplatesListDialog(QDialog):
         if not self.current_template:
             return
             
-        template_name = self.current_template.metadata.name
-        template_id = self.current_template.metadata.template_id
+        template_name = self.current_template.name
+        template_id = self.current_template.template_id
         
         # Confirmation dialog
         result = QMessageBox.question(

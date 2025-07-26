@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QGroupBox, QFormLayout, QMessageBox, QHeaderView, QMenu, QDialog,
     QDialogButtonBox, QCheckBox
 )
+
+from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QAction, QFont
 
@@ -22,31 +24,33 @@ from core.database.narrative_context_repository import NarrativeContextManager
 from i18n import _
 
 
-class NarrativeContextDialog(QDialog):
+class NarrativeContextDialog(BaseDialog):
     """Dialog for editing narrative context entries."""
     
     def __init__(self, context_data: Optional[Dict[str, Any]] = None, parent=None):
-        super().__init__(parent)
         self.context_data = context_data
         self.is_edit_mode = context_data is not None
         
+        title = _("Edit Context") if self.is_edit_mode else _("New Context")
+        super().__init__(
+            title=title,
+            width=500,
+            height=400,
+            modal=True,
+            parent=parent
+        )
+        
         self.setup_ui()
         self.load_data()
-        
-        title = _("Edit Context") if self.is_edit_mode else _("New Context")
-        self.setWindowTitle(title)
-        self.setMinimumSize(500, 400)
     
     def setup_ui(self):
         """Setup the user interface."""
-        layout = QVBoxLayout(self)
-        
-        # Form layout
-        form_layout = QFormLayout()
+        # Form section for context details
+        form_group, form_layout = self.create_form_section(_("Context Details"))
         
         # Context type
         self.type_combo = QComboBox()
-        self.type_combo.addItems([
+        context_types = [
             "scene_summary",
             "character_state", 
             "plot_point",
@@ -55,15 +59,16 @@ class NarrativeContextDialog(QDialog):
             "timeline_event",
             "ai_response",
             "custom"
-        ])
+        ]
+        self.type_combo.addItems(context_types)
         form_layout.addRow(_("Type:"), self.type_combo)
         
         # Title
-        self.title_edit = QLineEdit()
+        self.title_edit = self.create_line_input(_("Enter context title..."))
         form_layout.addRow(_("Title:"), self.title_edit)
         
         # Content
-        self.content_edit = QTextEdit()
+        self.content_edit = self.create_text_input(_("Enter context content..."))
         self.content_edit.setMinimumHeight(200)
         form_layout.addRow(_("Content:"), self.content_edit)
         
@@ -72,15 +77,17 @@ class NarrativeContextDialog(QDialog):
         self.active_checkbox.setChecked(True)
         form_layout.addRow("", self.active_checkbox)
         
-        layout.addLayout(form_layout)
+        self.add_content_widget(form_group)
         
-        # Buttons
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        button_box.accepted.connect(self.accept)
-        button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
+        # Buttons using BaseDialog functionality
+        self.add_button_stretch()
+        
+        self.cancel_btn = self.create_custom_button(_("Cancel"), self.reject, "secondary")
+        self.add_button(self.cancel_btn)
+        
+        self.save_btn = self.create_custom_button(_("Save"), self.accept, "primary")
+        self.save_btn.setDefault(True)
+        self.add_button(self.save_btn)
     
     def load_data(self):
         """Load data from context_data if in edit mode."""
@@ -142,6 +149,7 @@ class NarrativeContextPanel(QWidget):
         title_label = QLabel(_("Narrative Context"))
         title_font = QFont()
         title_font.setBold(True)
+        title_font.setPointSize(12)
         title_label.setFont(title_font)
         layout.addWidget(title_label)
         

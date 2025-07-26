@@ -7,8 +7,8 @@ from PySide6.QtGui import QFont
 
 from .project_card import ProjectCard
 from .scene_card import SceneCard
-from ..styles.styles import (HEADER_COLOR, NEW_PROJECT_BUTTON_STYLE, 
-                           NEW_SCENE_BUTTON_STYLE, MUTED_TEXT_COLOR)
+from ..styles.styles import HEADER_COLOR, MUTED_TEXT_COLOR
+from ..base.enhanced_theme_manager import EnhancedThemeManager
 from i18n import _
 
 
@@ -22,14 +22,16 @@ class NavigationPanel(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.theme_manager = EnhancedThemeManager()
         self.setup_ui()
+        self.apply_theme()
         
     def setup_ui(self):
         """Konfiguracja panelu nawigacji."""
         layout = QVBoxLayout(self)
         
         # === PROJEKTY ===
-        projects_header = QLabel("PROJEKTY")
+        projects_header = QLabel(_("PROJECTS"))
         projects_header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         projects_header.setStyleSheet(HEADER_COLOR)
         layout.addWidget(projects_header)
@@ -45,13 +47,12 @@ class NavigationPanel(QWidget):
         layout.addWidget(self.projects_scroll)
         
         # Przycisk nowy projekt
-        new_project_btn = QPushButton("+ Nowy Projekt")
-        new_project_btn.clicked.connect(self._on_new_project_clicked)
-        new_project_btn.setStyleSheet(NEW_PROJECT_BUTTON_STYLE)
-        layout.addWidget(new_project_btn)
+        self.new_project_btn = QPushButton("+ " + _("New Project"))
+        self.new_project_btn.clicked.connect(self._on_new_project_clicked)
+        layout.addWidget(self.new_project_btn)
         
         # === SCENY ===
-        scenes_header = QLabel("SCENY")
+        scenes_header = QLabel(_("SCENES"))
         scenes_header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         scenes_header.setStyleSheet(HEADER_COLOR)
         layout.addWidget(scenes_header)
@@ -66,10 +67,9 @@ class NavigationPanel(QWidget):
         layout.addWidget(self.scenes_scroll)
         
         # Przycisk nowa scena
-        self.new_scene_btn = QPushButton("+ Nowa Scena")
+        self.new_scene_btn = QPushButton(_("New Scene"))
         self.new_scene_btn.clicked.connect(self._on_new_scene_clicked)
         self.new_scene_btn.setEnabled(False)
-        self.new_scene_btn.setStyleSheet(NEW_SCENE_BUTTON_STYLE)
         layout.addWidget(self.new_scene_btn)
         
     def load_projects(self, projects):
@@ -116,10 +116,38 @@ class NavigationPanel(QWidget):
         
     def _on_new_project_clicked(self):
         """Obsługa kliknięcia przycisku nowy projekt."""
-        name, ok = QInputDialog.getText(self, "Nowy Projekt", "Nazwa projektu:")
+        name, ok = QInputDialog.getText(self, _("New Project"), _("Project name:"))
         if ok and name.strip():
             self.newProjectRequested.emit(name.strip())
             
+    def apply_theme(self):
+        """Apply standard theme styling to buttons."""
+        colors = self.theme_manager.get_theme_colors()
+        
+        button_style = f"""
+            QPushButton {{
+                background-color: {colors["accent"]};
+                color: white;
+                border: 1px solid {colors["accent"]};
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {colors["accent_hover"]};
+            }}
+            QPushButton:pressed {{
+                background-color: {colors["accent_pressed"]};
+            }}
+            QPushButton:disabled {{
+                background-color: {colors["border"]};
+                color: {colors["secondary_text"]};
+            }}
+        """
+        
+        self.new_project_btn.setStyleSheet(button_style)
+        self.new_scene_btn.setStyleSheet(button_style)
+    
     def _on_new_scene_clicked(self):
         """Obsługa kliknięcia przycisku nowa scena."""
         title, ok = QInputDialog.getText(self, _("New Scene"), _("Scene title:"))

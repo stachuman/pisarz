@@ -1,32 +1,16 @@
-context_config:
-  default_context_length: 800
-  max_context_chars: 2500
-  scene_summary_length: 600
-  scene_summary_source: selection
-  selection_priority: true
-  use_selection: true
-  word_boundary_trim: true
-format_version: '2.0'
-llm_params:
-  custom_params: {}
-  max_tokens: 1200
-  repeat_penalty: 1.1
-  temperature: 0.7
-  top_k: 40
-  top_p: 0.9
-metadata:
-  author: System
-  category: editing
-  created_date: null
-  description: Rewrite the selected text with improved style and clarity
-  modified_date: null
-  name: Rewrite Scene
-  tags:
-  - editing
-  - rewrite
-  - improvement
-  template_id: rewrite_scene
-  version: '2.0'
+# Properly flattened template format v3.0
+name: Rewrite Scene
+template_id: rewrite_scene
+description: Rewrite the selected text with improved style and clarity
+category: editing
+version: '2.0'
+author: System
+created_date: null
+modified_date: null
+tags:
+- editing
+- rewrite
+- improvement
 template_content: 'Przepisz następujący fragment tekstu, poprawiając styl, płynność
   narracji i klarowność.
 
@@ -93,10 +77,23 @@ template_content: 'Przepisz następujący fragment tekstu, poprawiając styl, p�
   {{ scene_summary }}
 
   {% endif %}'
-ui_config:
-  allow_context_editing: true
-  auto_apply_selection: true
-  confirm_before_execution: true
-  preview_length: 200
-  show_context_preview: true
-  show_params_editor: true
+use_selection: true
+selection_priority: true
+default_context_length: 800
+scene_summary_length: 600
+scene_summary_source: selection
+max_context_chars: 2500
+word_boundary_trim: true
+max_tokens: 1200
+temperature: 0.7
+top_p: 0.9
+top_k: 40
+repeat_penalty: 1.1
+custom_params: {}
+show_context_preview: true
+allow_context_editing: true
+preview_length: 200
+show_params_editor: true
+auto_apply_selection: true
+confirm_before_execution: true
+format_version: '3.0'

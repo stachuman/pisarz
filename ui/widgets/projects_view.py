@@ -6,7 +6,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
 from .project_card import ProjectCard
-from ..styles.styles import HEADER_COLOR, NEW_PROJECT_BUTTON_STYLE, INFO_TEXT_COLOR
+from ..styles.styles import HEADER_COLOR, INFO_TEXT_COLOR
+from ..base.enhanced_theme_manager import EnhancedThemeManager
 from i18n import _
 
 
@@ -19,7 +20,9 @@ class ProjectsView(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.theme_manager = EnhancedThemeManager()
         self.setup_ui()
+        self.apply_theme()
         
     def setup_ui(self):
         """Konfiguracja widoku projektów."""
@@ -38,32 +41,16 @@ class ProjectsView(QWidget):
         header_layout.addStretch()
         
         # Przycisk ustawienia
-        settings_btn = QPushButton(_("Settings"))
-        settings_btn.clicked.connect(self._on_settings_clicked)
-        settings_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #95a5a6;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 11px;
-                margin-right: 10px;
-            }
-            QPushButton:hover {
-                background-color: #7f8c8d;
-            }
-        """)
-        settings_btn.setFixedSize(120, 40)
-        header_layout.addWidget(settings_btn)
+        self.settings_btn = QPushButton(_("Settings"))
+        self.settings_btn.clicked.connect(self._on_settings_clicked)
+        self.settings_btn.setFixedSize(120, 40)
+        header_layout.addWidget(self.settings_btn)
         
         # Przycisk nowy projekt
-        new_project_btn = QPushButton(_("New Project"))
-        new_project_btn.clicked.connect(self._on_new_project_clicked)
-        new_project_btn.setStyleSheet(NEW_PROJECT_BUTTON_STYLE)
-        new_project_btn.setFixedSize(150, 40)
-        header_layout.addWidget(new_project_btn)
+        self.new_project_btn = QPushButton(_("New Project"))
+        self.new_project_btn.clicked.connect(self._on_new_project_clicked)
+        self.new_project_btn.setFixedSize(150, 40)
+        header_layout.addWidget(self.new_project_btn)
         
         layout.addLayout(header_layout)
         
@@ -129,8 +116,54 @@ class ProjectsView(QWidget):
         """Obsługa kliknięcia przycisku ustawienia."""
         self.settingsRequested.emit()
         
+    def apply_theme(self):
+        """Apply standard theme styling to buttons."""
+        colors = self.theme_manager.get_theme_colors()
+        
+        # Primary button style for new project
+        primary_button_style = f"""
+            QPushButton {{
+                background-color: {colors["accent"]};
+                color: white;
+                border: 1px solid {colors["accent"]};
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {colors["accent_hover"]};
+            }}
+            QPushButton:pressed {{
+                background-color: {colors["accent_pressed"]};
+            }}
+        """
+        
+        # Secondary button style for settings
+        secondary_button_style = f"""
+            QPushButton {{
+                background-color: {colors["secondary_button"]};
+                color: white;
+                border: 1px solid {colors["secondary_button"]};
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-weight: bold;
+                font-size: 11px;
+                margin-right: 10px;
+            }}
+            QPushButton:hover {{
+                background-color: {colors["secondary_button_hover"]};
+            }}
+            QPushButton:pressed {{
+                background-color: {colors["secondary_button_pressed"]};
+            }}
+        """
+        
+        self.new_project_btn.setStyleSheet(primary_button_style)
+        self.settings_btn.setStyleSheet(secondary_button_style)
+    
     def refresh_theme(self):
         """Odśwież motywy wszystkich kafelków."""
+        self.apply_theme()
         for i in range(self.projects_grid.count()):
             item = self.projects_grid.itemAt(i)
             if item and hasattr(item.widget(), '_apply_theme_style'):

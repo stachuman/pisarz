@@ -9,13 +9,17 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QTextEdit, QScrollArea, QFrame, QSplitter, QProgressBar,
     QMessageBox, QApplication, QSizePolicy, QGroupBox, QToolButton,
-    QSpacerItem, QDialog
+    QSpacerItem, QDialog, QComboBox
 )
 from PySide6.QtCore import Qt, Signal, QTimer, QThread, QSize
 from PySide6.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon
 
 from core.logging_config import get_logger
 from controllers.app_llm_controller import AppLLMController
+from ui.widgets.enhanced_response_area import EnhancedResponseArea
+from ui.widgets.enhanced_task_button import EnhancedTaskButton
+from ui.managers.template_ui_manager import TemplateUIManager
+from core.llm.custom_prompt_manager import CustomPromptManager
 from i18n import _
 
 
@@ -49,283 +53,8 @@ class LLMTaskThread(QThread):
             self.error.emit(self.task_id, str(e))
 
 
-class EnhancedTaskButton(QPushButton):
-    """Enhanced button for LLM tasks with better visual feedback."""
-    
-    taskRequested = Signal(str)
-    
-    def __init__(self, task_id: str, task_name: str, task_description: str = "", parent=None):
-        super().__init__(task_name, parent)
-        self.task_id = task_id
-        self.task_name = task_name
-        self.task_description = task_description
-        self.is_executing = False
-        
-        self.setMinimumHeight(45)
-        self.setMaximumHeight(45)
-        self.setToolTip(task_description)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        
-        # Enhanced styling
-        self.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #5cb85c, stop: 1 #449d44);
-                color: white;
-                border: 1px solid #419241;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: bold;
-                font-size: 11pt;
-                text-align: center;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #6bc56b, stop: 1 #4cae4c);
-                border-color: #52b852;
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #449d44, stop: 1 #398a39);
-                border-color: #357a35;
-            }
-            QPushButton:disabled {
-                background: #e0e0e0;
-                color: #888888;
-                border-color: #cccccc;
-            }
-        """)
-        
-        self.clicked.connect(self._on_clicked)
-    
-    def _on_clicked(self):
-        """Handle button click."""
-        if not self.is_executing:
-            self.taskRequested.emit(self.task_id)
-    
-    def set_executing(self, executing: bool):
-        """Set button executing state with enhanced feedback."""
-        self.is_executing = executing
-        self.setEnabled(not executing)
-        
-        if executing:
-            self.setText(f"{self.task_name}...")
-            self.setStyleSheet("""
-                QPushButton {
-                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 #f0ad4e, stop: 1 #ec971f);
-                    color: white;
-                    border: 1px solid #eb9316;
-                    border-radius: 8px;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 11pt;
-                }
-            """)
-        else:
-            self.setText(self.task_name)
-            # Restore original style properly
-            self.setStyleSheet("""
-                QPushButton {
-                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 #5cb85c, stop: 1 #449d44);
-                    color: white;
-                    border: 1px solid #419241;
-                    border-radius: 8px;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 11pt;
-                    text-align: center;
-                }
-                QPushButton:hover {
-                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 #6bc56b, stop: 1 #4cae4c);
-                    border-color: #52b852;
-                }
-                QPushButton:pressed {
-                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 #449d44, stop: 1 #398a39);
-                    border-color: #357a35;
-                }
-                QPushButton:disabled {
-                    background: #e0e0e0;
-                    color: #888888;
-                    border-color: #cccccc;
-                }
-            """)
-
-
-class EnhancedResponseArea(QWidget):
-    """Enhanced response area with better text handling and controls."""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setup_ui()
-    
-    def setup_ui(self):
-        """Setup the enhanced response area with buttons on right."""
-        # Main horizontal layout
-        main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(8)
-        
-        # Left side: Text area with header
-        text_widget = QWidget()
-        text_layout = QVBoxLayout(text_widget)
-        text_layout.setContentsMargins(0, 0, 0, 0)
-        text_layout.setSpacing(4)
-        
-        # Compact header
-        header_layout = QHBoxLayout()
-        self.response_label = QLabel(_("AI Response"))
-        self.response_label.setStyleSheet("""
-            QLabel {
-                font-weight: bold; 
-                color: #2c3e50;
-                font-size: 10pt;
-                padding: 2px 0px;
-            }
-        """)
-        header_layout.addWidget(self.response_label)
-        
-        header_layout.addStretch()
-        
-        self.word_count_label = QLabel("0 words")
-        self.word_count_label.setStyleSheet("""
-            QLabel {
-                color: #6c757d;
-                font-size: 8pt;
-                font-style: italic;
-            }
-        """)
-        header_layout.addWidget(self.word_count_label)
-        text_layout.addLayout(header_layout)
-        
-        # Text area
-        self.response_text = QTextEdit()
-        self.response_text.setPlaceholderText(_("AI responses will appear here..."))
-        self.response_text.setReadOnly(True)
-        self.response_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.response_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #ffffff;
-                border: 1px solid #e9ecef;
-                border-radius: 4px;
-                padding: 8px;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 10pt;
-                selection-background-color: #007acc;
-                selection-color: white;
-            }
-            QTextEdit:focus {
-                border-color: #007acc;
-            }
-        """)
-        self.response_text.textChanged.connect(self.update_word_count)
-        text_layout.addWidget(self.response_text)
-        
-        main_layout.addWidget(text_widget)
-        
-        # Right side: Compact action buttons
-        buttons_widget = QWidget()
-        buttons_widget.setFixedWidth(80)
-        actions_layout = QVBoxLayout(buttons_widget)
-        actions_layout.setContentsMargins(0, 0, 0, 0)
-        actions_layout.setSpacing(4)
-        
-        # Copy button
-        self.copy_button = QPushButton(_("📋"))
-        self.copy_button.setEnabled(False)
-        self.copy_button.setToolTip(_("Copy response to clipboard"))
-        self.copy_button.setFixedSize(70, 30)
-        actions_layout.addWidget(self.copy_button)
-        
-        # Select All button
-        self.select_all_button = QPushButton(_("📝"))
-        self.select_all_button.setEnabled(False)
-        self.select_all_button.setToolTip(_("Select all response text"))
-        self.select_all_button.setFixedSize(70, 30)
-        self.select_all_button.clicked.connect(self.select_all_text)
-        actions_layout.addWidget(self.select_all_button)
-        
-        # Insert button
-        self.insert_button = QPushButton(_("📄"))
-        self.insert_button.setEnabled(False)
-        self.insert_button.setToolTip(_("Insert response into current document"))
-        self.insert_button.setFixedSize(70, 30)
-        actions_layout.addWidget(self.insert_button)
-        
-        # Add to Narrative Context button
-        self.add_to_narrative_button = QPushButton(_("📚"))
-        self.add_to_narrative_button.setEnabled(False)
-        self.add_to_narrative_button.setToolTip(_("Add response to Narrative Context"))
-        self.add_to_narrative_button.setFixedSize(70, 30)
-        actions_layout.addWidget(self.add_to_narrative_button)
-        
-        # Clear button
-        self.clear_button = QPushButton(_("🗑️"))
-        self.clear_button.setEnabled(False)
-        self.clear_button.setToolTip(_("Clear response area"))
-        self.clear_button.setFixedSize(70, 30)
-        actions_layout.addWidget(self.clear_button)
-        
-        actions_layout.addStretch()
-        main_layout.addWidget(buttons_widget)
-    
-    def set_response(self, text: str):
-        """Set response text and enable buttons."""
-        self.response_text.setPlainText(text)
-        self.copy_button.setEnabled(True)
-        self.select_all_button.setEnabled(True)
-        self.insert_button.setEnabled(True)
-        self.add_to_narrative_button.setEnabled(True)
-        self.clear_button.setEnabled(True)
-        self.update_word_count()
-    
-    def clear_response(self):
-        """Clear response and disable buttons."""
-        self.response_text.clear()
-        self.copy_button.setEnabled(False)
-        self.select_all_button.setEnabled(False)
-        self.insert_button.setEnabled(False)
-        self.add_to_narrative_button.setEnabled(False)
-        self.clear_button.setEnabled(False)
-        self.update_word_count()
-    
-    def append_chunk(self, chunk: str):
-        """Append streaming chunk to response text."""
-        # Move cursor to end and insert text
-        cursor = self.response_text.textCursor()
-        cursor.movePosition(QTextCursor.MoveOperation.End)
-        cursor.insertText(chunk)
-        self.response_text.setTextCursor(cursor)
-        
-        # Enable buttons on first chunk
-        if self.response_text.toPlainText().strip():
-            self.copy_button.setEnabled(True)
-            self.select_all_button.setEnabled(True)
-            self.insert_button.setEnabled(True)
-            self.add_to_narrative_button.setEnabled(True)
-            self.clear_button.setEnabled(True)
-        
-        # Update word count
-        self.update_word_count()
-        
-        # Auto-scroll to bottom
-        scrollbar = self.response_text.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
-    
-    def select_all_text(self):
-        """Select all text in response area."""
-        self.response_text.selectAll()
-        self.response_text.setFocus()
-    
-    def update_word_count(self):
-        """Update word count display."""
-        text = self.response_text.toPlainText()
-        word_count = len(text.split()) if text.strip() else 0
-        char_count = len(text)
-        self.word_count_label.setText(f"{word_count} words, {char_count} chars")
+# EnhancedTaskButton moved to ui/widgets/enhanced_task_button.py
+# EnhancedResponseArea moved to ui/widgets/enhanced_response_area.py
 
 
 class LLMAssistantPanel(QWidget):
@@ -349,6 +78,12 @@ class LLMAssistantPanel(QWidget):
         # Auto-save context info
         self.auto_save_scene_id: Optional[int] = None
         self.auto_save_template_name: Optional[str] = None
+        
+        # Template UI manager
+        self.template_ui_manager = TemplateUIManager(self)
+        
+        # Custom prompt manager
+        self.custom_prompt_manager = CustomPromptManager(self)
         
         self.setup_ui()
         self.setup_connections()
@@ -380,78 +115,61 @@ class LLMAssistantPanel(QWidget):
         controls_layout.setContentsMargins(8, 8, 8, 8)
         controls_layout.setSpacing(8)
         
+        # Create all sections
+        self._create_header_controls(controls_layout)
+        self._create_template_selection_controls(controls_layout)
+        self._create_content_source_controls(controls_layout)
+        self._create_action_controls(controls_layout)
+        self._create_execution_controls(controls_layout)
+        
+        controls_layout.addStretch()
+        return controls_widget
+    
+    def _create_header_controls(self, layout: QVBoxLayout):
+        """Create header controls (title, status, progress)."""
         # Compact title
         title_label = QLabel(_("🤖 AI Assistant"))
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #2c3e50;
-                font-size: 12pt;
-                font-weight: bold;
-                padding: 4px 8px;
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-            }
-        """)
-        controls_layout.addWidget(title_label)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_additional_style(title_label, 'ai_assistant_title')
+        layout.addWidget(title_label)
         
         # Status indicator
         self.status_label = QLabel(_("Ready"))
-        self.status_label.setStyleSheet("""
-            QLabel {
-                color: #28a745;
-                font-size: 9pt;
-                padding: 2px 6px;
-                background-color: #d4edda;
-                border: 1px solid #c3e6cb;
-                border-radius: 3px;
-            }
-        """)
-        controls_layout.addWidget(self.status_label)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_additional_style(self.status_label, 'ready_status')
+        layout.addWidget(self.status_label)
         
         # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         self.progress_bar.setMaximumHeight(4)
-        controls_layout.addWidget(self.progress_bar)
-        
-        # Task dropdown with refresh button
+        layout.addWidget(self.progress_bar)
+    
+    def _create_template_selection_controls(self, layout: QVBoxLayout):
+        """Create template selection controls (dropdown, refresh button)."""
         template_layout = QHBoxLayout()
         
-        from PySide6.QtWidgets import QComboBox
         self.task_combo = QComboBox()
-        self._load_available_templates()
-        self.task_combo.setStyleSheet("""
-            QComboBox {
-                padding: 6px;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                background-color: white;
-            }
-        """)
+        self.template_ui_manager.load_available_templates(self.task_combo)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_updated_control_section_style(self.task_combo, 'compact_task_combo')
         template_layout.addWidget(self.task_combo)
         
         # Refresh templates button
         self.refresh_templates_button = QPushButton("🔄")
         self.refresh_templates_button.setFixedSize(24, 24)
         self.refresh_templates_button.setToolTip(_("Refresh templates from disk"))
-        self.refresh_templates_button.clicked.connect(self.refresh_templates)
+        self.refresh_templates_button.clicked.connect(self._refresh_templates)
         template_layout.addWidget(self.refresh_templates_button)
         
-        controls_layout.addLayout(template_layout)
-        
-        # Content source selection
+        layout.addLayout(template_layout)
+    
+    def _create_content_source_controls(self, layout: QVBoxLayout):
+        """Create content source selection controls."""
         content_label = QLabel(_("Content Source:"))
-        content_label.setStyleSheet("""
-            QLabel {
-                color: #495057;
-                font-size: 9pt;
-                font-weight: bold;
-                margin-top: 8px;
-                margin-bottom: 2px;
-            }
-        """)
-        controls_layout.addWidget(content_label)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_updated_control_section_style(content_label, 'content_source_label')
+        layout.addWidget(content_label)
         
         self.content_source_combo = QComboBox()
         self.content_source_combo.addItems([
@@ -462,24 +180,20 @@ class LLMAssistantPanel(QWidget):
             _("Custom Length")
         ])
         self.content_source_combo.setCurrentIndex(0)  # Default to selection
-        self.content_source_combo.setStyleSheet("""
-            QComboBox {
-                padding: 4px 6px;
-                border: 1px solid #dee2e6;
-                border-radius: 3px;
-                background-color: white;
-                font-size: 9pt;
-            }
-        """)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_updated_control_section_style(self.content_source_combo, 'compact_content_source_combo')
         self.content_source_combo.setToolTip(_("Choose what content to pass to the AI template"))
-        controls_layout.addWidget(self.content_source_combo)
-        
-        # Edit template button
+        layout.addWidget(self.content_source_combo)
+    
+    def _create_action_controls(self, layout: QVBoxLayout):
+        """Create action controls (edit template button)."""
         self.edit_template_button = QPushButton(_("🛠️ Edit"))
         self.edit_template_button.setToolTip(_("Edit selected template"))
-        self.edit_template_button.clicked.connect(self.edit_selected_template)
-        controls_layout.addWidget(self.edit_template_button)
-        
+        self.edit_template_button.clicked.connect(self._edit_selected_template)
+        layout.addWidget(self.edit_template_button)
+    
+    def _create_execution_controls(self, layout: QVBoxLayout):
+        """Create execution controls (execute, streaming, stop buttons)."""
         # Execute buttons layout
         execute_layout = QHBoxLayout()
         
@@ -494,19 +208,16 @@ class LLMAssistantPanel(QWidget):
         self.execute_streaming_button.clicked.connect(self.execute_selected_task_streaming)
         execute_layout.addWidget(self.execute_streaming_button)
         
-        controls_layout.addLayout(execute_layout)
+        layout.addLayout(execute_layout)
         
         # Stop button (initially hidden)
         self.stop_button = QPushButton(_("⏹️ Stop"))
         self.stop_button.clicked.connect(self.stop_streaming_task)
         self.stop_button.setVisible(False)
-        controls_layout.addWidget(self.stop_button)
+        layout.addWidget(self.stop_button)
         
         # Keep compatibility with old buttons
         self.continue_button = self.execute_button  # For backward compatibility
-        
-        controls_layout.addStretch()
-        return controls_widget
     
     def create_header_section(self) -> QWidget:
         """Create the header section with title and status."""
@@ -522,17 +233,8 @@ class LLMAssistantPanel(QWidget):
         title_font.setPointSize(14)
         title_font.setBold(True)
         title_label.setFont(title_font)
-        title_label.setStyleSheet("""
-            QLabel {
-                color: #2c3e50;
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                    stop: 0 #f8f9fa, stop: 1 #e9ecef);
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 12px;
-                margin: 4px;
-            }
-        """)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_header_section_style(title_label, 'writing_assistant_title')
         header_layout.addWidget(title_label)
         
         # Status and progress section
@@ -542,17 +244,8 @@ class LLMAssistantPanel(QWidget):
         
         # Status indicator
         self.status_label = QLabel(_("Ready"))
-        self.status_label.setStyleSheet("""
-            QLabel {
-                color: #28a745;
-                font-size: 10pt;
-                font-weight: 500;
-                padding: 4px 8px;
-                background-color: #d4edda;
-                border: 1px solid #c3e6cb;
-                border-radius: 4px;
-            }
-        """)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_header_section_style(self.status_label, 'header_status_label')
         status_layout.addWidget(self.status_label)
         
         status_layout.addStretch()
@@ -561,18 +254,8 @@ class LLMAssistantPanel(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         self.progress_bar.setMaximumHeight(6)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: none;
-                border-radius: 3px;
-                background-color: #e9ecef;
-            }
-            QProgressBar::chunk {
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                    stop: 0 #007acc, stop: 1 #0056b3);
-                border-radius: 3px;
-            }
-        """)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_header_section_style(self.progress_bar, 'header_progress_bar')
         
         header_layout.addWidget(status_widget)
         header_layout.addWidget(self.progress_bar)
@@ -582,23 +265,8 @@ class LLMAssistantPanel(QWidget):
     def create_tasks_section(self) -> QWidget:
         """Create the tasks section with enhanced styling."""
         tasks_widget = QGroupBox(_("Writing Tasks"))
-        tasks_widget.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 11pt;
-                color: #495057;
-                border: 2px solid #dee2e6;
-                border-radius: 8px;
-                margin-top: 1ex;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 8px;
-                background-color: white;
-            }
-        """)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_tasks_section_style(tasks_widget, 'tasks_group_box')
         
         tasks_layout = QVBoxLayout(tasks_widget)
         tasks_layout.setContentsMargins(12, 20, 12, 12)
@@ -615,40 +283,15 @@ class LLMAssistantPanel(QWidget):
         
         # Template editor button
         self.template_editor_btn = QPushButton(_("🛠️ Edit Templates"))
-        self.template_editor_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #8e44ad;
-                color: white;
-                border: none;
-                padding: 10px 16px;
-                border-radius: 6px;
-                font-weight: bold;
-                font-size: 10pt;
-            }
-            QPushButton:hover {
-                background-color: #9b59b6;
-            }
-            QPushButton:pressed {
-                background-color: #7d3c98;
-            }
-        """)
-        self.template_editor_btn.clicked.connect(self.edit_selected_template)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_tasks_section_style(self.template_editor_btn, 'template_editor_button')
+        self.template_editor_btn.clicked.connect(self._edit_selected_template)
         tasks_layout.addWidget(self.template_editor_btn)
         
         # Placeholder for future tasks with better styling
         future_tasks_label = QLabel(_("✨ More AI writing tasks coming soon..."))
-        future_tasks_label.setStyleSheet("""
-            QLabel {
-                color: #6c757d;
-                font-size: 9pt;
-                font-style: italic;
-                text-align: center;
-                padding: 8px;
-                background-color: #f8f9fa;
-                border: 1px dashed #dee2e6;
-                border-radius: 6px;
-            }
-        """)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_tasks_section_style(future_tasks_label, 'future_tasks_placeholder')
         future_tasks_label.setAlignment(Qt.AlignCenter)
         tasks_layout.addWidget(future_tasks_label)
         
@@ -664,6 +307,9 @@ class LLMAssistantPanel(QWidget):
         self.response_area.clear_button.clicked.connect(self.clear_response)
         self.response_area.insert_button.clicked.connect(self.insert_response)
         self.response_area.add_to_narrative_button.clicked.connect(self.add_to_narrative_context)
+        
+        # Connect template UI manager signals
+        self.template_ui_manager.template_saved.connect(self._on_template_saved)
     
     def set_llm_controller(self, controller: AppLLMController):
         """Set the LLM controller."""
@@ -820,92 +466,17 @@ class LLMAssistantPanel(QWidget):
 
     def build_context(self) -> Dict[str, Any]:
         """Build context for LLM task from current scene."""
-        # Extract text content (remove HTML tags and CSS for context)
-        import re
-        text_content = self._clean_html_css(self.current_scene_content)
+        from core.llm.context_builder import ContextBuilder
         
-        # Get user's content source selection
-        content_source = self._get_selected_content_source()
+        builder = ContextBuilder()
+        content_source_selection = self.content_source_combo.currentIndex()
         
-        # Get current text selection from LLM service (updated via signals)
-        selected_text = ""
-        current_selection_text = ""
-        
-        try:
-            from controllers.app_llm_controller import get_llm_controller
-            llm_controller = get_llm_controller()
-            if llm_controller and llm_controller.llm_service and llm_controller.llm_service.context_manager:
-                # Get current selection from context manager
-                selection_info = llm_controller.llm_service.context_manager.get_text_selection()
-                if selection_info:
-                    selected_text = selection_info.get('selected_text', '')
-                    current_selection_text = selection_info.get('current_text', '')
-                    if selected_text:
-                        self.logger.debug(f"Using selected text: {selected_text[:50]}...")
-        except Exception as e:
-            self.logger.warning(f"Could not get text selection: {e}")
-        
-        # Apply content source selection to override template behavior
-        from core.llm.templates.config import ContextSource
-        from ui.widgets.ai_content_settings_widget import AIContentSettingsWidget
-        
-        # Store original selection state for logging
-        original_selected_text = selected_text
-        original_has_selection = bool(selected_text.strip())
-        
-        if content_source == ContextSource.SELECTION:
-            # Use actual text selection from editor - keep what we got from context manager
-            has_selection = bool(selected_text.strip())
-        elif content_source == ContextSource.FULL_SCENE:
-            # Use full scene as both selected and current text
-            selected_text = text_content
-            current_selection_text = text_content
-            has_selection = True
-        elif content_source == ContextSource.SCENE_BEGINNING:
-            # Use configurable length for scene beginning
-            beginning_length = AIContentSettingsWidget.get_scene_beginning_length_from_settings()
-            scene_beginning = text_content[:beginning_length] if text_content else ""
-            selected_text = scene_beginning
-            current_selection_text = scene_beginning
-            has_selection = bool(scene_beginning.strip())
-        elif content_source == ContextSource.SCENE_END:
-            # Use configurable length for scene end
-            end_length = AIContentSettingsWidget.get_scene_end_length_from_settings()
-            scene_end = text_content[-end_length:] if text_content else ""
-            selected_text = scene_end
-            current_selection_text = scene_end
-            has_selection = bool(scene_end.strip())
-        elif content_source == ContextSource.CUSTOM_LENGTH:
-            # Use configurable custom length
-            custom_length = AIContentSettingsWidget.get_custom_length_from_settings()
-            custom_text = text_content[:custom_length] if text_content else ""
-            selected_text = custom_text
-            current_selection_text = custom_text
-            has_selection = bool(custom_text.strip())
-        
-        # Build basic context - enhanced template manager will handle the rest
-        context = {
-            'scene_content': text_content,
-            'selected_text': selected_text,
-            'current_text': current_selection_text,
-            'scene_summary': text_content,  # Full scene as summary
-            'scene_id': self.current_scene_id,
-            'project_name': self.additional_context.get('project_name', 'Current Project'),
-            'has_selection': has_selection,
-            'characters': self.additional_context.get('characters', []),
-            'locations': self.additional_context.get('locations', []),
-            'character_count': self.additional_context.get('character_count', 0),
-            'location_count': self.additional_context.get('location_count', 0),
-            'content_source': content_source.value
-        }
-        
-        # Add any other additional context data
-        for key, value in self.additional_context.items():
-            if key not in context:  # Don't override existing keys
-                context[key] = value
-        
-        self.logger.debug(f"Built context with {content_source.value}: {len(text_content)} chars, {len(context['characters'])} characters, {len(context['locations'])} locations")
-        return context
+        return builder.build_context(
+            current_scene_content=self.current_scene_content,
+            current_scene_id=self.current_scene_id,
+            additional_context=self.additional_context,
+            content_source_selection=content_source_selection
+        )
     
     def set_task_executing(self, task_id: str, executing: bool):
         """Set task execution state."""
@@ -929,53 +500,9 @@ class LLMAssistantPanel(QWidget):
         """Update status with styling based on type."""
         self.status_label.setText(message)
         
-        if status_type == "success":
-            style = """
-                QLabel {
-                    color: #155724;
-                    background-color: #d4edda;
-                    border: 1px solid #c3e6cb;
-                }
-            """
-        elif status_type == "error":
-            style = """
-                QLabel {
-                    color: #721c24;
-                    background-color: #f8d7da;
-                    border: 1px solid #f5c6cb;
-                }
-            """
-        elif status_type == "warning":
-            style = """
-                QLabel {
-                    color: #856404;
-                    background-color: #fff3cd;
-                    border: 1px solid #ffeaa7;
-                }
-            """
-        elif status_type == "processing":
-            style = """
-                QLabel {
-                    color: #004085;
-                    background-color: #cce7ff;
-                    border: 1px solid #b8daff;
-                }
-            """
-        else:  # info
-            style = """
-                QLabel {
-                    color: #0c5460;
-                    background-color: #d1ecf1;
-                    border: 1px solid #bee5eb;
-                }
-            """
-        
-        self.status_label.setStyleSheet(style + """
-            font-size: 10pt;
-            font-weight: 500;
-            padding: 4px 8px;
-            border-radius: 4px;
-        """)
+        # Use UIStyleManager for dynamic status styling
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_dynamic_status_style(self.status_label, status_type)
     
     def on_response_ready(self, task_id: str, response: str):
         """Handle LLM response ready."""
@@ -1034,16 +561,8 @@ class LLMAssistantPanel(QWidget):
         self.response_area.response_text.setPlainText(error_text)
         
         # Style as error
-        self.response_area.response_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #f8d7da;
-                border: 2px solid #f5c6cb;
-                border-radius: 8px;
-                padding: 12px;
-                color: #721c24;
-                font-size: 11pt;
-            }
-        """)
+        from ui.styles.llm_panel_styles import UIStyleManager
+        UIStyleManager.apply_response_text_error_style(self.response_area.response_text)
         
         # Reset task state
         self.set_task_executing(task_id, False)
@@ -1185,156 +704,23 @@ class LLMAssistantPanel(QWidget):
             else:
                 self.update_status(_("❌ Narrative Context panel not available"), "error")
     
-    def _load_available_templates(self):
-        """Load available templates from template manager into dropdown."""
-        try:
-            from core.llm.templates import get_template_manager
-            
-            template_manager = get_template_manager()
-            template_list = template_manager.get_template_list()
-            
-            # Remember current selection
-            current_template_id = self.task_combo.currentData()
-            
-            # Clear existing templates (but keep edit templates option that will be added later)
-            self.task_combo.clear()
-            
-            # Add custom prompt option first
-            self.task_combo.addItem("🎯 " + _("Custom Prompt..."), "custom_prompt")
-            self.task_combo.setItemData(
-                self.task_combo.count() - 1,
-                _("Create a custom prompt with configurable context and parameters"),
-                Qt.ItemDataRole.ToolTipRole
-            )
-            
-            # Add separator
-            self.task_combo.insertSeparator(self.task_combo.count())
-            
-            # Add templates to dropdown
-            for template_info in template_list:
-                template_id = template_info['id']
-                template_name = template_info['name']
-                template_description = template_info['description']
-                category = template_info.get('category', '')
-                
-                # Create display name with emoji based on category
-                category_icons = {
-                    'writing': '📝',
-                    'dialogue': '💬', 
-                    'editing': '✏️',
-                    'scene': '🎬',
-                    'character': '👤',
-                    'summary': '📊'
-                }
-                
-                icon = category_icons.get(category, '📄')
-                display_name = f"{icon} {template_name}"
-                
-                self.task_combo.addItem(display_name, template_id)
-                
-                # Set tooltip with description
-                if template_description:
-                    self.task_combo.setItemData(
-                        self.task_combo.count() - 1,
-                        template_description,
-                        Qt.ItemDataRole.ToolTipRole
-                    )
-            
-            # Restore previous selection if it exists
-            if current_template_id:
-                for i in range(self.task_combo.count()):
-                    if self.task_combo.itemData(i) == current_template_id:
-                        self.task_combo.setCurrentIndex(i)
-                        break
-            else:
-                # If no previous selection and we have templates, select the first real template (skip custom_prompt and separator)
-                if len(template_list) > 0:
-                    for i in range(self.task_combo.count()):
-                        item_data = self.task_combo.itemData(i)
-                        if item_data and item_data != "custom_prompt":
-                            self.task_combo.setCurrentIndex(i)
-                            self.logger.debug(f"Auto-selected first template: {item_data}")
-                            break
-            
-            self.logger.info(f"Loaded {len(template_list)} templates into dropdown")
-            
-        except Exception as e:
-            self.logger.error(f"Error loading templates: {e}")
-            # Fallback to default option
-            self.task_combo.addItem(_("📝 Continue Scene"), "continue_scene")
+    def _edit_selected_template(self):
+        """Edit the currently selected template (wrapper method)."""
+        self.template_ui_manager.edit_selected_template(self.task_combo)
     
-    def edit_selected_template(self):
-        """Edit the currently selected template."""
-        try:
-            selected_template_id = self.task_combo.currentData()
-            if not selected_template_id:
-                self.show_error(_("No Template Selected"), _("Please select a template to edit."))
-                return
-            
-            from core.llm.templates import get_template_manager
-            template_manager = get_template_manager()
-            template_config = template_manager.get_template(selected_template_id)
-            
-            if not template_config:
-                self.show_error(_("Template Not Found"), _("The selected template could not be found."))
-                return
-            
-            # Open template editor with selected template
-            from ui.widgets.template_editor_dialog import TemplateEditorDialog
-            dialog = TemplateEditorDialog(template_config, self)
-            
-            # Connect to template saved signal
-            dialog.template_saved.connect(self.on_template_saved)
-            
-            # Show dialog
-            if dialog.exec():
-                # Get updated template config from dialog
-                updated_template_config = dialog.get_template_config()
-                
-                # Save to template manager
-                from core.llm.templates import get_template_manager
-                template_manager = get_template_manager()
-                success = template_manager.add_template(updated_template_config, save_to_file=True)
-                
-                if success:
-                    self.logger.info(f"Template editor completed and saved for template: {selected_template_id}")
-                else:
-                    self.show_error(_("Save Error"), _("Failed to save template to file."))
-            
-        except Exception as e:
-            self.logger.error(f"Error opening template editor: {e}")
-            self.show_error(_("Error"), _("Failed to open template editor: {}").format(str(e)))
-    
-    def on_template_saved(self, template_id: str):
-        """Handle template saved signal."""
+    def _on_template_saved(self, template_id: str):
+        """Handle template saved signal (wrapper method)."""
         self.logger.info(f"Template saved: {template_id}")
         # Refresh available templates
-        self._load_available_templates()
+        self.template_ui_manager.load_available_templates(self.task_combo)
     
-    def refresh_templates(self):
-        """Refresh templates from disk."""
-        try:
-            from core.llm.templates import get_template_manager
-            
-            # Refresh templates in the manager
-            template_manager = get_template_manager()
-            template_manager.refresh_templates()
-            
-            # Reload UI
-            self._load_available_templates()
-            
-            self.update_status(_("✅ Templates refreshed"), "success")
-            self.logger.info("Templates refreshed successfully")
-            
-        except Exception as e:
-            self.logger.error(f"Error refreshing templates: {e}")
-            self.update_status(_("❌ Failed to refresh templates"), "error")
+    def _refresh_templates(self):
+        """Refresh templates from disk (wrapper method)."""
+        self.template_ui_manager.refresh_templates(self.task_combo, self.update_status)
     
     def open_custom_prompt_dialog(self, streaming: bool = False):
-        """Open custom prompt dialog."""
+        """Open custom prompt dialog (wrapper method)."""
         try:
-            from .custom_prompt_dialog import CustomPromptDialog
-            
             # Populate additional context with current scene data before opening dialog
             self._populate_additional_context()
             
@@ -1344,16 +730,14 @@ class LLMAssistantPanel(QWidget):
             # Extract the relevant information from context
             scene_content = context.get('scene_content', '')
             selected_text = context.get('selected_text', '')
-            has_selection = context.get('has_selection', False)
             
-            dialog = CustomPromptDialog(scene_content, selected_text, self)
-            result = dialog.exec()
+            # Use custom prompt manager to open dialog
+            config = self.custom_prompt_manager.open_custom_prompt_dialog(
+                scene_content, selected_text, self.build_context, streaming
+            )
             
-            # Check if dialog was accepted and get config
-            if result == QDialog.DialogCode.Accepted:
-                config = dialog.get_config()
-                if config:
-                    self.execute_custom_prompt(config, streaming)
+            if config:
+                self.execute_custom_prompt(config, streaming)
             
         except Exception as e:
             self.logger.error(f"Error opening custom prompt dialog: {e}")
@@ -1375,13 +759,17 @@ class LLMAssistantPanel(QWidget):
                 self.logger.debug("No main window or project controller found")
                 return
             
-            # Use the new LLM context service for custom prompts
-            from services import LLMContextService
-            llm_context_service = LLMContextService()
+            # Use the LLM controller for custom prompts
+            from controllers.app_llm_controller import get_llm_controller
+            llm_controller = get_llm_controller()
+            
+            if not llm_controller:
+                self.logger.error("LLM controller not available")
+                return
             
             managers = main_window.project_controller.get_current_managers()
             
-            context_data = llm_context_service.prepare_custom_prompt_context(
+            context_data = llm_controller.prepare_custom_prompt_context(
                 self.current_scene_id, managers, 
                 include_characters=True, include_locations=True
             )
@@ -1393,21 +781,21 @@ class LLMAssistantPanel(QWidget):
             self.logger.error(f"Error populating additional context: {e}")
     
     def execute_custom_prompt(self, config: dict, streaming: bool = False):
-        """Execute a custom prompt configuration using regular LLM service path."""
+        """Execute a custom prompt configuration using CustomPromptManager."""
         try:
-            # Create dynamic template configuration
-            template_config = self._create_dynamic_template_config(config)
+            # Create dynamic template configuration using manager
+            template_config = self.custom_prompt_manager.create_dynamic_template_config(config)
             
             # Add template to manager temporarily
             from core.llm.templates import get_template_manager
             template_manager = get_template_manager()
             template_manager.add_template(template_config, save_to_file=False)
             
-            # Build context in standard format
+            # Build context using manager with HTML cleaning callback
             context = {
                 'scene_content': config['scene_content'],
                 'selected_text': config.get('selected_text', ''),
-                'current_text': self._extract_custom_context(config),  # Use existing extraction logic
+                'current_text': self.custom_prompt_manager.extract_custom_context(config, self._clean_html_css),
                 'characters': self.additional_context.get('characters', []),
                 'locations': self.additional_context.get('locations', []),
                 'project_description': self.additional_context.get('project_description', ''),
@@ -1444,198 +832,14 @@ class LLMAssistantPanel(QWidget):
             self.logger.error(f"Error executing custom prompt: {e}")
             self.show_error(_("Error"), _("Failed to execute custom prompt: {}").format(str(e)))
     
-    def _create_dynamic_template_config(self, config: dict):
-        """Create a dynamic template configuration from custom prompt config."""
-        from core.llm.templates.config import (
-            EnhancedTemplateConfig, TemplateMetadata, ContextConfig, 
-            LLMParams, UIConfig, ContextSource
-        )
-        
-        # Create metadata
-        metadata = TemplateMetadata(
-            name="Custom Prompt",
-            template_id="custom_prompt", 
-            description="Dynamic custom prompt template",
-            category="custom",
-            author="User"
-        )
-        
-        # Create context config based on custom prompt settings
-        context_config = ContextConfig(
-            use_selection=True,
-            selection_priority=True,
-            default_context_length=config.get('custom_length', 8000),
-            scene_summary_length=config.get('custom_length', 8000),
-            scene_summary_source=self._get_context_source_from_text_portion(config.get('text_portion', '')),
-            max_context_chars=25000,
-            word_boundary_trim=True
-        )
-        
-        # Create LLM params from config
-        llm_params = LLMParams(
-            temperature=config.get('temperature', 0.75),
-            max_tokens=config.get('max_tokens', 8000),
-            repeat_penalty=config.get('repetition_penalty', 1.05)
-        )
-        
-        # Create UI config
-        ui_config = UIConfig(
-            show_context_preview=True,
-            allow_context_editing=False,
-            show_params_editor=False,
-            auto_apply_selection=True,
-            confirm_before_execution=False
-        )
-        
-        # Create template content using instruction as Jinja2 template
-        template_content = self._build_template_content(config)
-        
-        return EnhancedTemplateConfig(
-            metadata=metadata,
-            context_config=context_config,
-            llm_params=llm_params,
-            ui_config=ui_config,
-            template_content=template_content
-        )
-    
-    def _get_context_source_from_text_portion(self, text_portion: str):
-        """Convert text portion selection to ContextSource enum."""
-        from core.llm.templates.config import ContextSource
-        
-        if _("🎯 Selected text only") in text_portion:
-            return ContextSource.SELECTION
-        elif _("📄 Full scene") in text_portion:
-            return ContextSource.FULL_SCENE
-        elif _("⬆️ Beginning of scene") in text_portion:
-            return ContextSource.SCENE_BEGINNING
-        elif _("⬇️ End of scene") in text_portion:
-            return ContextSource.SCENE_END
-        elif _("🎚️ Custom length from end") in text_portion:
-            return ContextSource.CUSTOM_LENGTH
-        else:
-            return ContextSource.SELECTION
-    
-    def _build_template_content(self, config: dict) -> str:
-        """Build Jinja2 template content from custom prompt config."""
-        instruction = config.get('instruction', '')
-        include_characters = config.get('include_characters', False)
-        include_locations = config.get('include_locations', False)
-        include_project_description = config.get('include_project_description', False)
-        
-        # Create template that conditionally includes scene content
-        template_parts = [instruction]
-        
-        # Add conditional character section only if enabled
-        if include_characters:
-            template_parts.append("""
-{% if characters and characters|length > 0 %}
-
-Postacie w scenie:
-{% for character in characters %}
-- {{ character }}
-{% endfor %}
-{% endif %}""")
-        
-        # Add conditional location section only if enabled
-        if include_locations:
-            template_parts.append("""
-{% if locations and locations|length > 0 %}
-
-Lokalizacje:
-{% for location in locations %}
-- {{ location }}
-{% endfor %}
-{% endif %}""")
-        
-        # Add conditional project description section only if enabled
-        if include_project_description:
-            template_parts.append("""
-{% if project_description %}
-
-Opis projektu:
-{{ project_description }}
-{% endif %}""")
-        
-        # Add scene content section (controlled by include_scene_content flag)
-        if config.get('include_scene_content', True):
-            template_parts.append("""
-{% if current_text or selected_text %}
-
---- TEKST DO ANALIZY ---
-
-{% if has_selection %}
-{{ selected_text }}
-{% else %}
-{{ current_text }}
-{% endif %}
-
-{% if scene_summary and scene_summary != (selected_text if has_selection else current_text) %}
-
-Dodatkowy kontekst sceny:
-{{ scene_summary }}
-{% endif %}
-{% endif %}""")
-        
-        return "\n".join(template_parts)
-    
-    def _extract_custom_context(self, config: dict) -> str:
-        """Extract context text based on custom prompt configuration."""
-        scene_content = config['scene_content']
-        selected_text = config.get('selected_text', '')
-        text_portion = config['text_portion']
-        custom_length = config['custom_length']
-        
-        # Clean HTML/CSS from scene content and selected text (reuse existing cleaning)
-        clean_scene_content = self._clean_html_css(scene_content) if scene_content else ""
-        clean_selected_text = self._clean_html_css(selected_text) if selected_text else ""
-        
-        self.logger.debug(f"Extracting custom context: portion='{text_portion}', scene_len={len(clean_scene_content)}, selected_len={len(clean_selected_text)}")
-        
-        # Use exact text matching instead of substring matching to fix selection bug
-        if text_portion == _("🎯 Selected text only") and clean_selected_text:
-            self.logger.debug("Using selected text only")
-            return clean_selected_text
-        elif text_portion == _("📄 Full scene"):
-            self.logger.debug("Using full scene")
-            return clean_scene_content
-        elif text_portion == _("⬆️ Beginning of scene"):
-            self.logger.debug(f"Using beginning of scene ({custom_length} chars)")
-            result = clean_scene_content[:custom_length]
-            if len(clean_scene_content) > custom_length:
-                result += "..."
-            return result
-        elif text_portion == _("⬇️ End of scene"):
-            self.logger.debug(f"Using end of scene ({custom_length} chars)")
-            if len(clean_scene_content) > custom_length:
-                return "..." + clean_scene_content[-custom_length:]
-            return clean_scene_content
-        elif text_portion == _("🎚️ Custom length from end"):
-            self.logger.debug(f"Using custom length from end ({custom_length} chars)")
-            return clean_scene_content[-custom_length:] if clean_scene_content else ""
-        elif text_portion == _("🎯 Selection + context") and clean_selected_text:
-            self.logger.debug("Using selection + context")
-            # Return selection plus some context
-            context_length = min(custom_length - len(clean_selected_text), len(clean_scene_content))
-            context_part = clean_scene_content[:context_length]
-            return f"{clean_selected_text}\n\n[Context: {context_part}]"
-        else:
-            self.logger.debug(f"Using fallback: first {custom_length} chars")
-            return clean_scene_content[:custom_length]
     
     def _get_selected_content_source(self):
         """Get the selected content source from UI and convert to ContextSource enum."""
-        from core.llm.templates.config import ContextSource
+        from core.llm.context_builder import ContextBuilder
         
+        builder = ContextBuilder()
         selected_index = self.content_source_combo.currentIndex()
-        content_source_map = {
-            0: ContextSource.SELECTION,      # "Selection (if any)"
-            1: ContextSource.FULL_SCENE,     # "Full Scene" 
-            2: ContextSource.SCENE_BEGINNING, # "Scene Beginning"
-            3: ContextSource.SCENE_END,      # "Scene End"
-            4: ContextSource.CUSTOM_LENGTH   # "Custom Length"
-        }
-        
-        return content_source_map.get(selected_index, ContextSource.SELECTION)
+        return builder._map_content_source_selection(selected_index)
     
     def show_error(self, title: str, message: str):
         """Show error message dialog."""

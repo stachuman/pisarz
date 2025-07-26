@@ -3,7 +3,7 @@ Custom Prompt Dialog - allows users to enter ad-hoc prompts with configurable co
 """
 
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, 
+    QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, 
     QPushButton, QComboBox, QSpinBox, QCheckBox, QGroupBox,
     QSlider, QDoubleSpinBox, QFormLayout, QFrame
 )
@@ -11,38 +11,33 @@ from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont
 from typing import Dict, Any, Optional
 
+from ..base.base_dialog import BaseDialog
 from i18n import _
 
 
-class CustomPromptDialog(QDialog):
+class CustomPromptDialog(BaseDialog):
     """Dialog for creating custom on-demand prompts."""
     
     # Signal emitted when user wants to execute the prompt
     execute_prompt = Signal(dict)  # prompt_config dict
     
     def __init__(self, scene_content: str = "", selected_text: str = "", parent=None):
-        super().__init__(parent)
         self.scene_content = scene_content
         self.selected_text = selected_text
         self.llm_panel = parent  # Store reference to LLM panel for getting real data
+        
+        # Initialize BaseDialog
+        super().__init__(title=_("Custom Prompt"), width=600, height=700, modal=True, parent=parent)
+        
         self.setup_ui()
         self.update_context_preview()  # Auto-refresh on open
         
     def setup_ui(self):
         """Setup the dialog UI."""
-        self.setWindowTitle(_("Custom Prompt"))
-        self.setMinimumSize(600, 700)
-        self.setModal(True)
-        
-        layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-        
-        # Title
-        title_label = QLabel(_("🎯 Custom Prompt Generator"))
-        title_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #2c3e50; padding: 10px 0;")
+        # Title section
+        title_label = self.create_section_title(_("🎯 Custom Prompt Generator"), 14)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        self.add_content_widget(title_label)
         
         # Instruction input
         instruction_group = QGroupBox(_("Instruction"))
@@ -52,20 +47,9 @@ class CustomPromptDialog(QDialog):
         self.instruction_edit.setPlaceholderText(_("Enter your custom instruction here...\nExample: 'Rewrite this scene in a more dramatic tone' or 'Add more dialogue between characters'"))
         self.instruction_edit.setMinimumHeight(120)
         self.instruction_edit.textChanged.connect(self.update_context_preview)
-        self.instruction_edit.setStyleSheet("""
-            QTextEdit {
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                padding: 8px;
-                font-size: 11pt;
-                background-color: white;
-            }
-            QTextEdit:focus {
-                border-color: #007acc;
-            }
-        """)
+        # Use BaseDialog's default styling
         instruction_layout.addWidget(self.instruction_edit)
-        layout.addWidget(instruction_group)
+        self.add_content_widget(instruction_group)
         
         # Context configuration
         context_group = QGroupBox(_("Context Configuration"))
@@ -124,7 +108,7 @@ class CustomPromptDialog(QDialog):
         context_layout.addLayout(left_column)
         context_layout.addLayout(right_column)
         
-        layout.addWidget(context_group)
+        self.add_content_widget(context_group)
         
         # LLM Parameters
         params_group = QGroupBox(_("LLM Parameters"))
@@ -145,7 +129,7 @@ class CustomPromptDialog(QDialog):
         
         # Max tokens
         self.max_tokens_spin = QSpinBox()
-        self.max_tokens_spin.setRange(100, 20000)
+        self.max_tokens_spin.setRange(100, 32000)
         self.max_tokens_spin.setValue(self._get_default_max_tokens())
         params_layout.addRow(_("Max tokens:"), self.max_tokens_spin)
         
@@ -162,7 +146,7 @@ class CustomPromptDialog(QDialog):
         rep_layout.addWidget(self.repetition_label)
         params_layout.addRow(_("Repetition penalty:"), rep_layout)
         
-        layout.addWidget(params_group)
+        self.add_content_widget(params_group)
         
         # Context preview
         preview_group = QGroupBox(_("Context Preview"))
@@ -171,34 +155,23 @@ class CustomPromptDialog(QDialog):
         self.context_preview = QTextEdit()
         self.context_preview.setReadOnly(True)
         self.context_preview.setMaximumHeight(150)
-        self.context_preview.setStyleSheet("""
-            QTextEdit {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                padding: 8px;
-                font-size: 9pt;
-                color: #6c757d;
-            }
-        """)
+        self.context_preview.setStyleSheet(self.get_muted_background_style() + "; font-size: 9pt;")
         preview_layout.addWidget(self.context_preview)
-        layout.addWidget(preview_group)
+        self.add_content_widget(preview_group)
         
-        # Buttons
-        button_layout = QHBoxLayout()
+        # Create buttons using BaseDialog helpers
+        cancel_btn = self.create_custom_button(_("Cancel"), self.reject, "secondary")
+        execute_btn = self.create_custom_button(_("Execute Prompt"), self.execute_custom_prompt, "primary")
+        execute_btn.setDefault(True)
         
-        self.cancel_button = QPushButton(_("Cancel"))
-        self.cancel_button.clicked.connect(self.reject)
-        button_layout.addWidget(self.cancel_button)
+        # Add buttons with stretch
+        self.add_button_stretch()
+        self.add_button(cancel_btn)
+        self.add_button(execute_btn)
         
-        button_layout.addStretch()
-        
-        self.execute_button = QPushButton(_("Execute Prompt"))
-        self.execute_button.clicked.connect(self.execute_custom_prompt)
-        self.execute_button.setDefault(True)  # Make it the default button
-        button_layout.addWidget(self.execute_button)
-        
-        layout.addLayout(button_layout)
+        # Store button references
+        self.cancel_button = cancel_btn
+        self.execute_button = execute_btn
     
     def _on_scene_context_toggled(self, checked: bool):
         """Handle scene context checkbox toggle."""

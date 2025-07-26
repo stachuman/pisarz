@@ -1,8 +1,10 @@
 """Settings dialog for theme selection and other preferences."""
 
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                              QPushButton, QComboBox, QGroupBox, QGridLayout,
-                              QFrame, QColorDialog, QSizePolicy, QTabWidget, QWidget)
+from PySide6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, 
+                              QPushButton, QComboBox, QGridLayout,
+                              QFrame, QTabWidget, QWidget)
+
+from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPalette, QColor
 
@@ -14,6 +16,8 @@ from i18n import _, get_available_languages, get_current_language, set_language
 
 class ThemePreview(QFrame):
     """Widget do podglądu motywu."""
+    
+    theme_selected = Signal(str)  # Add signal for theme selection
     
     def __init__(self, theme_name, theme_data, parent=None):
         super().__init__(parent)
@@ -29,9 +33,15 @@ class ThemePreview(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         
-        # Nazwa motywu
+        # Nazwa motywu using parent's font manager
         name_label = QLabel(self.theme_name)
-        name_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        parent_dialog = self.parent()
+        while parent_dialog and not hasattr(parent_dialog, 'font_manager'):
+            parent_dialog = parent_dialog.parent()
+        
+        if parent_dialog and hasattr(parent_dialog, 'font_manager'):
+            from PySide6.QtGui import QFont
+            name_label.setFont(parent_dialog.font_manager.get_font(9, weight=QFont.Weight.Bold))
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(name_label)
         
@@ -41,10 +51,15 @@ class ThemePreview(QFrame):
         bg_color = self.theme_data.get('background', '#ffffff')
         text_color = self.theme_data.get('text', '#000000')
         
+        # Use consistent border color
+        border_color = '#cccccc'
+        if parent_dialog and hasattr(parent_dialog, 'theme_manager'):
+            border_color = parent_dialog.theme_manager.get_theme_colors().get('border', '#cccccc')
+            
         color_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {bg_color};
-                border: 1px solid #cccccc;
+                border: 1px solid {border_color};
                 border-radius: 3px;
             }}
         """)
@@ -60,20 +75,32 @@ class ThemePreview(QFrame):
         frame_layout.setContentsMargins(0, 0, 0, 0)
         frame_layout.addWidget(sample_text)
         
-        # Styluj całą kartę zgodnie z motywem
+        # Apply consistent theming
+        border_color = '#dddddd'
+        accent_color = '#3498db'
+        if parent_dialog and hasattr(parent_dialog, 'theme_manager'):
+            colors = parent_dialog.theme_manager.get_theme_colors()
+            border_color = colors.get('border', border_color)
+            accent_color = colors.get('accent', accent_color)
+            
         self.setStyleSheet(f"""
             ThemePreview {{
                 background-color: {bg_color};
-                border: 2px solid #dddddd;
+                border: 2px solid {border_color};
                 border-radius: 5px;
             }}
             ThemePreview:hover {{
-                border: 2px solid #3498db;
+                border: 2px solid {accent_color};
             }}
         """)
+    
+    def mousePressEvent(self, event):
+        """Handle mouse press to emit theme selection signal."""
+        self.theme_selected.emit(self.theme_name)
+        super().mousePressEvent(event)
 
 
-class SettingsDialog(QDialog):
+class SettingsDialog(BaseDialog):
     """Dialog ustawień aplikacji."""
     
     themeChanged = Signal(str)  # theme_name
@@ -81,98 +108,67 @@ class SettingsDialog(QDialog):
     llmSettingsChanged = Signal()  # llm settings changed
     
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.theme_manager = ThemeManager()
-        self.current_theme = self.theme_manager.get_current_theme()
+        super().__init__(
+            title=_("Application Settings"),
+            width=900,
+            height=750,
+            modal=True,
+            parent=parent
+        )
+        
+        # Override BaseDialog's theme_manager with the specific one we need for settings
+        self.settings_theme_manager = ThemeManager()
+        self.current_theme = self.settings_theme_manager.get_current_theme()
         self.current_language = get_current_language()
+        
         self.setup_ui()
         
     def setup_ui(self):
         """Konfiguracja interfejsu dialogu."""
-        self.setWindowTitle(_("Application Settings"))
-        self.setMinimumSize(800, 700)
-        self.resize(900, 750)
-        
-        layout = QVBoxLayout(self)
-        
-        # Nagłówek
-        title = QLabel(_("Application Settings"))
-        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        # Title using create_section_title
+        title = self.create_section_title(_("Application Settings"), 18)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #2c3e50; padding: 10px;")
-        layout.addWidget(title)
+        self.add_content_widget(title)
         
         # Tabs for different settings categories
-        tabs = QTabWidget()
+        tabs = self.create_tab_widget()
         
         # === GENERAL TAB ===
         general_tab = QWidget()
         general_layout = QVBoxLayout(general_tab)
         
         # Language section
-        language_group = QGroupBox(_("Language"))
-        language_group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        language_layout = QVBoxLayout(language_group)
+        language_group, language_layout = self.create_form_section(_("Language"))
         
-        # Wybór języka
-        lang_layout = QHBoxLayout()
+        # Language selection using form section pattern
         lang_label = QLabel(_("Choose language:"))
-        lang_label.setFont(QFont("Arial", 10))
-        lang_layout.addWidget(lang_label)
+        lang_label.setFont(self.font_manager.get_font(10))
         
         self.language_combo = QComboBox()
         languages = get_available_languages()
         for code, name in languages.items():
             self.language_combo.addItem(name, code)
             
-        # Ustaw aktualny język
+        # Set current language
         current_index = self.language_combo.findData(self.current_language)
         if current_index >= 0:
             self.language_combo.setCurrentIndex(current_index)
             
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
-        lang_layout.addWidget(self.language_combo)
-        lang_layout.addStretch()
-        
-        language_layout.addLayout(lang_layout)
+        language_layout.addRow(lang_label, self.language_combo)
         general_layout.addWidget(language_group)
         
         # Themes section
-        themes_group = QGroupBox(_("Theme"))
-        themes_group.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        themes_layout = QVBoxLayout(themes_group)
+        themes_group, themes_layout = self.create_form_section(_("Theme"))
         
-        # Opis
-        description = QLabel(_("Choose color theme for the application"))
-        description.setFont(QFont("Arial", 10))
-        description.setStyleSheet("color: #7f8c8d; margin-bottom: 10px;")
-        themes_layout.addWidget(description)
+        # Description
+        description = self.create_info_label(_("Choose color theme for the application"), "muted")
+        description.setFont(self.font_manager.get_font(10))
+        themes_layout.addRow(description)
         
-        # Siatka z podglądami motywów
-        themes_grid = QGridLayout()
-        themes_grid.setSpacing(10)
-        
-        # Pobierz dostępne motywy
-        themes = self.theme_manager.get_available_themes()
-        
-        for i, (theme_name, theme_data) in enumerate(themes.items()):
-            row = i // 3
-            col = i % 3
-            
-            # Kontener dla podglądu i nazwy
-            theme_container = QVBoxLayout()
-            
-            # Podgląd motywu
-            preview = ThemePreview(theme_name, theme_data)
-            preview.mousePressEvent = lambda event, name=theme_name: self._on_theme_selected(name)
-            theme_container.addWidget(preview)
-            
-            # Widget kontener
-            container_widget = QFrame()
-            container_widget.setLayout(theme_container)
-            themes_grid.addWidget(container_widget, row, col)
-            
-        themes_layout.addLayout(themes_grid)
+        # Create themes grid widget
+        themes_widget = self._create_themes_grid()
+        themes_layout.addRow(themes_widget)
         general_layout.addWidget(themes_group)
         
         # Add stretch to general tab
@@ -192,37 +188,46 @@ class SettingsDialog(QDialog):
         tabs.addTab(self.ai_content_settings_widget, _("AI Content"))
         
         # Add tabs to main layout
-        layout.addWidget(tabs)
+        self.add_content_widget(tabs)
         
-        # === PRZYCISKI ===
-        buttons_layout = QHBoxLayout()
-        buttons_layout.addStretch()
+        # Standard buttons
+        self.create_standard_buttons(_("Apply"), self.accept, _("Close"))
+    
+    def _create_themes_grid(self):
+        """Create the themes grid widget using BaseDialog patterns."""
+        from PySide6.QtWidgets import QGridLayout, QWidget
         
-        # Przycisk Anuluj
-        cancel_btn = QPushButton(_("Close"))
-        cancel_btn.setFixedSize(100, 35)
-        cancel_btn.clicked.connect(self.reject)
-        buttons_layout.addWidget(cancel_btn)
+        themes_widget = QWidget()
+        themes_grid = QGridLayout(themes_widget)
+        themes_grid.setSpacing(10)
         
-        # Przycisk Zastosuj
-        apply_btn = QPushButton(_("Close"))
-        apply_btn.setFixedSize(100, 35)
-        apply_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-        """)
-        apply_btn.clicked.connect(self.accept)
-        buttons_layout.addWidget(apply_btn)
+        # Get available themes
+        themes = self.settings_theme_manager.get_available_themes()
         
-        layout.addLayout(buttons_layout)
+        # Handle both dictionary and list formats - fail explicitly for unexpected types
+        if isinstance(themes, dict):
+            themes_items = themes.items()
+        elif isinstance(themes, list):
+            # If it's a list of theme names, get theme data from theme manager
+            if hasattr(self.settings_theme_manager, 'themes'):
+                themes_items = [(theme_name, self.settings_theme_manager.themes.get(theme_name, {})) 
+                              for theme_name in themes]
+            else:
+                raise AttributeError(f"Theme manager {type(self.settings_theme_manager)} doesn't have 'themes' attribute")
+        else:
+            raise TypeError(f"Expected dict or list from get_available_themes(), got {type(themes)}")
+        
+        for i, (theme_name, theme_data) in enumerate(themes_items):
+            row = i // 3
+            col = i % 3
+            
+            # Theme preview
+            preview = ThemePreview(theme_name, theme_data, self)
+            # Connect signal to avoid lambda capture issues
+            preview.theme_selected.connect(self._on_theme_selected)
+            themes_grid.addWidget(preview, row, col)
+            
+        return themes_widget
         
     def _on_theme_selected(self, theme_name):
         """Obsługa wyboru motywu."""
@@ -241,6 +246,6 @@ class SettingsDialog(QDialog):
     def accept(self):
         """Zastosuj ustawienia i zamknij dialog."""
         if self.current_theme:
-            self.theme_manager.set_theme(self.current_theme)
+            self.settings_theme_manager.set_theme(self.current_theme)
             self.themeChanged.emit(self.current_theme)
         super().accept()

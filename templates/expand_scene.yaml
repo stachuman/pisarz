@@ -1,77 +1,105 @@
-context_config:
-  default_context_length: 28000
-  max_context_chars: 40000
-  scene_summary_length: 12000
-  scene_summary_source: full_scene
-  selection_priority: true
-  use_selection: true
-  word_boundary_trim: true
-format_version: '2.0'
-llm_params:
-  custom_params: {}
-  max_tokens: 20000
-  repeat_penalty: 1.08
-  temperature: 0.85
-  top_k: 45
-  top_p: 0.92
-metadata:
-  author: System
-  category: writing
-  created_date: null
-  description: Expand a scene with more detail, dialogue, and description
-  modified_date: null
-  name: Expand Scene
-  tags:
-  - writing
-  - expansion
-  - detail
-  template_id: expand_scene
-  version: '2.0'
-template_content: |
-  Rozbuduj następujący fragment sceny, dodając więcej szczegółów, dialogów i opisów. Pisz tylko w języku Polskim.
+# Properly flattened template format v3.0
+name: Expand Scene
+template_id: expand_scene
+description: Expand a scene with more detail, dialogue, and description
+category: writing
+version: '2.0'
+author: System
+created_date: null
+modified_date: null
+tags:
+- writing
+- expansion
+- detail
+template_content: 'Rozbuduj następujący fragment sceny, dodając więcej szczegółów,
+  dialogów i opisów. Pisz tylko w języku Polskim.
+
 
   Rozbuduj scenę przez:
+
   - Dodanie szczegółowych opisów miejsc i osób
+
   - Wzbogacenie dialogów o emocje i podteksty
+
   - Opisanie gestów, mimiki i zachowań postaci
+
   - Dodanie sensualnych detali (dźwięki, zapachy, faktury)
+
   - Pogłębienie atmosfery i nastroju
+
 
   Zachowaj naturalny przepływ narracji i nie zmieniaj głównych wydarzeń.
 
+
   {% if characters %}
+
   Postacie w scenie:
+
   {% for character in characters %}
+
   - {{ character }}
+
   {% endfor %}
+
   {% endif %}
 
+
   {% if locations %}
+
   Lokalizacje:
+
   {% for location in locations %}
+
   - {{ location }}
+
   {% endfor %}
+
   {% endif %}
+
 
   --- FRAGMENT DO ROZBUDOWY ---
 
+
   {% if has_selection %}
+
   {{ selected_text }}
+
 
   {% if scene_summary and scene_summary != selected_text %}
 
+
   Kontekst sceny:
+
   {{ scene_summary }}
+
   {% endif %}
+
 
   {% else %}
+
   {{ current_text }}
 
+
   {% endif %}
-ui_config:
-  allow_context_editing: false
-  auto_apply_selection: true
-  confirm_before_execution: false
-  preview_length: 180
-  show_context_preview: true
-  show_params_editor: true
+
+  '
+use_selection: true
+selection_priority: true
+default_context_length: 28000
+scene_summary_length: 12000
+scene_summary_source: full_scene
+max_context_chars: 40000
+word_boundary_trim: true
+max_tokens: 20000
+temperature: 0.85
+top_p: 0.92
+top_k: 45
+repeat_penalty: 1.08
+custom_params: {}
+show_context_preview: true
+allow_context_editing: false
+preview_length: 180
+show_params_editor: true
+auto_apply_selection: true
+confirm_before_execution: false
+format_version: '3.0'

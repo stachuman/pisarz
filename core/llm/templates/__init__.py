@@ -7,15 +7,13 @@ and UI settings.
 """
 
 from .config import (
-    EnhancedTemplateConfig, TemplateMetadata, ContextConfig, 
-    LLMParams, UIConfig, ContextSource, TemplateVersion,
+    TemplateConfig, ContextSource, TemplateVersion,
     create_default_template
 )
 from .manager import EnhancedTemplateManager, get_template_manager
 
 __all__ = [
-    'EnhancedTemplateConfig', 'TemplateMetadata', 'ContextConfig', 
-    'LLMParams', 'UIConfig', 'ContextSource', 'TemplateVersion',
+    'TemplateConfig', 'ContextSource', 'TemplateVersion',
     'create_default_template',
     'EnhancedTemplateManager', 'get_template_manager'
 ]

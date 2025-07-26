@@ -4,17 +4,18 @@ Location editor dialog for the Pisarz writing application.
 Provides a comprehensive interface for creating and editing locations.
 """
 
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
+from PySide6.QtWidgets import (QVBoxLayout, QHBoxLayout, QFormLayout,
                                QLineEdit, QTextEdit, QComboBox, QTabWidget,
                                QPushButton, QLabel, QMessageBox, QScrollArea, QWidget, QFrame,
                                QListWidget, QListWidgetItem, QInputDialog)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from .scene_selector_dialog import SceneSelector
+from ..base.base_dialog import BaseDialog
 from i18n import _
 
 
-class LocationEditorDialog(QDialog):
+class LocationEditorDialog(BaseDialog):
     """Dialog for creating and editing locations."""
     
     locationSaved = Signal(dict)  # location data
@@ -22,7 +23,6 @@ class LocationEditorDialog(QDialog):
     sceneUnlinked = Signal(int, int)  # location_id, scene_id
     
     def __init__(self, location_manager, project_id, location=None, scenes_data=None, parent=None):
-        super().__init__(parent)
         self.location_manager = location_manager
         self.project_id = project_id
         self.location = location  # None for new location
@@ -30,12 +30,13 @@ class LocationEditorDialog(QDialog):
         self.linked_scenes = []  # Will store linked scene data with roles
         self.is_editing = location is not None
         
-        self.setWindowTitle(_("Edit Location") if self.is_editing else _("New Location"))
+        title = _("Edit Location") if self.is_editing else _("New Location")
         
-        # Make it non-modal and always on top
-        self.setModal(False)
-        self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
-        self.resize(600, 500)
+        # Initialize BaseDialog with non-modal settings
+        super().__init__(title=title, width=600, height=500, modal=False, parent=parent)
+        
+        # Make it always on top
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         
         self._setup_ui()
         self._connect_signals()
@@ -45,53 +46,40 @@ class LocationEditorDialog(QDialog):
     
     def _setup_ui(self):
         """Set up the user interface."""
-        layout = QVBoxLayout()
-        layout.setSpacing(16)
-        
-        # Title
-        title = QLabel(_("Edit Location") if self.is_editing else _("Create New Location"))
-        title_font = QFont()
-        title_font.setPointSize(16)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        layout.addWidget(title)
+        # Title section
+        title_text = _("Edit Location") if self.is_editing else _("Create New Location")
+        title_label = self.create_section_title(title_text, 16)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.add_content_widget(title_label)
         
         # Tab widget for different aspects of the location
-        self.tab_widget = QTabWidget()
+        self.tab_widget = self.create_tab_widget()
         
-        # Basic Information Tab
+        # Setup tabs
         self._setup_basic_tab()
-        
-        # Details Tab
         self._setup_details_tab()
-        
-        # Story Role Tab
         self._setup_story_tab()
-        
-        # Scenes Tab (shows linked scenes)
         self._setup_scenes_tab()
         
         # Connections Tab (if editing)
         if self.is_editing:
             self._setup_connections_tab()
         
-        layout.addWidget(self.tab_widget)
+        self.add_content_widget(self.tab_widget)
         
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        # Create buttons using BaseDialog helpers
+        cancel_btn = self.create_custom_button(_("Cancel"), self.reject, "secondary")
+        save_btn = self.create_custom_button(_("Save"), self._save_location, "primary")
+        save_btn.setDefault(True)
         
-        self.cancel_button = QPushButton(_("Cancel"))
-        self.save_button = QPushButton(_("Save"))
-        self.save_button.setDefault(True)
-        # Remove custom styling to use global professional theme
+        # Add buttons with stretch
+        self.add_button_stretch()
+        self.add_button(cancel_btn)
+        self.add_button(save_btn)
         
-        button_layout.addWidget(self.cancel_button)
-        button_layout.addWidget(self.save_button)
-        
-        layout.addLayout(button_layout)
-        
-        self.setLayout(layout)
+        # Store button references for signal connections
+        self.cancel_button = cancel_btn
+        self.save_button = save_btn
     
     def _setup_basic_tab(self):
         """Set up the basic information tab."""
@@ -177,38 +165,34 @@ class LocationEditorDialog(QDialog):
         
         # Info and action buttons
         header_layout = QHBoxLayout()
-        info_label = QLabel(_("This location appears in the following scenes:"))
-        info_label.setFont(QFont("Arial", 9))
-        info_label.setStyleSheet("color: #666;")
+        info_label = self.create_info_label(_("This location appears in the following scenes:"), "muted")
+        info_label.setFont(self.font_manager.get_font(9))
         header_layout.addWidget(info_label)
         
         header_layout.addStretch()
         
         # Add scene button
-        self.add_scene_btn = QPushButton(_("Add Scene"))
+        self.add_scene_btn = self.create_custom_button(_("Add Scene"), self.add_scene_to_location, "secondary")
         self.add_scene_btn.setToolTip(_("Link this location to additional scenes"))
-        self.add_scene_btn.clicked.connect(self.add_scene_to_location)
         header_layout.addWidget(self.add_scene_btn)
         
         scenes_layout.addLayout(header_layout)
         
         # Scenes list
         self.linked_scenes_list = QListWidget()
-        self.linked_scenes_list.setFont(QFont("Arial", 10))
+        self.linked_scenes_list.setFont(self.font_manager.get_font(10))
         self.linked_scenes_list.itemClicked.connect(self.on_scene_item_clicked)
         scenes_layout.addWidget(self.linked_scenes_list)
         
         # Scene action buttons
         scene_buttons_layout = QHBoxLayout()
         
-        self.edit_scene_role_btn = QPushButton(_("Edit Role"))
+        self.edit_scene_role_btn = self.create_custom_button(_("Edit Role"), self.edit_scene_role, "secondary")
         self.edit_scene_role_btn.setEnabled(False)
-        self.edit_scene_role_btn.clicked.connect(self.edit_scene_role)
         scene_buttons_layout.addWidget(self.edit_scene_role_btn)
         
-        self.remove_scene_btn = QPushButton(_("Remove Scene"))
+        self.remove_scene_btn = self.create_custom_button(_("Remove Scene"), self.remove_scene_from_location, "secondary")
         self.remove_scene_btn.setEnabled(False)
-        self.remove_scene_btn.clicked.connect(self.remove_scene_from_location)
         scene_buttons_layout.addWidget(self.remove_scene_btn)
         
         scene_buttons_layout.addStretch()
@@ -228,13 +212,11 @@ class LocationEditorDialog(QDialog):
         scenes_frame.setFrameStyle(QFrame.StyledPanel)
         scenes_layout = QVBoxLayout()
         
-        scenes_title = QLabel(_("Scenes at this location:"))
-        scenes_title.setStyleSheet("font-weight: bold;")
+        scenes_title = self.create_section_title(_("Scenes at this location:"), 11)
         scenes_layout.addWidget(scenes_title)
         
-        self.scenes_list = QLabel(_("Loading..."))
-        self.scenes_list.setWordWrap(True)
-        self.scenes_list.setStyleSheet("color: #666; margin: 8px;")
+        self.scenes_list = self.create_info_label(_("Loading..."), "muted")
+        self.scenes_list.setStyleSheet(self.get_muted_text_style() + "; margin: 8px;")
         scenes_layout.addWidget(self.scenes_list)
         
         scenes_frame.setLayout(scenes_layout)
@@ -245,13 +227,11 @@ class LocationEditorDialog(QDialog):
         characters_frame.setFrameStyle(QFrame.StyledPanel)
         characters_layout = QVBoxLayout()
         
-        characters_title = QLabel(_("Characters associated with this location:"))
-        characters_title.setStyleSheet("font-weight: bold;")
+        characters_title = self.create_section_title(_("Characters associated with this location:"), 11)
         characters_layout.addWidget(characters_title)
         
-        self.characters_list = QLabel(_("Loading..."))
-        self.characters_list.setWordWrap(True)
-        self.characters_list.setStyleSheet("color: #666; margin: 8px;")
+        self.characters_list = self.create_info_label(_("Loading..."), "muted")
+        self.characters_list.setStyleSheet(self.get_muted_text_style() + "; margin: 8px;")
         characters_layout.addWidget(self.characters_list)
         
         characters_frame.setLayout(characters_layout)
@@ -268,8 +248,7 @@ class LocationEditorDialog(QDialog):
     
     def _connect_signals(self):
         """Connect widget signals."""
-        self.save_button.clicked.connect(self._save_location)
-        self.cancel_button.clicked.connect(self.reject)
+        # Buttons are already connected in _setup_ui via create_custom_button
         self.name_input.textChanged.connect(self._validate_form)
     
     def _populate_fields(self):
@@ -278,14 +257,20 @@ class LocationEditorDialog(QDialog):
             return
         
         self.setWindowTitle(self.location.name or "Location")
-
-        self.name_input.setText(self.location.name or "")
+        
+        # Populate fields
+        field_mappings = [
+            (self.name_input.setText, 'name'),
+            (self.atmosphere_input.setText, 'atmosphere'),
+            (self.description_input.setPlainText, 'description'),
+            (self.details_input.setPlainText, 'details'),
+            (self.significance_input.setPlainText, 'significance'),
+            (self.notes_input.setPlainText, 'notes')
+        ]
+        for setter, attr in field_mappings:
+            setter(getattr(self.location, attr, '') or '')
+        
         self.type_combo.setCurrentText(self.location.type or "")
-        self.atmosphere_input.setText(self.location.atmosphere or "")
-        self.description_input.setPlainText(self.location.description or "")
-        self.details_input.setPlainText(self.location.details or "")
-        self.significance_input.setPlainText(self.location.significance or "")
-        self.notes_input.setPlainText(self.location.notes or "")
         
         # Load linked scenes with roles/importance
         # Note: linked_scenes will be set by the controller after dialog creation
@@ -356,8 +341,7 @@ class LocationEditorDialog(QDialog):
             location_data['id'] = self.location.id
             
         # Store linked scenes for the signal, but don't save to database
-        location_data_with_scenes = location_data.copy()
-        location_data_with_scenes['linked_scenes'] = self.linked_scenes
+        location_data_with_scenes = {**location_data, 'linked_scenes': self.linked_scenes}
         
         try:
             if self.is_editing:

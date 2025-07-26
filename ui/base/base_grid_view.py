@@ -16,10 +16,11 @@ class BaseGridView(QWidget):
     
     newItemRequested = Signal(str)  # title/name
     
-    def __init__(self, title="Items", icon="📝", parent=None):
+    def __init__(self, title="Items", icon="📝", new_item_label=None, parent=None):
         super().__init__(parent)
         self.title = title
         self.icon = icon
+        self.new_item_label = new_item_label or f"{_('New')} {title[:-1] if title.endswith('s') else title}"
         self.theme_manager = EnhancedThemeManager()
         self.font_manager = UIFontManager()
         self.items_data = []
@@ -45,7 +46,7 @@ class BaseGridView(QWidget):
         self.header_layout.addStretch()
         
         # New item button
-        self.new_item_btn = QPushButton(f"+ {_('New')} {self.title[:-1]}")  # Remove 's' from plural
+        self.new_item_btn = QPushButton(self.new_item_label)
         self.new_item_btn.clicked.connect(self._on_new_item_clicked)
         self.new_item_btn.setFixedSize(150, 35)
         self.header_layout.addWidget(self.new_item_btn)

@@ -1,32 +1,16 @@
-context_config:
-  default_context_length: 44800
-  max_context_chars: 64000
-  scene_summary_length: 19200
-  scene_summary_source: selection
-  selection_priority: true
-  use_selection: true
-  word_boundary_trim: true
-format_version: '2.0'
-llm_params:
-  custom_params: {}
-  max_tokens: 4000
-  repeat_penalty: 1.12
-  temperature: 0.75
-  top_k: 35
-  top_p: 0.88
-metadata:
-  author: System
-  category: writing
-  created_date: null
-  description: Improve existing dialogue with better character voice and natural flow
-  modified_date: null
-  name: Enhance Dialogue
-  tags:
-  - dialogue
-  - characters
-  - enhancement
-  template_id: dialogue_enhancement
-  version: '2.0'
+# Properly flattened template format v3.0
+name: Enhance Dialogue
+template_id: dialogue_enhancement
+description: Improve existing dialogue with better character voice and natural flow
+category: writing
+version: '2.0'
+author: System
+created_date: null
+modified_date: null
+tags:
+- dialogue
+- characters
+- enhancement
 template_content: 'Popraw następujący dialog, czyniąc go bardziej naturalnym i charakterystycznym.
 
 
@@ -77,10 +61,23 @@ template_content: 'Popraw następujący dialog, czyniąc go bardziej naturalnym 
   {% endif %}
 
   '
-ui_config:
-  allow_context_editing: true
-  auto_apply_selection: true
-  confirm_before_execution: true
-  preview_length: 160
-  show_context_preview: true
-  show_params_editor: true
+use_selection: true
+selection_priority: true
+default_context_length: 44800
+scene_summary_length: 19200
+scene_summary_source: selection
+max_context_chars: 64000
+word_boundary_trim: true
+max_tokens: 4000
+temperature: 0.75
+top_p: 0.88
+top_k: 35
+repeat_penalty: 1.12
+custom_params: {}
+show_context_preview: true
+allow_context_editing: true
+preview_length: 160
+show_params_editor: true
+auto_apply_selection: true
+confirm_before_execution: true
+format_version: '3.0'

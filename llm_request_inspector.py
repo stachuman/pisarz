@@ -5,7 +5,6 @@ LLM Request Inspector - Tool to track and analyze llama.cpp requests.
 
 import sys
 import os
-import json
 import glob
 from pathlib import Path
 from datetime import datetime
