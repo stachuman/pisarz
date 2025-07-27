@@ -256,7 +256,7 @@ class LocationEditorDialog(BaseDialog):
         if not self.location:
             return
         
-        self.setWindowTitle(self.location.name or "Location")
+        self.setWindowTitle(self.location.name or _("Location"))
         
         # Populate fields
         field_mappings = [

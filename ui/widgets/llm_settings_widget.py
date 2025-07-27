@@ -46,7 +46,7 @@ class LLMConnectionTestThread(QThread):
                     'project_name': 'Test'
                 }
                 
-                response = service.execute_task('continue_scene', test_context)
+                response = service.execute_task('test_connection', test_context)
                 
                 if response and len(response) > 0:
                     self.finished.emit(True, _("Connection successful"))
@@ -108,11 +108,37 @@ class LLMSettingsWidget(QWidget):
         
         # Provider selection
         provider_group = QGroupBox(_("Provider Selection"))
-        provider_layout = QFormLayout(provider_group)
+        provider_layout = QVBoxLayout(provider_group)
         
+        # Provider selection row
+        provider_row_layout = QFormLayout()
         self.provider_combo = QComboBox()
         self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
-        provider_layout.addRow(_("Active Provider:"), self.provider_combo)
+        provider_row_layout.addRow(_("Active Provider:"), self.provider_combo)
+        provider_layout.addLayout(provider_row_layout)
+        
+        # Provider action buttons
+        provider_buttons_layout = QHBoxLayout()
+        provider_buttons_layout.setSpacing(8)
+        provider_buttons_layout.addStretch()
+        
+        self.test_button = QPushButton(_("Test Connection"))
+        self.test_button.clicked.connect(self.test_connection)
+        self.test_button.setMaximumWidth(150)
+        provider_buttons_layout.addWidget(self.test_button)
+        
+        self.reset_button = QPushButton(_("Reset to Defaults"))
+        self.reset_button.clicked.connect(self.reset_to_defaults)
+        self.reset_button.setMaximumWidth(150)
+        provider_buttons_layout.addWidget(self.reset_button)
+        
+        self.apply_button = QPushButton(_("Apply Settings"))
+        self.apply_button.clicked.connect(self.apply_settings)
+        self.apply_button.setDefault(True)
+        self.apply_button.setMaximumWidth(150)
+        provider_buttons_layout.addWidget(self.apply_button)
+        
+        provider_layout.addLayout(provider_buttons_layout)
         
         layout.addWidget(provider_group)
         
@@ -143,28 +169,6 @@ class LLMSettingsWidget(QWidget):
         self.test_progress.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.test_progress)
         
-        # Buttons layout - including test connection
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(8)
-        button_layout.addStretch()
-        
-        self.test_button = QPushButton(_("Test Connection"))
-        self.test_button.clicked.connect(self.test_connection)
-        self.test_button.setMaximumWidth(150)
-        button_layout.addWidget(self.test_button)
-        
-        self.reset_button = QPushButton(_("Reset to Defaults"))
-        self.reset_button.clicked.connect(self.reset_to_defaults)
-        self.reset_button.setMaximumWidth(150)
-        button_layout.addWidget(self.reset_button)
-        
-        self.apply_button = QPushButton(_("Apply Settings"))
-        self.apply_button.clicked.connect(self.apply_settings)
-        self.apply_button.setDefault(True)
-        self.apply_button.setMaximumWidth(150)
-        button_layout.addWidget(self.apply_button)
-        
-        layout.addLayout(button_layout)
     
     def setup_llamacpp_tab(self):
         """Setup llama.cpp configuration tab."""

@@ -23,6 +23,7 @@ class ThemePreview(QFrame):
         super().__init__(parent)
         self.theme_name = theme_name
         self.theme_data = theme_data
+        self.is_selected = False
         self.setup_ui()
         
     def setup_ui(self):
@@ -34,16 +35,31 @@ class ThemePreview(QFrame):
         layout.setContentsMargins(5, 5, 5, 5)
         
         # Nazwa motywu using parent's font manager
-        name_label = QLabel(self.theme_name)
+        name_container = QWidget()
+        name_layout = QHBoxLayout(name_container)
+        name_layout.setContentsMargins(2, 2, 2, 2)
+        name_layout.setSpacing(3)
+        
+        self.name_label = QLabel(self.theme_name)
         parent_dialog = self.parent()
         while parent_dialog and not hasattr(parent_dialog, 'font_manager'):
             parent_dialog = parent_dialog.parent()
         
         if parent_dialog and hasattr(parent_dialog, 'font_manager'):
             from PySide6.QtGui import QFont
-            name_label.setFont(parent_dialog.font_manager.get_font(9, weight=QFont.Weight.Bold))
-        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(name_label)
+            self.name_label.setFont(parent_dialog.font_manager.get_font(9, weight=QFont.Weight.Bold))
+        self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Selection indicator (checkmark)
+        self.selection_indicator = QLabel("✓")  # Keep as Unicode symbol, no translation needed
+        self.selection_indicator.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.selection_indicator.setStyleSheet("color: #2ecc71; font-weight: bold; font-size: 12px;")
+        self.selection_indicator.setVisible(False)
+        
+        name_layout.addWidget(self.selection_indicator)
+        name_layout.addWidget(self.name_label)
+        name_layout.addStretch()
+        layout.addWidget(name_container)
         
         # Kolory tła - symulacja
         color_frame = QFrame()
@@ -65,32 +81,100 @@ class ThemePreview(QFrame):
         """)
         layout.addWidget(color_frame)
         
-        # Przykładowy tekst
-        sample_text = QLabel("Abc")
+        # Przykładowy tekst with improved contrast
+        sample_text = QLabel(_("Abc"))
         sample_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        sample_text.setStyleSheet(f"color: {text_color}; font-size: 10px;")
+        
+        # Ensure good contrast between text and background
+        contrast_text_color = self._get_contrasting_color(bg_color, text_color)
+        sample_text.setStyleSheet(f"color: {contrast_text_color}; font-size: 10px; font-weight: bold;")
         
         # Dodaj tekst na color_frame
         frame_layout = QVBoxLayout(color_frame)
         frame_layout.setContentsMargins(0, 0, 0, 0)
         frame_layout.addWidget(sample_text)
         
-        # Apply consistent theming
+        # Apply styling using the new method
+        self.update_style()
+    
+    def _get_contrasting_color(self, bg_color, text_color):
+        """Get a contrasting color that's readable against the background."""
+        try:
+            # Convert hex to RGB
+            bg_rgb = self._hex_to_rgb(bg_color)
+            text_rgb = self._hex_to_rgb(text_color)
+            
+            # Calculate luminance of background
+            bg_luminance = self._calculate_luminance(bg_rgb)
+            
+            # If background is light, use dark text; if dark, use light text
+            if bg_luminance > 0.5:
+                # Light background - ensure dark text
+                text_luminance = self._calculate_luminance(text_rgb)
+                if text_luminance > 0.4:  # Text is too light
+                    return '#333333'  # Use dark gray
+                return text_color
+            else:
+                # Dark background - ensure light text
+                text_luminance = self._calculate_luminance(text_rgb)
+                if text_luminance < 0.6:  # Text is too dark
+                    return '#ffffff'  # Use white
+                return text_color
+        except:
+            # Fallback to safe defaults
+            return '#333333' if bg_color in ['#ffffff', '#f0f0f0'] else '#ffffff'
+    
+    def _hex_to_rgb(self, hex_color):
+        """Convert hex color to RGB tuple."""
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+    
+    def _calculate_luminance(self, rgb):
+        """Calculate relative luminance of RGB color."""
+        r, g, b = rgb
+        # Simplified luminance calculation
+        return 0.299 * r + 0.587 * g + 0.114 * b
+    
+    def set_selected(self, selected):
+        """Set the selection state of this theme preview."""
+        self.is_selected = selected
+        self.selection_indicator.setVisible(selected)
+        self.update_style()
+    
+    def update_style(self):
+        """Update the style based on selection state."""
+        bg_color = self.theme_data.get('background', '#ffffff')
+        text_color = self.theme_data.get('text', '#000000')
+        
+        # Get colors from parent dialog
         border_color = '#dddddd'
         accent_color = '#3498db'
+        selected_color = '#2ecc71'  # Green for selected state
+        
+        parent_dialog = self.parent()
+        while parent_dialog and not hasattr(parent_dialog, 'theme_manager'):
+            parent_dialog = parent_dialog.parent()
+            
         if parent_dialog and hasattr(parent_dialog, 'theme_manager'):
             colors = parent_dialog.theme_manager.get_theme_colors()
             border_color = colors.get('border', border_color)
             accent_color = colors.get('accent', accent_color)
             
+        # Choose border based on selection state
+        if self.is_selected:
+            border = f"3px solid {selected_color}"
+            bg_style = f"background-color: {bg_color}; border-radius: 5px;"
+        else:
+            border = f"2px solid {border_color}"
+            bg_style = f"background-color: {bg_color}; border-radius: 5px;"
+            
         self.setStyleSheet(f"""
             ThemePreview {{
-                background-color: {bg_color};
-                border: 2px solid {border_color};
-                border-radius: 5px;
+                {bg_style}
+                border: {border};
             }}
             ThemePreview:hover {{
-                border: 2px solid {accent_color};
+                border: 3px solid {accent_color};
             }}
         """)
     
@@ -120,6 +204,7 @@ class SettingsDialog(BaseDialog):
         self.settings_theme_manager = ThemeManager()
         self.current_theme = self.settings_theme_manager.get_current_theme()
         self.current_language = get_current_language()
+        self.theme_previews = []  # Store theme preview widgets
         
         self.setup_ui()
         
@@ -225,6 +310,13 @@ class SettingsDialog(BaseDialog):
             preview = ThemePreview(theme_name, theme_data, self)
             # Connect signal to avoid lambda capture issues
             preview.theme_selected.connect(self._on_theme_selected)
+            
+            # Set as selected if it's the current theme
+            if theme_name == self.current_theme:
+                preview.set_selected(True)
+            
+            # Store reference to preview widget
+            self.theme_previews.append(preview)
             themes_grid.addWidget(preview, row, col)
             
         return themes_widget
@@ -232,7 +324,10 @@ class SettingsDialog(BaseDialog):
     def _on_theme_selected(self, theme_name):
         """Obsługa wyboru motywu."""
         self.current_theme = theme_name
-        # Można dodać wizualne oznaczenie wybranego motywu
+        
+        # Update visual selection state for all theme previews
+        for preview in self.theme_previews:
+            preview.set_selected(preview.theme_name == theme_name)
         
     def _on_language_changed(self, index):
         """Obsługa zmiany języka."""
@@ -245,7 +340,15 @@ class SettingsDialog(BaseDialog):
         
     def accept(self):
         """Zastosuj ustawienia i zamknij dialog."""
+        # Apply theme settings
         if self.current_theme:
             self.settings_theme_manager.set_theme(self.current_theme)
             self.themeChanged.emit(self.current_theme)
+        
+        # Apply LLM settings automatically when closing
+        try:
+            self.llm_settings_widget.apply_settings()
+        except Exception as e:
+            print(f"Warning: Could not apply LLM settings: {e}")
+            
         super().accept()

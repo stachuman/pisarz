@@ -499,109 +499,216 @@ msgstr "Language"
 msgid "Choose language:"
 msgstr "Choose language:"
 
-msgid "Language Changed"
-msgstr "Language Changed"
+msgid "Apply"
+msgstr "Apply"
 
-msgid "Language has been changed. Please restart the application to see changes."
-msgstr "Language has been changed. Please restart the application to see changes."
+msgid "Abc"
+msgstr "Abc"
 
-# Characters
-msgid "Character description..."
-msgstr "Character description..."
+# AI Provider Configuration
+msgid "AI Provider Configuration"
+msgstr "AI Provider Configuration"
 
-msgid "Character Editor"
-msgstr "Character Editor"
+msgid "Configure AI providers for writing assistance"
+msgstr "Configure AI providers for writing assistance"
 
-msgid "Basic Info"
-msgstr "Basic Info"
+msgid "General Settings"
+msgstr "General Settings"
 
-msgid "Notes"
-msgstr "Notes"
+msgid "Context Length:"
+msgstr "Context Length:"
 
-msgid "Character Name"
-msgstr "Character Name"
+msgid "characters"
+msgstr "characters"
 
-msgid "Enter character name..."
-msgstr "Enter character name..."
+msgid "Number of characters to include from the current scene for context"
+msgstr "Number of characters to include from the current scene for context"
 
-msgid "Description"
-msgstr "Description"
+# Provider Selection
+msgid "Provider Selection"
+msgstr "Provider Selection"
 
-msgid "Describe your character's appearance, personality, background..."
-msgstr "Describe your character's appearance, personality, background..."
+msgid "Active Provider:"
+msgstr "Active Provider:"
 
-msgid "Character Notes"
-msgstr "Character Notes"
+msgid "Test Connection"
+msgstr "Test Connection"
 
-msgid "Additional notes about the character, development ideas, story arc..."
-msgstr "Additional notes about the character, development ideas, story arc..."
+msgid "Reset to Defaults"
+msgstr "Reset to Defaults"
 
-msgid "Scenes with this Character"
-msgstr "Scenes with this Character"
+msgid "Apply Settings"
+msgstr "Apply Settings"
 
-msgid "This character appears in the following scenes:"
-msgstr "This character appears in the following scenes:"
+# Server Configuration
+msgid "Server Configuration"
+msgstr "Server Configuration"
 
-msgid "Character name cannot be empty."
-msgstr "Character name cannot be empty."
+msgid "Host:"
+msgstr "Host:"
 
-msgid "Character name:"
-msgstr "Character name:"
+msgid "Port:"
+msgstr "Port:"
 
-msgid "(no characters)"
-msgstr "(no characters)"
+msgid "Timeout:"
+msgstr "Timeout:"
 
-msgid "Character not found"
-msgstr "Character not found"
+msgid "seconds"
+msgstr "seconds"
 
-msgid "Failed to open character: {}"
-msgstr "Failed to open character: {}"
+# Generation Parameters
+msgid "Generation Parameters"
+msgstr "Generation Parameters"
 
-msgid "Failed to create character: {}"
-msgstr "Failed to create character: {}"
+msgid "Max Tokens:"
+msgstr "Max Tokens:"
 
-msgid "Created character: {}"
-msgstr "Created character: {}"
+msgid "Temperature:"
+msgstr "Temperature:"
 
-msgid "Character saved successfully"
-msgstr "Character saved successfully"
+msgid "Top P:"
+msgstr "Top P:"
 
-msgid "Failed to save character: {}"
-msgstr "Failed to save character: {}"
+msgid "Top K:"
+msgstr "Top K:"
 
-msgid "Failed to load characters: {}"
-msgstr "Failed to load characters: {}"
+msgid "Repeat Penalty:"
+msgstr "Repeat Penalty:"
 
-msgid "Characters view ({} characters)"
-msgstr "Characters view ({} characters)"
+# API Configuration
+msgid "API Configuration"
+msgstr "API Configuration"
 
-msgid "📝 Characters"
-msgstr "📝 Characters"
+msgid "API Key:"
+msgstr "API Key:"
 
-msgid "Click on character to edit it or create new character."
-msgstr "Click on character to edit it or create new character."
+msgid "Model:"
+msgstr "Model:"
 
-msgid "You don't have any characters yet.\\nCreate first character to start!"
-msgstr "You don't have any characters yet.\\nCreate first character to start!"
+msgid "Enter your OpenAI API key"
+msgstr "Enter your OpenAI API key"
 
-msgid "Auto-saved"
-msgstr "Auto-saved"
+msgid "Enter your Anthropic API key"
+msgstr "Enter your Anthropic API key"
+
+msgid "Presence Penalty:"
+msgstr "Presence Penalty:"
+
+msgid "Frequency Penalty:"
+msgstr "Frequency Penalty:"
+
+# Ollama specific
+msgid "Connection"
+msgstr "Connection"
+
+msgid "Model Configuration"
+msgstr "Model Configuration"
+
+msgid "Test Connection & Fetch Models"
+msgstr "Test Connection & Fetch Models"
+
+msgid "Test connection to Ollama server and automatically fetch available models"
+msgstr "Test connection to Ollama server and automatically fetch available models"
+
+msgid "Not connected"
+msgstr "Not connected"
+
+msgid "Select Ollama model from dropdown"
+msgstr "Select Ollama model from dropdown"
+
+msgid "(No models loaded - click Refresh Models)"
+msgstr "(No models loaded - click Refresh Models)"
+
+msgid "Refresh Models"
+msgstr "Refresh Models"
+
+msgid "Fetch available models from Ollama server"
+msgstr "Fetch available models from Ollama server"
+
+# Mock Provider
+msgid "Mock Provider Settings"
+msgstr "Mock Provider Settings"
+
+msgid "Response Delay:"
+msgstr "Response Delay:"
+
+# Provider tabs
+msgid "llama.cpp"
+msgstr "llama.cpp"
+
+msgid "Ollama"
+msgstr "Ollama"
+
+msgid "OpenAI"
+msgstr "OpenAI"
+
+msgid "Anthropic"
+msgstr "Anthropic"
+
+msgid "Mock"
+msgstr "Mock"
+
+# Connection messages
+msgid "Connection successful"
+msgstr "Connection successful"
+
+msgid "No response from provider"
+msgstr "No response from provider"
+
+msgid "Failed to initialize provider"
+msgstr "Failed to initialize provider"
+
+msgid "Testing connection..."
+msgstr "Testing connection..."
+
+msgid "LLM settings have been applied successfully"
+msgstr "LLM settings have been applied successfully"
+
+msgid "Failed to apply settings: {}"
+msgstr "Failed to apply settings: {}"
+
+msgid "Reset Settings"
+msgstr "Reset Settings"
+
+msgid "Are you sure you want to reset all LLM settings to defaults?"
+msgstr "Are you sure you want to reset all LLM settings to defaults?"
+
+msgid "Fetching..."
+msgstr "Fetching..."
+
+msgid "Success"
+msgstr "Success"
+
+msgid "Loaded {} models from Ollama server"
+msgstr "Loaded {} models from Ollama server"
+
+msgid "No models found on Ollama server. Make sure models are installed."
+msgstr "No models found on Ollama server. Make sure models are installed."
+
+msgid "Failed to fetch models from Ollama server:\n{}"
+msgstr "Failed to fetch models from Ollama server:\n{}"
+
+msgid "Testing..."
+msgstr "Testing..."
+
+msgid "Connected - {} models found"
+msgstr "Connected - {} models found"
+
+msgid "Connection failed"
+msgstr "Connection failed"
+
+msgid "Connection Failed"
+msgstr "Connection Failed"
+
+msgid "Failed to connect to Ollama server:\n{}"
+msgstr "Failed to connect to Ollama server:\n{}"
+
+msgid "Anthropic provider will be available in future versions"
+msgstr "Anthropic provider will be available in future versions"
 
 # Project Properties Dialog
 msgid "Project Properties"
 msgstr "Project Properties"
-
-msgid "Properties"
-msgstr "Properties"
-
-msgid "General"
-msgstr "General"
-
-msgid "Writing"
-msgstr "Writing"
-
-msgid "Publishing"
-msgstr "Publishing"
 
 msgid "Core Information"
 msgstr "Core Information"
@@ -615,146 +722,13 @@ msgstr "Display Title:"
 msgid "Enter project title..."
 msgstr "Enter project title..."
 
-msgid "Enter author name..."
-msgstr "Enter author name..."
-
 msgid "Author:"
 msgstr "Author:"
 
-msgid "Genre:"
-msgstr "Genre:"
+msgid "Enter author name..."
+msgstr "Enter author name..."
 
-msgid "Language:"
-msgstr "Language:"
-
-msgid "Enter project description or synopsis..."
-msgstr "Enter project description or synopsis..."
-
-msgid "Enter tags separated by commas..."
-msgstr "Enter tags separated by commas..."
-
-msgid "Use tags to categorize and organize your projects"
-msgstr "Use tags to categorize and organize your projects"
-
-msgid "Writing Progress"
-msgstr "Writing Progress"
-
-msgid "Status:"
-msgstr "Status:"
-
-msgid "Target Word Count:"
-msgstr "Target Word Count:"
-
-msgid " words"
-msgstr " words"
-
-msgid "Writing Goals"
-msgstr "Writing Goals"
-
-msgid "Daily Word Goal:"
-msgstr "Daily Word Goal:"
-
-msgid " words/day"
-msgstr " words/day"
-
-msgid "Weekly Word Goal:"
-msgstr "Weekly Word Goal:"
-
-msgid " words/week"
-msgstr " words/week"
-
-msgid "Publishing Information"
-msgstr "Publishing Information"
-
-msgid "Publisher:"
-msgstr "Publisher:"
-
-msgid "Enter publisher name..."
-msgstr "Enter publisher name..."
-
-msgid "ISBN:"
-msgstr "ISBN:"
-
-msgid "Enter ISBN..."
-msgstr "Enter ISBN..."
-
-msgid "Publication Date:"
-msgstr "Publication Date:"
-
-msgid "Not set"
-msgstr "Not set"
-
-msgid "Copyright"
-msgstr "Copyright"
-
-msgid "Enter copyright information..."
-msgstr "Enter copyright information..."
-
-msgid "Editor Settings"
-msgstr "Editor Settings"
-
-msgid "Default Scene Template:"
-msgstr "Default Scene Template:"
-
-msgid "Enter default RTF template for new scenes..."
-msgstr "Enter default RTF template for new scenes..."
-
-msgid "Backup Settings"
-msgstr "Backup Settings"
-
-msgid "Enable automatic backups"
-msgstr "Enable automatic backups"
-
-msgid "Automatically create backups of your project"
-msgstr "Automatically create backups of your project"
-
-msgid "Validation Error"
-msgstr "Validation Error"
-
-msgid "Display title cannot be empty."
-msgstr "Display title cannot be empty."
-
-msgid "Could not load project data"
-msgstr "Could not load project data"
-
-msgid "Project properties saved successfully"
-msgstr "Project properties saved successfully"
-
-msgid "Failed to save project properties"
-msgstr "Failed to save project properties"
-
-# Project Status Options
-msgid "Draft"
-msgstr "Draft"
-
-msgid "In Progress"
-msgstr "In Progress"
-
-msgid "First Draft Complete"
-msgstr "First Draft Complete"
-
-msgid "Revision"
-msgstr "Revision"
-
-msgid "Editing"
-msgstr "Editing"
-
-msgid "Final Draft"
-msgstr "Final Draft"
-
-msgid "Completed"
-msgstr "Completed"
-
-msgid "Published"
-msgstr "Published"
-
-msgid "On Hold"
-msgstr "On Hold"
-
-msgid "Abandoned"
-msgstr "Abandoned"
-
-# Genre Options
+# Genre types
 msgid "Novel"
 msgstr "Novel"
 
@@ -800,15 +774,12 @@ msgstr "Young Adult"
 msgid "Memoir"
 msgstr "Memoir"
 
-msgid "Other"
-msgstr "Other"
+msgid "Genre:"
+msgstr "Genre:"
 
-# Language Options
+# Languages
 msgid "English"
 msgstr "English"
-
-msgid "Polish"
-msgstr "Polish"
 
 msgid "German"
 msgstr "German"
@@ -828,376 +799,166 @@ msgstr "Portuguese"
 msgid "Russian"
 msgstr "Russian"
 
-msgid "Toggle AI Assistant Panel (Ctrl+Alt+A)"
-msgstr "Toggle AI Assistant Panel (Ctrl+Alt+A)"
+msgid "Enter project description or synopsis..."
+msgstr "Enter project description or synopsis..."
 
-# Context system
-msgid "Context builder initialized"
-msgstr "Context builder initialized"
+msgid "Enter tags separated by commas..."
+msgstr "Enter tags separated by commas..."
 
-msgid "Building scene context"
-msgstr "Building scene context"
+msgid "Use tags to categorize and organize your projects"
+msgstr "Use tags to categorize and organize your projects"
 
-msgid "Scene context built successfully - {} words"
-msgstr "Scene context built successfully - {} words"
+# Writing tab
+msgid "Writing Progress"
+msgstr "Writing Progress"
 
-msgid "Failed to build scene context: {}"
-msgstr "Failed to build scene context: {}"
+msgid "Draft"
+msgstr "Draft"
 
-msgid "Using selected text as current context"
-msgstr "Using selected text as current context"
+msgid "In Progress"
+msgstr "In Progress"
 
-msgid "Using current text as context"
-msgstr "Using current text as context"
+msgid "First Draft Complete"
+msgstr "First Draft Complete"
 
-msgid "Using last paragraph as context"
-msgstr "Using last paragraph as context"
+msgid "Revision"
+msgstr "Revision"
 
-msgid "No meaningful current text found"
-msgstr "No meaningful current text found"
+msgid "Editing"
+msgstr "Editing"
 
-msgid "Error extracting current text: {}"
-msgstr "Error extracting current text: {}"
+msgid "Final Draft"
+msgstr "Final Draft"
 
-msgid "Scene summary created: {} characters"
-msgstr "Scene summary created: {} characters"
+msgid "Completed"
+msgstr "Completed"
 
-msgid "Error creating scene summary: {}"
-msgstr "Error creating scene summary: {}"
+msgid "Published"
+msgstr "Published"
 
-msgid "Scene summary unavailable"
-msgstr "Scene summary unavailable"
+msgid "On Hold"
+msgstr "On Hold"
 
-msgid "No scene loaded"
-msgstr "No scene loaded"
+msgid "Abandoned"
+msgstr "Abandoned"
 
-msgid "Unknown project"
-msgstr "Unknown project"
+msgid "Status:"
+msgstr "Status:"
 
-msgid "Missing required context field: {}"
-msgstr "Missing required context field: {}"
+msgid "Target Word Count:"
+msgstr "Target Word Count:"
 
-msgid "Context has no meaningful content"
-msgstr "Context has no meaningful content"
+msgid " words"
+msgstr " words"
 
-msgid "Context validation successful"
-msgstr "Context validation successful"
+msgid "Writing Goals"
+msgstr "Writing Goals"
 
-msgid "Context validation failed: {}"
-msgstr "Context validation failed: {}"
+msgid "Daily Word Goal:"
+msgstr "Daily Word Goal:"
 
-msgid "Context manager initialized"
-msgstr "Context manager initialized"
+msgid " words/day"
+msgstr " words/day"
 
-msgid "Context callback set"
-msgstr "Context callback set"
+msgid "Weekly Word Goal:"
+msgstr "Weekly Word Goal:"
 
-msgid "Setting scene context - ID: {}, Title: {}"
-msgstr "Setting scene context - ID: {}, Title: {}"
+msgid " words/week"
+msgstr " words/week"
 
-msgid "Failed to set scene context: {}"
-msgstr "Failed to set scene context: {}"
+msgid "Writing"
+msgstr "Writing"
 
-msgid "Setting project context - Name: {}"
-msgstr "Setting project context - Name: {}"
+# Publishing tab
+msgid "Publishing Information"
+msgstr "Publishing Information"
 
-msgid "Failed to set project context: {}"
-msgstr "Failed to set project context: {}"
+msgid "Publisher:"
+msgstr "Publisher:"
 
-msgid "Setting text selection - Selected: {} chars, Current: {} chars"
-msgstr "Setting text selection - Selected: {} chars, Current: {} chars"
+msgid "Enter publisher name..."
+msgstr "Enter publisher name..."
 
-msgid "Failed to set text selection: {}"
-msgstr "Failed to set text selection: {}"
+msgid "ISBN:"
+msgstr "ISBN:"
 
-msgid "Forcing context refresh"
-msgstr "Forcing context refresh"
+msgid "Enter ISBN..."
+msgstr "Enter ISBN..."
 
-msgid "Processing context update"
-msgstr "Processing context update"
+msgid "Publication Date:"
+msgstr "Publication Date:"
 
-msgid "Context changed, emitting updates"
-msgstr "Context changed, emitting updates"
+msgid "Not set"
+msgstr "Not set"
 
-msgid "Context unchanged, skipping update"
-msgstr "Context unchanged, skipping update"
+msgid "Copyright"
+msgstr "Copyright"
 
-msgid "Failed to process context update: {}"
-msgstr "Failed to process context update: {}"
+msgid "Enter copyright information..."
+msgstr "Enter copyright information..."
 
-msgid "Failed to build context: {}"
-msgstr "Failed to build context: {}"
+msgid "Publishing"
+msgstr "Publishing"
 
-msgid "Failed to hash context: {}"
-msgstr "Failed to hash context: {}"
+# Settings tab
+msgid "Editor Settings"
+msgstr "Editor Settings"
 
-msgid "Cleaning up context manager"
-msgstr "Cleaning up context manager"
+msgid "Default Scene Template:"
+msgstr "Default Scene Template:"
 
-msgid "Failed to cleanup context manager: {}"
-msgstr "Failed to cleanup context manager: {}"
+msgid "Enter default RTF template for new scenes..."
+msgstr "Enter default RTF template for new scenes..."
 
-msgid "Project"
-msgstr "Project"
+msgid "Backup Settings"
+msgstr "Backup Settings"
 
-msgid "Selected text"
-msgstr "Selected text"
+msgid "Enable automatic backups"
+msgstr "Enable automatic backups"
 
-msgid "Current text"
-msgstr "Current text"
+msgid "Automatically create backups of your project"
+msgstr "Automatically create backups of your project"
 
-msgid "chars"
-msgstr "chars"
+msgid "Display title cannot be empty."
+msgstr "Display title cannot be empty."
 
-msgid "Scene words"
-msgstr "Scene words"
+# Scene Context Menu and related strings
+msgid "📝 Rename Scene"
+msgstr "📝 Rename Scene"
 
-msgid "No context available"
-msgstr "No context available"
+msgid "Rename Scene"
+msgstr "Rename Scene"
 
-msgid "Context summary unavailable"
-msgstr "Context summary unavailable"
+msgid "Enter new scene title:"
+msgstr "Enter new scene title:"
 
-msgid "Failed to get context summary: {}"
-msgstr "Failed to get context summary: {}"
-
-msgid "Template engine initialized - Template dir: {}"
-msgstr "Template engine initialized - Template dir: {}"
-
-msgid "Custom template filters added"
-msgstr "Custom template filters added"
-
-msgid "Failed to add custom filters: {}"
-msgstr "Failed to add custom filters: {}"
-
-msgid "Rendering template: {} with context keys: {}"
-msgstr "Rendering template: {} with context keys: {}"
-
-msgid "Template rendered successfully - {} characters"
-msgstr "Template rendered successfully - {} characters"
-
-msgid "Template not found: {}"
-msgstr "Template not found: {}"
-
-msgid "Template syntax error in {}: {}"
-msgstr "Template syntax error in {}: {}"
-
-msgid "Failed to render template {}: {}"
-msgstr "Failed to render template {}: {}"
-
-msgid "Rendering template string with context keys: {}"
-msgstr "Rendering template string with context keys: {}"
-
-msgid "Template string rendered successfully - {} characters"
-msgstr "Template string rendered successfully - {} characters"
-
-msgid "Failed to render template string: {}"
-msgstr "Failed to render template string: {}"
-
-msgid "Template loaded and cached: {}"
-msgstr "Template loaded and cached: {}"
-
-msgid "Failed to get template {}: {}"
-msgstr "Failed to get template {}: {}"
-
-msgid "Failed to enhance context: {}"
-msgstr "Failed to enhance context: {}"
-
-msgid "Found {} templates"
-msgstr "Found {} templates"
-
-msgid "Failed to list templates: {}"
-msgstr "Failed to list templates: {}"
-
-msgid "Failed to check template existence: {}"
-msgstr "Failed to check template existence: {}"
-
-msgid "Template cache cleared"
-msgstr "Template cache cleared"
-
-msgid "Failed to clear template cache: {}"
-msgstr "Failed to clear template cache: {}"
-
-msgid "Failed to get template info: {}"
-msgstr "Failed to get template info: {}"
-
-msgid "Text inserted successfully"
-msgstr "Text inserted successfully"
-
-msgid "No text editor found"
-msgstr "No text editor found"
-
-msgid "No editor active"
-msgstr "No editor active"
-
-msgid "Execute"
-msgstr "Execute"
-
-# Narrative Context Features
-msgid "Generated Context for Scene"
-msgstr "Generated Context for Scene"
-
-msgid "No context found for this scene"
-msgstr "No context found for this scene"
-
-msgid "Type"
-msgstr "Type"
-
-msgid "Updated"
-msgstr "Updated"
+msgid "Generate Context with Template"
+msgstr "Generate Context with Template"
 
 msgid "Scene Summary"
 msgstr "Scene Summary"
 
-msgid "Context Continuation"
-msgstr "Context Continuation"
-
-msgid "Scene Expansion"
-msgstr "Scene Expansion"
-
-msgid "Dialogue Enhancement"
-msgstr "Dialogue Enhancement"
-
-msgid "Scene Rewrite"
-msgstr "Scene Rewrite"
-
-msgid "AI Generated Context"
-msgstr "AI Generated Context"
-
-msgid "Last modified"
-msgstr "Last modified"
-
-msgid "Narrative context is up to date"
-msgstr "Narrative context is up to date"
-
-msgid "Narrative context needs refresh"
-msgstr "Narrative context needs refresh"
-
-msgid "No narrative context available"
-msgstr "No narrative context available"
-
 msgid "Continue with Context"
 msgstr "Continue with Context"
 
-msgid "Expand Scene"
-msgstr "Expand Scene"
-
-msgid "Rewrite Scene"
-msgstr "Rewrite Scene"
-
-msgid "📄 View Generated Context"
-msgstr "📄 View Generated Context"
+msgid "Refresh Narrative Context"
+msgstr "Refresh Narrative Context"
 
 msgid "✏️ Edit Generated Context"
 msgstr "✏️ Edit Generated Context"
 
-msgid "✓ Context automatically saved and linked"
-msgstr "✓ Context automatically saved and linked"
+msgid "Edit Templates..."
+msgstr "Edit Templates..."
 
-msgid "✅ Context automatically saved and linked to scene"
-msgstr "✅ Context automatically saved and linked to scene"
+# Scene card strings
+msgid "Unknown"
+msgstr "Unknown"
 
-msgid "Context for"
-msgstr "Context for"
+msgid "Untitled Scene"
+msgstr "Untitled Scene"
 
-# Service messages for user feedback
-msgid "No scene manager available"
-msgstr "No scene manager available"
-
-msgid "No project loaded"
-msgstr "No project loaded"
-
-msgid "Failed to prepare context data"
-msgstr "Failed to prepare context data"
-
-msgid "Invalid context data"
-msgstr "Invalid context data"
-
-msgid "Failed to generate context"
-msgstr "Failed to generate context"
-
-msgid "No context to refresh"
-msgstr "No context to refresh"
-
-msgid "Error refreshing context"
-msgstr "Error refreshing context"
-
-msgid "No narrative context manager available"
-msgstr "No narrative context manager available"
-
-msgid "No context found for this scene"
-msgstr "No context found for this scene"
-
-msgid "Error viewing context"
-msgstr "Error viewing context"
-
-msgid "Error editing context"
-msgstr "Error editing context"
-
-msgid "Generating narrative context with template: {}"
-msgstr "Generating narrative context with template: {}"
-
-msgid "Viewing context for scene {}"
-msgstr "Viewing context for scene {}"
-
-msgid "Editing context for scene {}"
-msgstr "Editing context for scene {}"
-
-msgid "Task execution failed"
-msgstr "Task execution failed"
-
-# Character and location context formatting terms
-msgid "full name: {}"
-msgstr "full name: {}"
-
-msgid "alias: {}"
-msgstr "alias: {}"
-
-msgid "age: {}"
-msgstr "age: {}"
-
-msgid "gender: {}"
-msgstr "gender: {}"
-
-msgid "occupation: {}"
-msgstr "occupation: {}"
-
-msgid "place: {}"
-msgstr "place: {}"
-
-msgid "atmosphere: {}"
-msgstr "atmosphere: {}"
-
-msgid "details: {}"
-msgstr "details: {}"
-
-msgid "significance: {}"
-msgstr "significance: {}"
-
-msgid "Notes: {}"
-msgstr "Notes: {}"
-
-# Content source selection
-msgid "Content Source:"
-msgstr "Content Source:"
-
-msgid "Selection (if any)"
-msgstr "Selection (if any)"
-
-msgid "Full Scene"
-msgstr "Full Scene"
-
-msgid "Scene Beginning"
-msgstr "Scene Beginning"
-
-msgid "Scene End"
-msgstr "Scene End"
-
-msgid "Custom Length"
-msgstr "Custom Length"
-
-msgid "Choose what content to pass to the AI template"
-msgstr "Choose what content to pass to the AI template"
+msgid "Character-Location Relationships"
+msgstr "Character-Location Relationships"
 
 # AI Content Settings
 msgid "AI Content Processing Settings"
@@ -1209,20 +970,17 @@ msgstr "Content Length Settings"
 msgid "Scene Beginning Length:"
 msgstr "Scene Beginning Length:"
 
-msgid "Scene End Length:"
-msgstr "Scene End Length:"
-
-msgid "Custom Length:"
-msgstr "Custom Length:"
-
-msgid " characters"
-msgstr " characters"
-
 msgid "Number of characters to use when 'Scene Beginning' is selected"
 msgstr "Number of characters to use when 'Scene Beginning' is selected"
 
+msgid "Scene End Length:"
+msgstr "Scene End Length:"
+
 msgid "Number of characters to use when 'Scene End' is selected"
 msgstr "Number of characters to use when 'Scene End' is selected"
+
+msgid "Custom Length:"
+msgstr "Custom Length:"
 
 msgid "Number of characters to use when 'Custom Length' is selected"
 msgstr "Number of characters to use when 'Custom Length' is selected"
@@ -1230,14 +988,431 @@ msgstr "Number of characters to use when 'Custom Length' is selected"
 msgid "These settings control how much content is passed to AI templates when different content source options are selected in the AI Assistant panel.\n\n• Scene Beginning: Uses the first N characters of the scene\n• Scene End: Uses the last N characters of the scene\n• Custom Length: Uses the first N characters for custom length option"
 msgstr "These settings control how much content is passed to AI templates when different content source options are selected in the AI Assistant panel.\n\n• Scene Beginning: Uses the first N characters of the scene\n• Scene End: Uses the last N characters of the scene\n• Custom Length: Uses the first N characters for custom length option"
 
-msgid "AI Content"
-msgstr "AI Content"
+msgid "Language Changed"
+msgstr "Language Changed"
 
-msgid "Generate Context with Template"
-msgstr "Generate Context with Template"
+msgid "Language has been changed. Please restart the application to see changes."
+msgstr "Language has been changed. Please restart the application to see changes."
 
-msgid "Refresh Narrative Context"
-msgstr "Refresh Narrative Context"
+# Characters
+msgid "Character description..."
+msgstr "Character description..."
 
-msgid "Edit Templates..."
-msgstr "Edit Templates..."
+msgid "Character Editor"
+msgstr "Character Editor"
+
+msgid "Basic Info"
+msgstr "Basic Info"
+
+msgid "Notes"
+msgstr "Notes"
+
+msgid "Character Name"
+msgstr "Character Name"
+
+msgid "Name *"
+msgstr "Name *"
+
+# Character form fields
+msgid "Name"
+msgstr "Name"
+
+msgid "Full Name"
+msgstr "Full Name"
+
+msgid "Alias/Nickname"
+msgstr "Alias/Nickname"
+
+msgid "Age"
+msgstr "Age"
+
+msgid "Gender"
+msgstr "Gender"
+
+msgid "Occupation"
+msgstr "Occupation"
+
+msgid "Location"
+msgstr "Location"
+
+msgid "Identity"
+msgstr "Identity"
+
+msgid "Demographics"
+msgstr "Demographics"
+
+msgid "Character Role"
+msgstr "Character Role"
+
+msgid "Importance"
+msgstr "Importance"
+
+msgid "Development"
+msgstr "Development"
+
+msgid "Male"
+msgstr "Male"
+
+msgid "Female"
+msgstr "Female"
+
+msgid "Non-binary"
+msgstr "Non-binary"
+
+msgid "Other"
+msgstr "Other"
+
+msgid "Full legal name"
+msgstr "Full legal name"
+
+msgid "Nickname, pseudonym, title"
+msgstr "Nickname, pseudonym, title"
+
+msgid "Job, profession, role"
+msgstr "Job, profession, role"
+
+msgid "Where they live or come from"
+msgstr "Where they live or come from"
+
+msgid "Minor Character"
+msgstr "Minor Character"
+
+msgid "Supporting Character"
+msgstr "Supporting Character"
+
+msgid "Major Character"
+msgstr "Major Character"
+
+msgid "Main Character"
+msgstr "Main Character"
+
+msgid "Primary Character"
+msgstr "Primary Character"
+
+msgid "Protagonist"
+msgstr "Protagonist"
+
+msgid "Antagonist"
+msgstr "Antagonist"
+
+msgid "Basic Description"
+msgstr "Basic Description"
+
+msgid "Brief overview of the character..."
+msgstr "Brief overview of the character..."
+
+msgid "Appearance"
+msgstr "Appearance"
+
+msgid "Physical description, distinctive features, clothing style..."
+msgstr "Physical description, distinctive features, clothing style..."
+
+msgid "Personality"
+msgstr "Personality"
+
+msgid "Character traits, quirks, habits, behavioral patterns..."
+msgstr "Character traits, quirks, habits, behavioral patterns..."
+
+msgid "Background"
+msgstr "Background"
+
+msgid "Character history, upbringing, formative events, education..."
+msgstr "Character history, upbringing, formative events, education..."
+
+msgid "Goals & Motivations"
+msgstr "Goals & Motivations"
+
+msgid "What they want, their aspirations, driving forces..."
+msgstr "What they want, their aspirations, driving forces..."
+
+msgid "Conflicts & Challenges"
+msgstr "Conflicts & Challenges"
+
+msgid "Internal conflicts, external obstacles, fears, weaknesses..."
+msgstr "Internal conflicts, external obstacles, fears, weaknesses..."
+
+msgid "Key Relationships"
+msgstr "Key Relationships"
+
+msgid "Important connections with other characters, family, friends..."
+msgstr "Important connections with other characters, family, friends..."
+
+msgid "Scenes with this Character"
+msgstr "Scenes with this Character"
+
+msgid "This character appears in the following scenes:"
+msgstr "This character appears in the following scenes:"
+
+msgid "Add Scene"
+msgstr "Add Scene"
+
+msgid "+ Add"
+msgstr "+ Add"
+
+msgid "New"
+msgstr "New"
+
+msgid "Scene Context"
+msgstr "Scene Context"
+
+msgid "Link this character to additional scenes"
+msgstr "Link this character to additional scenes"
+
+msgid "Edit Role"
+msgstr "Edit Role"
+
+msgid "Remove Scene"
+msgstr "Remove Scene"
+
+msgid "No role"
+msgstr "No role"
+
+msgid "No Scenes"
+msgstr "No Scenes"
+
+msgid "No scenes are available in this project."
+msgstr "No scenes are available in this project."
+
+msgid "Enter character's role in this scene:"
+msgstr "Enter character's role in this scene:"
+
+msgid "Remove '{}' from this character?"
+msgstr "Remove '{}' from this character?"
+
+msgid "Validation Error"
+msgstr "Validation Error"
+
+msgid "Character name cannot be empty."
+msgstr "Character name cannot be empty."
+
+msgid "Character name cannot be longer than 100 characters."
+msgstr "Character name cannot be longer than 100 characters."
+
+msgid "Full name cannot be longer than 150 characters."
+msgstr "Full name cannot be longer than 150 characters."
+
+msgid "Alias cannot be longer than 100 characters."
+msgstr "Alias cannot be longer than 100 characters."
+
+msgid "Age must be between 0 and 200."
+msgstr "Age must be between 0 and 200."
+
+msgid "{} cannot be longer than {} characters."
+msgstr "{} cannot be longer than {} characters."
+
+msgid "Character"
+msgstr "Character"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+# Character Selector Dialog
+msgid "Select Character"
+msgstr "Select Character"
+
+msgid "Select Character for Scene"
+msgstr "Select Character for Scene"
+
+msgid "Filter characters by name..."
+msgstr "Filter characters by name..."
+
+msgid "Available Characters"
+msgstr "Available Characters"
+
+msgid "Character Role in Scene"
+msgstr "Character Role in Scene"
+
+msgid "Role:"
+msgstr "Role:"
+
+msgid "Mentioned Only"
+msgstr "Mentioned Only"
+
+msgid "Narrator"
+msgstr "Narrator"
+
+msgid "Cameo"
+msgstr "Cameo"
+
+msgid "No available characters"
+msgstr "No available characters"
+
+msgid "Unknown Character"
+msgstr "Unknown Character"
+
+msgid "No characters in project. Create characters first."
+msgstr "No characters in project. Create characters first."
+
+msgid "All characters are already linked to this scene."
+msgstr "All characters are already linked to this scene."
+
+msgid "{} character(s) available for linking"
+msgstr "{} character(s) available for linking"
+
+# Location Editor Dialog
+msgid "Edit Location"
+msgstr "Edit Location"
+
+msgid "Create New Location"
+msgstr "Create New Location"
+
+msgid "Enter location name..."
+msgstr "Enter location name..."
+
+msgid "Type:"
+msgstr "Type:"
+
+msgid "Indoor"
+msgstr "Indoor"
+
+msgid "Outdoor"
+msgstr "Outdoor"
+
+msgid "Mixed"
+msgstr "Mixed"
+
+msgid "Virtual"
+msgstr "Virtual"
+
+msgid "Atmosphere:"
+msgstr "Atmosphere:"
+
+msgid "e.g., Cozy, Tense, Mysterious..."
+msgstr "e.g., Cozy, Tense, Mysterious..."
+
+msgid "Description:"
+msgstr "Description:"
+
+msgid "Brief description of the location..."
+msgstr "Brief description of the location..."
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Physical Details:"
+msgstr "Physical Details:"
+
+msgid "Physical description, layout, important features..."
+msgstr "Physical description, layout, important features..."
+
+msgid "Notes:"
+msgstr "Notes:"
+
+msgid "General notes, inspiration, references..."
+msgstr "General notes, inspiration, references..."
+
+msgid "Story Role"
+msgstr "Story Role"
+
+msgid "Story Significance:"
+msgstr "Story Significance:"
+
+msgid "Why is this location important to your story? Symbolic meaning, recurring themes..."
+msgstr "Why is this location important to your story? Symbolic meaning, recurring themes..."
+
+msgid "This location appears in the following scenes:"
+msgstr "This location appears in the following scenes:"
+
+msgid "Link this location to additional scenes"
+msgstr "Link this location to additional scenes"
+
+msgid "Connections"
+msgstr "Connections"
+
+msgid "Scenes at this location:"
+msgstr "Scenes at this location:"
+
+msgid "Characters associated with this location:"
+msgstr "Characters associated with this location:"
+
+msgid "Loading..."
+msgstr "Loading..."
+
+msgid "No scenes at this location yet."
+msgstr "No scenes at this location yet."
+
+msgid "Error loading scenes."
+msgstr "Error loading scenes."
+
+msgid "No characters associated with this location yet."
+msgstr "No characters associated with this location yet."
+
+msgid "Error loading characters."
+msgstr "Error loading characters."
+
+msgid "Invalid Input"
+msgstr "Invalid Input"
+
+msgid "Location name is required."
+msgstr "Location name is required."
+
+msgid "update"
+msgstr "update"
+
+msgid "create"
+msgstr "create"
+
+msgid "Failed to {} location. Please try again."
+msgstr "Failed to {} location. Please try again."
+
+msgid "An error occurred while saving: {}"
+msgstr "An error occurred while saving: {}"
+
+msgid "Enter location's role in this scene:"
+msgstr "Enter location's role in this scene:"
+
+msgid "Remove '{}' from this location?"
+msgstr "Remove '{}' from this location?"
+
+# Location Selector Dialog
+msgid "Select Location"
+msgstr "Select Location"
+
+msgid "Select Location for Scene"
+msgstr "Select Location for Scene"
+
+msgid "Filter locations by name..."
+msgstr "Filter locations by name..."
+
+msgid "Available Locations"
+msgstr "Available Locations"
+
+msgid "Location Role in Scene"
+msgstr "Location Role in Scene"
+
+msgid "Primary"
+msgstr "Primary"
+
+msgid "Secondary"
+msgstr "Secondary"
+
+msgid "Mentioned"
+msgstr "Mentioned"
+
+msgid "No available locations"
+msgstr "No available locations"
+
+msgid "Failed to load locations: {}"
+msgstr "Failed to load locations: {}"
+
+msgid "No locations in project. Create locations first."
+msgstr "No locations in project. Create locations first."
+
+msgid "All locations are already linked to this scene."
+msgstr "All locations are already linked to this scene."
+
+msgid "{} location(s) available for linking"
+msgstr "{} location(s) available for linking"
+
+msgid "Enter character name..."
+msgstr "Enter character name..."
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Describe your character's appearance, personality, background..."
+msgstr "Describe your character's appearance, personality, background..."
+
+msgid "Character Notes"
+msgstr "Character Notes"
+

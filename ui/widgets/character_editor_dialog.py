@@ -303,7 +303,7 @@ class CharacterEditorDialog(BaseDialog):
         self.full_name_edit.setText(self.character_data.get('full_name', ''))
         self.alias_edit.setText(self.character_data.get('alias', ''))
         
-        self.setWindowTitle(self.character_data.get('name', 'Character'))
+        self.setWindowTitle(self.character_data.get('name', _('Character')))
 
         # Demographics
         age = self.character_data.get('age')

@@ -99,7 +99,7 @@ class SceneSelector(BaseDialog):
         
         # Selected scenes list
         selected_label = QLabel(_("Selected Scenes:"))
-        selected_label.setFont(self.font_manager.get_font(9, bold=True))
+        selected_label.setFont(self.font_manager.get_font(9, weight=QFont.Weight.Bold))
         details_layout.addWidget(selected_label)
         
         self.selected_list = QListWidget()

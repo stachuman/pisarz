@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QListWidget, 
     QListWidgetItem, QLabel, QMessageBox, QGroupBox, QTextEdit,
     QSplitter, QFrame, QHeaderView, QTableWidget, QTableWidgetItem,
-    QAbstractItemView, QWidget, QFormLayout
+    QAbstractItemView, QWidget, QFormLayout, QSizePolicy
 )
 
 from ui.base.base_dialog import BaseDialog
@@ -62,6 +62,12 @@ class TemplatesListDialog(BaseDialog):
         
         # Set splitter proportions
         main_splitter.setSizes([350, 650])
+        
+        # Prevent component relocation/resize while selecting templates
+        main_splitter.setChildrenCollapsible(False)
+        main_splitter.setCollapsible(0, False)  # Left panel (templates list)
+        main_splitter.setCollapsible(1, False)  # Right panel (template details)
+        
         self.add_content_widget(main_splitter)
         
         # Buttons using BaseDialog functionality
@@ -114,19 +120,24 @@ class TemplatesListDialog(BaseDialog):
         
         # Template info fields
         self.name_label = QLabel("-")
-        self.name_label.setWordWrap(True)
+        self.name_label.setWordWrap(False)
+        self.name_label.setFixedHeight(20)  # Fixed height to prevent expansion
         form_layout.addRow(_("Name:"), self.name_label)
         
         self.id_label = QLabel("-")
+        self.id_label.setFixedHeight(20)
         form_layout.addRow(_("ID:"), self.id_label)
         
         self.version_label = QLabel("-")
+        self.version_label.setFixedHeight(20)
         form_layout.addRow(_("Version:"), self.version_label)
         
         self.author_label = QLabel("-")
+        self.author_label.setFixedHeight(20)
         form_layout.addRow(_("Author:"), self.author_label)
         
         self.category_label = QLabel("-")
+        self.category_label.setFixedHeight(20)
         form_layout.addRow(_("Category:"), self.category_label)
         
         layout.addWidget(form_widget)
@@ -137,7 +148,9 @@ class TemplatesListDialog(BaseDialog):
         
         self.description_text = self.create_text_input(_("No description available"))
         self.description_text.setReadOnly(True)
+        self.description_text.setMinimumHeight(100)
         self.description_text.setMaximumHeight(100)
+        self.description_text.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Fixed)
         layout.addWidget(self.description_text)
         
         # Template content preview
@@ -147,6 +160,8 @@ class TemplatesListDialog(BaseDialog):
         self.template_content_preview = self.create_text_input(_("No template selected"))
         self.template_content_preview.setReadOnly(True)
         self.template_content_preview.setFont(self.font_manager.get_font(9, family="Consolas"))
+        self.template_content_preview.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.template_content_preview.setMinimumHeight(200)  # Minimum height to ensure usability
         layout.addWidget(self.template_content_preview)
         
         return panel

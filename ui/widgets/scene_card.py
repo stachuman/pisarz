@@ -105,7 +105,7 @@ class SceneCard(QFrame):
         # Bottom row with scene number
         bottom_layout = QHBoxLayout()
         
-        order_label = QLabel(f"Scena {self.scene_data.get('ord', 0)}")
+        order_label = QLabel(_("Scene") + f" {self.scene_data.get('ord', 0)}")
         order_label.setFont(QFont("Arial", 9))
         order_label.setStyleSheet("color: #95a5a6;")
         bottom_layout.addWidget(order_label)
@@ -229,7 +229,7 @@ class SceneCard(QFrame):
             if self.location_manager and scene_id:
                 locations = self.location_manager.get_scene_locations(scene_id)
                 if locations:
-                    tooltip_parts.append("<b>📍 Locations:</b>")
+                    tooltip_parts.append(f"<b>📍 {_('Locations')}:</b>")
                     for location, role in locations:
                         tooltip_parts.append(f"  • {location.name} ({role})")
                     tooltip_parts.append("")
@@ -239,7 +239,7 @@ class SceneCard(QFrame):
                 characters = self.character_manager.get_characters_by_scene(scene_id)
                 characters = characters or []
                 if characters:
-                    tooltip_parts.append("<b>👥 Characters:</b>")
+                    tooltip_parts.append(f"<b>👥 {_('Characters')}:</b>")
                     for character in characters:
                         name = character.name if hasattr(character, 'name') else character.get('name', 'Unknown')
                         tooltip_parts.append(f"  • {name}")
@@ -249,7 +249,7 @@ class SceneCard(QFrame):
             if self.location_manager and self.character_manager and scene_id:
                 relationships = self._get_detailed_relationships()
                 if relationships:
-                    tooltip_parts.append("<b>🔗 Character-Location Relationships:</b>")
+                    tooltip_parts.append(f"<b>🔗 {_('Character-Location Relationships')}:</b>")
                     tooltip_parts.extend(relationships)
                     
         except Exception as e:
@@ -311,7 +311,7 @@ class SceneCard(QFrame):
         menu = QMenu(self)
         
         # Rename action
-        rename_action = QAction("📝 Rename Scene", self)
+        rename_action = QAction(_("📝 Rename Scene"), self)
         rename_action.triggered.connect(self.rename_scene)
         menu.addAction(rename_action)
         
@@ -319,12 +319,12 @@ class SceneCard(QFrame):
     
     def rename_scene(self):
         """Show rename dialog and emit rename signal."""
-        current_title = self.scene_data.get("title", "Untitled Scene")
+        current_title = self.scene_data.get("title", _("Untitled Scene"))
         
         new_title, ok = QInputDialog.getText(
             self,
-            "Rename Scene",
-            "Enter new scene title:",
+            _("Rename Scene"),
+            _("Enter new scene title:"),
             text=current_title
         )
         

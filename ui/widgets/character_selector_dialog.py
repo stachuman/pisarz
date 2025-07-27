@@ -42,7 +42,7 @@ class CharacterSelectorDialog(BaseDialog):
         """Set up the user interface."""
         # Title
         title = QLabel(_("Select Character for Scene"))
-        title.setFont(self.font_manager.get_font(14, bold=True))
+        title.setFont(self.font_manager.get_font(14, weight=QFont.Weight.Bold))
         self.add_content_widget(title)
         
         # Search

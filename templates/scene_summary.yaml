@@ -1,76 +1,87 @@
-# Metadata fields
-name: Create Scene Summary
-template_id: scene_summary
-description: Generate a concise summary of the scene for reference
-category: analysis
-version: '2.0'
+allow_context_editing: false
 author: System
+auto_apply_selection: false
+category: analysis
+confirm_before_execution: false
 created_date: null
+custom_params: {}
+default_context_length: 89600
+description: Generate a concise summary of the scene for reference
+format_version: '3.0'
+max_context_chars: 128000
+max_tokens: 64000
 modified_date: null
+name: Create Scene Summary
+preview_length: 100
+repeat_penalty: 1.15
+scene_summary_length: 38400
+scene_summary_source: full_scene
+selection_priority: false
+show_context_preview: false
+show_params_editor: false
 tags:
-  - summary
-  - analysis
-  - reference
+- summary
+- analysis
+- reference
+temperature: 0.3
+template_content: 'Stwórz zwięzłe streszczenie następującej sceny w języku Polskim.
 
-# Template content
-template_content: |
-  Stwórz zwięzłe streszczenie następującej sceny w języku Polskim.
 
   Streszczenie powinno zawierać:
+
   - Główne wydarzenia w scenie
+
   - Kluczowe interakcje między postaciami
+
   - Ważne informacje i odkrycia
+
   - Zmiany w sytuacji lub relacjach
+
   - Nastrój i atmosferę sceny
 
+
   {% if characters %}
+
   Postacie:
+
   {% for character in characters %}
+
   - {{ character }}
+
   {% endfor %}
+
   {% endif %}
+
 
   {% if locations %}
+
   Lokalizacje:
+
   {% for location in locations %}
+
   - {{ location }}
+
   {% endfor %}
+
   {% endif %}
 
+
   {% if project_name %}
+
   Projekt: {{ project_name }}
+
   {% endif %}
+
 
   --- SCENA DO STRESZCZENIA ---
 
+
   {{ scene_summary }}
 
-  Napisz w formacie 2-3 akapitów, koncentrując się na najważniejszych elementach.
-
-# Context configuration
-use_selection: false
-selection_priority: false
-default_context_length: 89600
-scene_summary_length: 38400
-scene_summary_source: full_scene
-max_context_chars: 128000
-word_boundary_trim: true
-
-# LLM parameters
-max_tokens: 64000
-temperature: 0.3
-top_p: 0.8
+  '
+template_id: scene_summary
 top_k: 30
-repeat_penalty: 1.15
-custom_params: {}
-
-# UI configuration
-show_context_preview: false
-allow_context_editing: false
-preview_length: 100
-show_params_editor: false
-auto_apply_selection: false
-confirm_before_execution: false
-
-# Format version
-format_version: '3.0'
+top_p: 0.8
+use_selection: false
+version: '2.0'
+word_boundary_trim: true

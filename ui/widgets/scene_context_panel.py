@@ -80,9 +80,6 @@ class SceneContextPanel(QWidget):
         # Characters section  
         self._setup_characters_section(content_layout)
         
-        # Relationships section
-        self._setup_relationships_section(content_layout)
-        
         content_layout.addStretch()
         content_widget.setLayout(content_layout)
         scroll_area.setWidget(content_widget)
@@ -288,44 +285,6 @@ class SceneContextPanel(QWidget):
         characters_group.setLayout(characters_layout)
         layout.addWidget(characters_group)
     
-    def _setup_relationships_section(self, layout):
-        """Set up the relationships section."""
-        # Relationships group
-        relationships_group = QGroupBox(_("🔗 Relationships"))
-        relationships_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                border: 2px solid #bdc3c7;
-                border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-            }
-        """)
-        
-        relationships_layout = QVBoxLayout()
-        
-        # Relationships display
-        self.relationships_label = QLabel(_("No relationships to display"))
-        self.relationships_label.setWordWrap(True)
-        self.relationships_label.setStyleSheet("""
-            QLabel {
-                color: #666;
-                font-style: italic;
-                padding: 8px;
-                background-color: #f8f9fa;
-                border-radius: 3px;
-                border: 1px solid #e9ecef;
-            }
-        """)
-        relationships_layout.addWidget(self.relationships_label)
-        
-        relationships_group.setLayout(relationships_layout)
-        layout.addWidget(relationships_group)
     
     def _connect_signals(self):
         """Connect widget signals."""
@@ -386,7 +345,6 @@ class SceneContextPanel(QWidget):
             # Update UI
             self._update_locations_list()
             self._update_characters_list()
-            self._update_relationships()
             
         except Exception as e:
             self.logger.error(f"Error in _load_scene_context: {e}")
@@ -488,68 +446,6 @@ class SceneContextPanel(QWidget):
                 self.logger.error(f"Error processing character item {idx}: {e}")
                 continue
     
-    def _update_relationships(self):
-        """Update the relationships display."""
-        relationships = []
-        
-        try:
-            # Find character-location relationships within this scene
-            for item in self.scene_characters:
-                try:
-                    if item is None:
-                        continue
-                    if isinstance(item, tuple) and len(item) == 2:
-                        character, char_role = item
-                    elif isinstance(item, dict):
-                        character = item
-                        char_role = ""
-                    else:
-                        continue
-                    
-                    char_id = character.get('id')
-                    char_name = character.get('name', 'Unknown')
-                except Exception as e:
-                    # Silently handle error - character relationships will be skipped
-                    continue
-                
-                # Get character's location relationships
-                if self.location_manager:
-                    char_locations = self.location_manager.get_character_locations(char_id)
-                    
-                    for loc_in_scene, scene_role in self.scene_locations:
-                        for char_loc, rel_type, description in char_locations:
-                            if char_loc.id == loc_in_scene.id:
-                                rel_text = f"• {char_name} {rel_type} {char_loc.name}"
-                                if description:
-                                    rel_text += f" ({description})"
-                                relationships.append(rel_text)
-        except:
-            pass
-            # Silently handle error - relationships won't be updated
-        
-        if relationships:
-            self.relationships_label.setText("\n".join(relationships))
-            self.relationships_label.setStyleSheet("""
-                QLabel {
-                    color: #2c3e50;
-                    padding: 8px;
-                    background-color: #e8f5e8;
-                    border-radius: 3px;
-                    border: 1px solid #27ae60;
-                }
-            """)
-        else:
-            self.relationships_label.setText(_("No character-location relationships in this scene"))
-            self.relationships_label.setStyleSheet("""
-                QLabel {
-                    color: #666;
-                    font-style: italic;
-                    padding: 8px;
-                    background-color: #f8f9fa;
-                    border-radius: 3px;
-                    border: 1px solid #e9ecef;
-                }
-            """)
     
     def _on_location_selection_changed(self):
         """Handle location selection changes."""

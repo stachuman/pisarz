@@ -1,0 +1,44 @@
+# Metadata fields
+name: Test connection to AI
+template_id: test_connection
+description: Test connectivity to AI
+category: writing
+version: '2.0'
+author: System
+created_date: null
+modified_date: null
+tags:
+  - writing
+
+# Template content
+template_content: |
+  This is test request. Respond only with one word - ALIVE 
+
+
+# Context configuration
+use_selection: false
+selection_priority: false
+default_context_length: 10 
+scene_summary_length: 10 
+scene_summary_source: scene_beginning
+max_context_chars: 10
+word_boundary_trim: true
+
+# LLM parameters
+max_tokens: 20 
+temperature: 0.8
+top_p: 0.95
+top_k: 50
+repeat_penalty: 1.05
+custom_params: {}
+
+# UI configuration
+show_context_preview: true
+allow_context_editing: false
+preview_length: 150
+show_params_editor: true
+auto_apply_selection: true
+confirm_before_execution: false
+
+# Format version
+format_version: '3.0'
