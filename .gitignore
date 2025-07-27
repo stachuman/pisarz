@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-.claude
+.claude/
 build/
 develop-eggs/
 dist/
