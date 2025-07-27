@@ -20,10 +20,10 @@ jobs:
             name: Windows
             artifact_name: pisarz-windows
             executable_name: pisarz.exe
-          - os: macos-13-large
-            name: macOS
-            artifact_name: pisarz-macos
-            executable_name: pisarz
+          # - os: macos-13-large
+          #   name: macOS
+          #   artifact_name: pisarz-macos
+          #   executable_name: pisarz
 
     runs-on: ${{ matrix.os }}
     name: Build for ${{ matrix.name }}
@@ -177,7 +177,7 @@ jobs:
         files: |
           pisarz-linux/pisarz-linux.tar.gz
           pisarz-windows/pisarz-windows.zip
-          pisarz-macos/pisarz-macos.tar.gz
+          # pisarz-macos/pisarz-macos.tar.gz
         draft: false
         prerelease: false
         generate_release_notes: true
