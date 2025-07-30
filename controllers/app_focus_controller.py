@@ -23,16 +23,16 @@ class AppFocusController(QObject):
         self.project_widget = None
         self.workspace = None
         self.status_bar = None
-        self.llm_panel = None
+        self.ai_assistant_window = None
         self.saved_splitter_sizes = None
         self.saved_ai_assistant_visible = False
         
-    def setup_components(self, project_widget: QWidget, workspace, status_bar, llm_panel=None):
+    def setup_components(self, project_widget: QWidget, workspace, status_bar, ai_assistant_window=None):
         """Set references to UI components."""
         self.project_widget = project_widget
         self.workspace = workspace
         self.status_bar = status_bar
-        self.llm_panel = llm_panel
+        self.ai_assistant_window = ai_assistant_window
         
     def initialize_theme(self):
         """Initialize and apply global theme."""
@@ -60,20 +60,9 @@ class AppFocusController(QObject):
     
     def on_ai_assistant_visibility_changed(self, visible: bool):
         """Handle AI assistant visibility change during focus mode."""
-        # Update saved state for when we exit focus mode
-        self.saved_ai_assistant_visible = visible
-        
-        if self.focus_mode and self.project_widget:
-            # Find the main vertical splitter
-            main_splitter = self.project_widget.findChild(QSplitter)
-            if main_splitter:
-                # Update focus mode layout based on AI assistant visibility
-                if visible:
-                    # Show AI assistant at bottom in focus mode
-                    main_splitter.setSizes([700, 300])  # [top=700, ai=300]
-                else:
-                    # Hide AI assistant in focus mode
-                    main_splitter.setSizes([1000, 0])  # [top=1000, ai=0]
+        # This method is no longer needed with undocked windows
+        # but kept for compatibility
+        pass
     
     def _enter_focus_mode(self):
         """Enter focus mode - fullscreen with minimal UI."""
@@ -82,40 +71,69 @@ class AppFocusController(QObject):
         if self.status_bar:
             self.status_bar.hide()
         
-        # Handle new layout: main vertical splitter with horizontal splitter at top
+        # Handle new undocked window architecture
         if self.project_widget:
-            # Find the main vertical splitter
-            main_splitter = self.project_widget.findChild(QSplitter)
-            if main_splitter:
-                # Save current main splitter sizes
-                self.saved_main_splitter_sizes = main_splitter.sizes()
-                
-                # Find the horizontal splitter within the top widget
-                horizontal_splitter = main_splitter.widget(0).findChild(QSplitter)
-                if horizontal_splitter:
-                    # Save current horizontal splitter sizes
-                    self.saved_horizontal_splitter_sizes = horizontal_splitter.sizes()
-                    # Hide navigation panel in focus mode
-                    horizontal_splitter.setSizes([0, 1200])  # [nav=0, workspace=1200]
-                
-                # Save AI assistant panel visibility
-                if self.llm_panel:
-                    self.saved_ai_assistant_visible = self.llm_panel.isVisible()
-                
-                # Calculate new sizes for focus mode
-                if self.llm_panel and self.saved_ai_assistant_visible:
-                    # Keep AI assistant at bottom in focus mode
-                    main_splitter.setSizes([700, 300])  # [top=700, ai=300]
-                else:
-                    # Hide AI assistant in focus mode
-                    main_splitter.setSizes([1000, 0])  # [top=1000, ai=0]
+            # Find the horizontal splitter (project tree + workspace)
+            horizontal_splitter = self.project_widget.findChild(QSplitter)
+            if horizontal_splitter:
+                # Save current horizontal splitter sizes
+                self.saved_horizontal_splitter_sizes = horizontal_splitter.sizes()
+                # Hide navigation panel in focus mode
+                horizontal_splitter.setSizes([0, 1200])  # [nav=0, workspace=1200]
+        
+        # Hide all undocked windows in focus mode
+        self._hide_undocked_windows()
         
         # Apply focus mode styling
         self._apply_focus_window_style()
         
+        # Focus on the text editor
         if hasattr(self.workspace, 'current_editor') and self.workspace.current_editor:
             self._apply_focus_mode_style()
+            # Focus on the text editor widget
+            if hasattr(self.workspace.current_editor, 'text_edit'):
+                self.workspace.current_editor.text_edit.setFocus()
     
+    def _hide_undocked_windows(self):
+        """Hide all undocked windows and save their visibility state."""
+        self.saved_window_states = {}
+        
+        # Get main window to access undocked windows
+        if hasattr(self.main_window, 'ai_assistant_window') and self.main_window.ai_assistant_window:
+            self.saved_window_states['ai_assistant'] = self.main_window.ai_assistant_window.isVisible()
+            self.main_window.ai_assistant_window.hide()
+        
+        if hasattr(self.main_window, 'narrative_context_window') and self.main_window.narrative_context_window:
+            self.saved_window_states['narrative_context'] = self.main_window.narrative_context_window.isVisible()
+            self.main_window.narrative_context_window.hide()
+        
+        if hasattr(self.main_window, 'scene_context_window') and self.main_window.scene_context_window:
+            self.saved_window_states['scene_context'] = self.main_window.scene_context_window.isVisible()
+            self.main_window.scene_context_window.hide()
+    
+    def _restore_undocked_windows(self):
+        """Restore undocked windows to their previous visibility state."""
+        if not hasattr(self, 'saved_window_states'):
+            return
+        
+        # Restore AI assistant window
+        if (self.saved_window_states.get('ai_assistant', False) and 
+            hasattr(self.main_window, 'ai_assistant_window') and 
+            self.main_window.ai_assistant_window):
+            self.main_window.ai_assistant_window.show()
+        
+        # Restore narrative context window
+        if (self.saved_window_states.get('narrative_context', False) and 
+            hasattr(self.main_window, 'narrative_context_window') and 
+            self.main_window.narrative_context_window):
+            self.main_window.narrative_context_window.show()
+        
+        # Restore scene context window
+        if (self.saved_window_states.get('scene_context', False) and 
+            hasattr(self.main_window, 'scene_context_window') and 
+            self.main_window.scene_context_window):
+            self.main_window.scene_context_window.show()
+
     def _exit_focus_mode(self):
         """Exit focus mode - restore normal window."""
         self.main_window.showNormal()
@@ -123,30 +141,20 @@ class AppFocusController(QObject):
         if self.status_bar:
             self.status_bar.show()
         
-        # Restore new layout structure
+        # Restore horizontal splitter layout
         if self.project_widget:
-            # Find the main vertical splitter
-            main_splitter = self.project_widget.findChild(QSplitter)
-            if main_splitter:
-                # Restore saved main splitter sizes or use defaults
-                if hasattr(self, 'saved_main_splitter_sizes') and self.saved_main_splitter_sizes:
-                    main_splitter.setSizes(self.saved_main_splitter_sizes)
+            # Find the horizontal splitter (project tree + workspace)
+            horizontal_splitter = self.project_widget.findChild(QSplitter)
+            if horizontal_splitter:
+                # Restore saved horizontal splitter sizes or use defaults
+                if hasattr(self, 'saved_horizontal_splitter_sizes') and self.saved_horizontal_splitter_sizes:
+                    horizontal_splitter.setSizes(self.saved_horizontal_splitter_sizes)
                 else:
-                    # Default layout (top + AI assistant)
-                    if self.llm_panel and self.saved_ai_assistant_visible:
-                        main_splitter.setSizes([700, 300])  # [top=700, ai=300]
-                    else:
-                        main_splitter.setSizes([1000, 0])  # [top=1000, ai=0]
-                
-                # Restore horizontal splitter within the top widget
-                horizontal_splitter = main_splitter.widget(0).findChild(QSplitter)
-                if horizontal_splitter:
-                    # Restore saved horizontal splitter sizes or use defaults
-                    if hasattr(self, 'saved_horizontal_splitter_sizes') and self.saved_horizontal_splitter_sizes:
-                        horizontal_splitter.setSizes(self.saved_horizontal_splitter_sizes)
-                    else:
-                        # Default horizontal layout (nav + workspace)
-                        horizontal_splitter.setSizes([300, 900])  # [nav=300, workspace=900]
+                    # Default horizontal layout (nav + workspace)
+                    horizontal_splitter.setSizes([300, 900])  # [nav=300, workspace=900]
+        
+        # Restore undocked windows visibility
+        self._restore_undocked_windows()
         
         # Remove focus mode styling
         self._remove_focus_window_style()
@@ -171,8 +179,8 @@ class AppFocusController(QObject):
             toolbar_widget.hide()
             
         # Get colors from current theme
-        from ui.styles.themes import ThemeManager
-        theme_manager = ThemeManager()
+        from ui.base.enhanced_theme_manager import EnhancedThemeManager
+        theme_manager = EnhancedThemeManager()
         colors = theme_manager.get_theme_colors()
         
         # Apply minimalist style consistent with theme
@@ -210,8 +218,8 @@ class AppFocusController(QObject):
     
     def _apply_focus_window_style(self):
         """Apply window style in focus mode."""
-        from ui.styles.themes import ThemeManager
-        theme_manager = ThemeManager()
+        from ui.base.enhanced_theme_manager import EnhancedThemeManager
+        theme_manager = EnhancedThemeManager()
         colors = theme_manager.get_theme_colors()
         
         # Apply background consistent with theme

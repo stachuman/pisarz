@@ -37,28 +37,49 @@ class SceneContextService:
                 self.logger.error(f"Scene {scene_id} not found")
                 return None
             
-            # Extract characters and locations
+            # Extract characters, locations, and scene contexts
             scene_characters = self._extract_scene_characters(scene_id, managers)
             scene_locations = self._extract_scene_locations(scene_id, managers)
+            scene_contexts = self._extract_scene_contexts(scene_id, managers)
             
             # Ensure we have valid lists
             scene_characters = scene_characters or []
             scene_locations = scene_locations or []
+            scene_contexts = scene_contexts or []
             
-            self.logger.debug(f"Found {len(scene_characters)} characters, {len(scene_locations)} locations for scene {scene_id}")
+            self.logger.debug(f"Found {len(scene_characters)} characters, {len(scene_locations)} locations, {len(scene_contexts)} scene contexts for scene {scene_id}")
             
-            # Build complete context
+            # Build complete context with fresh project data
+            project_controller = managers.get("project_controller")
+            project_description = ''
+            project_name_from_db = project_name
+            
+            # Get fresh project data from database instead of controller attributes
+            if project_controller and hasattr(project_controller, 'get_project_data'):
+                current_project_id = project_controller.get_project_id()
+                if current_project_id:
+                    project_data = project_controller.get_project_data(current_project_id) or {}
+                    project_description = project_data.get('description', '')
+                    project_name_from_db = project_data.get('name', project_name)
+                    self.logger.debug(f"Fresh project data - name: '{project_name_from_db}', description: '{project_description}'")
+                else:
+                    self.logger.debug("No current project ID available")
+            else:
+                self.logger.debug(f"Project controller missing get_project_data method: {project_controller is not None}")
+            
             context_data = {
                 "scene_id": scene_id,
                 "scene_title": scene.get("title", ""),
                 "scene_content": scene.get("content_rtf", ""),
-                "project_description": getattr(managers.get("project_controller"), 'project_description', ''),
-                "project_name": project_name,
+                "project_description": project_description,
+                "project_name": project_name_from_db,  # Use fresh project name from database
                 "template_type": template_name,
                 "characters": scene_characters,
                 "locations": scene_locations,
+                "scene_contexts": scene_contexts,
                 "character_count": len(scene_characters),
-                "location_count": len(scene_locations)
+                "location_count": len(scene_locations),
+                "scene_contexts_count": len(scene_contexts)
             }
             
             self.logger.debug(f"Built context for scene {scene_id}: {len(scene_characters)} chars, {len(scene_locations)} locs")
@@ -135,6 +156,59 @@ class SceneContextService:
             self.logger.warning(f"Failed to extract locations for scene {scene_id}: {e}")
             
         return scene_locations
+    
+    def _extract_scene_contexts(self, scene_id: int, managers: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract all scene contexts for the project, ordered by scene order."""
+        scene_contexts = []
+        scene_manager = managers.get('scene_manager')
+        narrative_manager = managers.get('narrative_context_manager')
+        
+        if not scene_manager or not narrative_manager:
+            return scene_contexts
+            
+        try:
+            # Get current scene to find its project
+            current_scene = scene_manager.get_scene(scene_id)
+            if not current_scene:
+                return scene_contexts
+            
+            project_id = current_scene.get('project_id')
+            if not project_id:
+                return scene_contexts
+            
+            # Get all scenes for the project, ordered by ord
+            all_scenes = scene_manager.get_scenes_by_project(project_id)
+            if not all_scenes:
+                return scene_contexts
+                
+            all_scenes.sort(key=lambda x: x.get('ord', 0))
+            
+            # Extract contexts for each scene
+            for scene in all_scenes:
+                scene_context_data = {
+                    "scene_id": scene.get('id'),
+                    "scene_title": scene.get('title', ''),
+                    "scene_ord": scene.get('ord', 0),
+                    "content": "",
+                    "has_content": False
+                }
+                
+                # Get narrative context for this scene
+                contexts = narrative_manager.get_contexts_by_scene(scene.get('id'))
+                if contexts:
+                    # Use the most recent context
+                    contexts.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+                    scene_context_data["content"] = contexts[0].get('content', '')
+                    scene_context_data["has_content"] = bool(scene_context_data["content"].strip())
+                
+                scene_contexts.append(scene_context_data)
+            
+            self.logger.debug(f"Extracted {len(scene_contexts)} scene contexts for project")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to extract scene contexts: {e}")
+            
+        return scene_contexts
     
     def get_characters_for_custom_prompt(self, scene_id: int, managers: Dict[str, Any], 
                                         format_for_llm: bool = False) -> List[Any]:

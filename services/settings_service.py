@@ -50,8 +50,8 @@ class SettingsService:
             self.logger.info(f"Changing theme to: {theme_name}")
             
             # Apply theme using theme manager
-            from ui.styles.themes import ThemeManager
-            theme_manager = ThemeManager()
+            from ui.base.enhanced_theme_manager import EnhancedThemeManager
+            theme_manager = EnhancedThemeManager()
             theme_manager.set_theme(theme_name)
             
             # Notify focus controller about theme change

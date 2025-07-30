@@ -1,69 +1,54 @@
-# Properly flattened template format v3.0
-name: Generate Character
-template_id: generate_character
-description: Expand a scene with more detail, dialogue, and description
-category: writing
-version: '2.0'
+allow_context_editing: false
 author: System
+auto_apply_selection: true
+category: writing
+confirm_before_execution: false
 created_date: null
+custom_params: {}
+default_context_length: 4000
+description: Expand a scene with more detail, dialogue, and description
+format_version: '3.0'
+max_context_chars: 4000
+max_tokens: 4000
 modified_date: null
+name: Generate Character
+preview_length: 180
+repeat_penalty: 1.08
+scene_summary_length: 12000
+scene_summary_source: full_scene
+selection_priority: true
+show_context_preview: true
+show_params_editor: true
 tags:
 - writing
 - expansion
 - detail
-template_content: 'Wygeneruj postać na potrzeby książki
-
-  {% if project_description %}
-
-  {{ project_description }}
-
-  {% endif %}
-
-
-  Opis postaci ma zawierać:
-
-  Pełne imię
-
-  Ewentualnie pseudonim
-
-  Wiek
-
-  Płeć
-
-  Zawód
-
-  Miejsce pochodzenia / Miejsce zamieszkania
-
-  Wygląd
-
-  Opis
-
-  Osobowość
-
-  Tło / Historia
-
-  Cele
-
-  Konflikty
-
-  '
-use_selection: true
-selection_priority: true
-default_context_length: 4000
-scene_summary_length: 12000
-scene_summary_source: full_scene
-max_context_chars: 4000
-word_boundary_trim: true
-max_tokens: 4000
 temperature: 0.91
-top_p: 0.92
+template_content: "Wygeneruj postacie do książki w formacie JSON. Wynik MUSI być poprawną\
+  \ strukturą JSON.\nGenerujesz TYLKO postacie.\n\n{% if project_description %}\n\
+  Kontekst projektu: {{ project_description }}\n{% endif %}\n\n{% if scene_contexts\
+  \ %}\n{% set contexts_with_content = scene_contexts|selectattr(\"has_content\")|list\
+  \ %}\n{% if contexts_with_content %}\nKontekst historii z poprzednich scen:\n{%\
+  \ for context in contexts_with_content %}\n- {{ context.scene_title }}: {{ context.content\
+  \ }}\n{% endfor %}\n{% endif %}\n{% endif %}\n\n{% if characters %}\nIstniejące\
+  \ postacie (unikaj duplikatów):\n{% for character in characters %}\n- {{ character\
+  \ }}\n{% endfor %}\n{% endif %}\n\nFormat wyjściowy (tylko poprawny JSON):\n```json\n\
+  {\n  \"characters\": [\n    {\n      \"name\": \"Nazwa wyświetlana postaci\",\n\
+  \      \"full_name\": \"Pełne imię i nazwisko jeśli różne od name\",\n      \"alias\"\
+  : \"Pseudonim lub przezwisko jeśli istnieje\", \n      \"age\": 25,\n      \"gender\"\
+  : \"Mężczyzna/Kobieta/Inne\",\n      \"occupation\": \"Zawód lub rola postaci\"\
+  ,\n      \"location\": \"Miejsce zamieszkania/pochodzenia\",\n      \"description\"\
+  : \"Krótki opis postaci\",\n      \"personality\": \"Cechy osobowości i charakterystyka\"\
+  , \n      \"background\": \"Historia i tło postaci\",\n      \"goals\": \"Co postać\
+  \ chce osiągnąć\",\n      \"conflicts\": \"Konflikty wewnętrzne/zewnętrzne\",\n\
+  \      \"relationships\": \"Kluczowe relacje z innymi postaciami\",\n      \"appearance\"\
+  : \"Opis fizyczny\",\n      \"notes\": \"Dodatkowe notatki lub szczegóły\",\n  \
+  \    \"importance\": 3,\n      \"is_protagonist\": false,\n      \"is_antagonist\"\
+  : false\n    }\n  ]\n}\n```\n\nWygeneruj 1-3 szczegółowe postacie na podstawie obecnej\
+  \ sceny i kontekstu historii. Uczyń je przekonującymi i dobrze rozwiniętymi.\n"
+template_id: generate_character
 top_k: 45
-repeat_penalty: 1.08
-custom_params: {}
-show_context_preview: true
-allow_context_editing: false
-preview_length: 180
-show_params_editor: true
-auto_apply_selection: true
-confirm_before_execution: false
-format_version: '3.0'
+top_p: 0.92
+use_selection: true
+version: '2.0'
+word_boundary_trim: true

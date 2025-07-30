@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QColor
 
-from ..styles.themes import ThemeManager
+from ..base.enhanced_theme_manager import EnhancedThemeManager
 from i18n import _
 
 
@@ -205,7 +205,7 @@ class CharacterCard(QFrame):
         
     def apply_theme(self):
         """Apply current theme colors to the card."""
-        theme_manager = ThemeManager()
+        theme_manager = EnhancedThemeManager()
         self._apply_theme_style(theme_manager)
         
     def _apply_theme_style(self, theme_manager):

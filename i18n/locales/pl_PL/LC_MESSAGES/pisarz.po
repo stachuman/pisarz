@@ -1415,4 +1415,162 @@ msgstr "Wszystkie lokalizacje są już połączone z tą sceną."
 msgid "{} location(s) available for linking"
 msgstr "{} lokalizacj(e/i) dostępnych do połączenia"
 
+# Basic UI buttons and actions (only new ones, avoiding duplicates)
+msgid "Delete"
+msgstr "Usuń"
+
+msgid "Edit"
+msgstr "Edytuj"
+
+msgid "Create"
+msgstr "Utwórz"
+
+msgid "Remove"
+msgstr "Usuń"
+
+msgid "Update"
+msgstr "Aktualizuj"
+
+msgid "Confirm"
+msgstr "Potwierdź"
+
+msgid "Open"
+msgstr "Otwórz"
+
+msgid "Paste"
+msgstr "Wklej"
+
+msgid "Cut"
+msgstr "Wytnij"
+
+msgid "Undo"
+msgstr "Cofnij"
+
+msgid "Redo"
+msgstr "Ponów"
+
+msgid "Search"
+msgstr "Szukaj"
+
+msgid "Find"
+msgstr "Znajdź"
+
+msgid "Replace"
+msgstr "Zastąp"
+
+msgid "Import"
+msgstr "Importuj"
+
+msgid "Export"
+msgstr "Eksportuj"
+
+msgid "Execute"
+msgstr "Wykonaj"
+
+msgid "Stop"
+msgstr "Zatrzymaj"
+
+msgid "Start"
+msgstr "Rozpocznij"
+
+msgid "Pause"
+msgstr "Wstrzymaj"
+
+msgid "Resume"
+msgstr "Wznów"
+
+msgid "Refresh"
+msgstr "Odśwież"
+
+msgid "Reload"
+msgstr "Przeładuj"
+
+msgid "Reset"
+msgstr "Resetuj"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Yes"
+msgstr "Tak"
+
+msgid "No"
+msgstr "Nie"
+
+msgid "Cancel"
+msgstr "Anuluj"
+
+# Delete functionality specific translations
+msgid "Delete Character"
+msgstr "Usuń Postać"
+
+msgid "Delete Location"
+msgstr "Usuń Lokację"
+
+msgid "Confirm Character Deletion"
+msgstr "Potwierdź Usunięcie Postaci"
+
+msgid "Confirm Location Deletion"
+msgstr "Potwierdź Usunięcie Lokacji"
+
+msgid "Character '{}' is used in {} scene(s):"
+msgstr "Postać '{}' jest używana w {} scenie/scenach:"
+
+msgid "Location '{}' is used in {} places:"
+msgstr "Lokacja '{}' jest używana w {} miejscach:"
+
+msgid "Deleting this character will remove it from all scenes. This action cannot be undone.\n\nAre you sure you want to continue?"
+msgstr "Usunięcie tej postaci spowoduje jej usunięcie ze wszystkich scen. Ta operacja nie może być cofnięta.\n\nCzy na pewno chcesz kontynuować?"
+
+msgid "Deleting this location will remove it from all scenes and character associations. This action cannot be undone.\n\nAre you sure you want to continue?"
+msgstr "Usunięcie tej lokacji spowoduje jej usunięcie ze wszystkich scen i powiązań z postaciami. Ta operacja nie może być cofnięta.\n\nCzy na pewno chcesz kontynuować?"
+
+msgid "Are you sure you want to delete character '{}'?\n\nThis action cannot be undone."
+msgstr "Czy na pewno chcesz usunąć postać '{}'?\n\nTa operacja nie może być cofnięta."
+
+msgid "Are you sure you want to delete location '{}'?\n\nThis action cannot be undone."
+msgstr "Czy na pewno chcesz usunąć lokację '{}'?\n\nTa operacja nie może być cofnięta."
+
+msgid "Character Deleted"
+msgstr "Postać Usunięta"
+
+msgid "Location Deleted"
+msgstr "Lokacja Usunięta"
+
+msgid "Character '{}' has been successfully deleted."
+msgstr "Postać '{}' została pomyślnie usunięta."
+
+msgid "Location '{}' has been successfully deleted."
+msgstr "Lokacja '{}' została pomyślnie usunięta."
+
+msgid "Deletion Failed"
+msgstr "Usuwanie Nieudane"
+
+msgid "Failed to delete character '{}'. Please try again."
+msgstr "Nie udało się usunąć postaci '{}'. Spróbuj ponownie."
+
+msgid "Failed to delete location '{}'. Please try again."
+msgstr "Nie udało się usunąć lokacji '{}'. Spróbuj ponownie."
+
+msgid "Cannot delete character: no ID found"
+msgstr "Nie można usunąć postaci: nie znaleziono ID"
+
+msgid "Cannot delete location: no ID found"
+msgstr "Nie można usunąć lokacji: nie znaleziono ID"
+
+msgid "Character manager not available"
+msgstr "Menedżer postaci niedostępny"
+
+msgid "Cannot access project controller"
+msgstr "Nie można uzyskać dostępu do kontrolera projektu"
+
+msgid "An error occurred while deleting the character: {}"
+msgstr "Wystąpił błąd podczas usuwania postaci: {}"
+
+msgid "An error occurred while deleting the location: {}"
+msgstr "Wystąpił błąd podczas usuwania lokacji: {}"
+
+msgid "Unknown Location"
+msgstr "Nieznana Lokacja"
+
 

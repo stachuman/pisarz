@@ -379,9 +379,17 @@ class AppLLMController(QObject):
             Complete context data for LLM execution or None if preparation failed
         """
         try:
-            # Build scene context with characters and locations
+            # IMPORTANT: Get fresh managers and project data to ensure latest data is available
+            # The managers passed in might be stale, so we get fresh ones from project controller
+            fresh_managers = managers
+            project_controller = managers.get('project_controller')
+            if project_controller and hasattr(project_controller, 'get_current_managers'):
+                fresh_managers = project_controller.get_current_managers()
+                self.logger.debug("Using fresh managers from project controller")
+            
+            # Build scene context with characters and locations using fresh managers
             context_data = self.scene_context_service.build_scene_context(
-                scene_id, managers, project_name, template_name
+                scene_id, fresh_managers, project_name, template_name
             )
             
             if not context_data:
@@ -392,7 +400,8 @@ class AppLLMController(QObject):
             context_data.update({
                 "template_id": self._map_template_name_to_id(template_name),
                 "execution_timestamp": self._get_current_timestamp(),
-                "context_type": "template_execution"
+                "context_type": "template_execution",
+                "managers": fresh_managers  # Add fresh managers for template manager access
             })
             
             self.logger.info(f"Prepared LLM context for scene {scene_id} with template {template_name}")
@@ -418,6 +427,13 @@ class AppLLMController(QObject):
             Context data formatted for custom prompt usage
         """
         try:
+            # Get fresh managers to ensure latest data is available
+            fresh_managers = managers
+            project_controller = managers.get('project_controller')
+            if project_controller and hasattr(project_controller, 'get_current_managers'):
+                fresh_managers = project_controller.get_current_managers()
+                self.logger.debug("Using fresh managers for custom prompt context")
+            
             context_data = {
                 "characters": [],
                 "locations": [],
@@ -427,25 +443,34 @@ class AppLLMController(QObject):
             
             if include_characters:
                 context_data["characters"] = self.scene_context_service.get_characters_for_custom_prompt(
-                    scene_id, managers
+                    scene_id, fresh_managers
                 )
             
             if include_locations:
                 context_data["locations"] = self.scene_context_service.get_locations_for_custom_prompt(
-                    scene_id, managers
+                    scene_id, fresh_managers
                 )
             
             # Add project information
-            scene_manager = managers.get('scene_manager')
+            scene_manager = fresh_managers.get('scene_manager')
             if scene_manager:
                 scene = scene_manager.get_scene(scene_id)
                 if scene:
+                    # Get fresh project data from database
+                    project_controller = fresh_managers.get('project_controller')
+                    project_data = {}
+                    if project_controller and hasattr(project_controller, 'get_project_data'):
+                        current_project_id = project_controller.get_project_id()
+                        if current_project_id:
+                            project_data = project_controller.get_project_data(current_project_id) or {}
+                    
                     context_data.update({
                         "scene_title": scene.get("title", ""),
-                        "project_name": getattr(managers.get('project_controller'), 'current_project_name', ''),
-                        "project_description": getattr(managers.get("project_controller"), 'project_description', ''),
+                        "project_name": project_data.get('name', getattr(project_controller, 'current_project_name', '')),
+                        "project_description": project_data.get('description', ''),
                         "character_count": len(context_data["characters"]),
-                        "location_count": len(context_data["locations"])
+                        "location_count": len(context_data["locations"]),
+                        "managers": fresh_managers  # Add fresh managers for template manager access
                     })
             
             self.logger.debug(f"Prepared custom prompt context for scene {scene_id}")

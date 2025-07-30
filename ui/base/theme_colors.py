@@ -8,7 +8,9 @@ DEFAULT_THEME_COLORS = {
     "background": "#ffffff",
     "text": "#333333",
     "secondary_text": "#666666",
+    "secondary_bg": "#f8f9fa",
     "heading": "#2c3e50",
+    "muted": "#666666",
     
     # UI elements
     "border": "#e0e0e0",
@@ -59,6 +61,8 @@ DEFAULT_THEME_COLORS = {
     
     # Editor
     "editor_background": "#ffffff",
+    "editor_bg": "#ffffff",  # Legacy compatibility
+    "editor_text": "#333333",  # Legacy compatibility
     "editor_selection": "#3498db",
     "editor_highlight": "#fff3cd",
     "editor_current_line": "#f8f9fa",
@@ -75,7 +79,9 @@ DARK_THEME_COLORS = {
     "background": "#2b2b2b",
     "text": "#ffffff",
     "secondary_text": "#aaaaaa",
+    "secondary_bg": "#363636",
     "heading": "#ffffff",
+    "muted": "#aaaaaa",
     
     # UI elements
     "border": "#404040",
@@ -126,6 +132,8 @@ DARK_THEME_COLORS = {
     
     # Editor
     "editor_background": "#2b2b2b",
+    "editor_bg": "#2b2b2b",  # Legacy compatibility
+    "editor_text": "#ffffff",  # Legacy compatibility
     "editor_selection": "#4a9eff",
     "editor_highlight": "#5a5a2a",
     "editor_current_line": "#363636",
@@ -142,7 +150,9 @@ BLUE_THEME_COLORS = {
     "background": "#f8f9fa",
     "text": "#212529",
     "secondary_text": "#6c757d",
+    "secondary_bg": "#e3f2fd",
     "heading": "#1e3a8a",
+    "muted": "#6c757d",
     
     # UI elements
     "border": "#dee2e6",
@@ -193,6 +203,8 @@ BLUE_THEME_COLORS = {
     
     # Editor
     "editor_background": "#ffffff",
+    "editor_bg": "#ffffff",  # Legacy compatibility
+    "editor_text": "#212529",  # Legacy compatibility
     "editor_selection": "#0d6efd",
     "editor_highlight": "#fff3cd",
     "editor_current_line": "#f8f9fa",

@@ -438,8 +438,8 @@ class NarrativeContextPanel(QWidget):
                 context_id = context_data['id']
                 
                 # Update the context
-                success = self.context_manager.update_narrative_context(
-                    context_id=context_id,
+                success = self.context_manager.update_context(
+                    context_id,
                     title=data['title'],
                     content=data['content']
                 )
@@ -515,7 +515,7 @@ class NarrativeContextPanel(QWidget):
                     _("Error"),
                     _("Failed to delete context: {}").format(str(e))
                 )
-    
+
     def toggle_context_active(self):
         """Toggle the active state of the selected context."""
         if not self.context_manager:
@@ -559,3 +559,60 @@ class NarrativeContextPanel(QWidget):
                 _("Error"),
                 _("Failed to toggle context state: {}").format(str(e))
             )
+
+
+class NarrativeContextWindow(BaseDialog):
+    """Narrative Context as an undocked window."""
+    
+    # Forward signal from the panel
+    context_changed = Signal()
+    
+    def __init__(self, parent=None):
+        super().__init__(
+            title=_("Narrative Context"),
+            width=800,
+            height=300,
+            modal=False,
+            parent=parent
+        )
+        
+        # Create and add the panel
+        self.panel = NarrativeContextPanel(self)
+        self.add_content_widget(self.panel)
+        
+        # Forward panel signals
+        self.panel.context_changed.connect(self.context_changed.emit)
+        
+        # Hide default dialog buttons by creating an empty widget in button area
+        button_spacer = QWidget()
+        button_spacer.setFixedHeight(0)
+        self.button_layout.addWidget(button_spacer)
+        
+        # Set proper window flags
+        self.setWindowFlags(
+            Qt.Window | 
+            Qt.WindowCloseButtonHint | 
+            Qt.WindowMinimizeButtonHint |
+            Qt.WindowMaximizeButtonHint |
+            Qt.WindowStaysOnTopHint
+        )
+        
+    def set_project(self, project_id: int):
+        """Set current project."""
+        self.panel.set_project(project_id)
+        
+    def add_context_from_text(self, text: str, context_type: str = "ai_response", scene_id: int = None):
+        """Add context from text."""
+        return self.panel.add_context_from_text(text, context_type, scene_id)
+        
+    def refresh_contexts(self):
+        """Refresh contexts."""
+        self.panel.refresh_contexts()
+        
+    def closeEvent(self, event):
+        """Hide window instead of closing, unless app is shutting down."""
+        if hasattr(self, '_closing') and self._closing:
+            event.accept()  # Allow closing when main window is shutting down
+        else:
+            self.hide()
+            event.ignore()

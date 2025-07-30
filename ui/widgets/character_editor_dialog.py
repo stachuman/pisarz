@@ -55,6 +55,11 @@ class CharacterEditorDialog(BaseDialog):
         self.cancel_btn = self.create_custom_button(_("Cancel"), self.reject, "secondary")
         self.save_btn = self.create_custom_button(_("Save"), self.save_character, "primary")
         
+        # Delete button (only show for existing characters)
+        if self.character_data and self.character_data.get('id'):
+            self.delete_btn = self.create_custom_button(_("Delete"), self.delete_character, "danger")
+            self.add_button(self.delete_btn)
+        
         self.add_button_stretch()
         self.add_button(self.cancel_btn)
         self.add_button(self.save_btn)
@@ -477,6 +482,11 @@ class CharacterEditorDialog(BaseDialog):
                                   _("No scenes are available in this project."))
             return
             
+        # Check if there are any scenes available
+        if not self.scenes_data:
+            QMessageBox.information(self, _("No Scenes"), _("No scenes available to link. Create some scenes first."))
+            return
+        
         # Get already linked scene IDs
         linked_scene_ids = [scene.get('id') for scene in self.linked_scenes]
         
@@ -586,3 +596,97 @@ class CharacterEditorDialog(BaseDialog):
         for scene in scenes_data:
             item = QListWidgetItem(scene.get('title', _('Untitled Scene')))
             self.scenes_list.addItem(item)
+    
+    def delete_character(self):
+        """Delete the character with dependency checking."""
+        character_id = self.character_data.get('id')
+        character_name = self.character_data.get('name', _('Unknown Character'))
+        
+        if not character_id:
+            QMessageBox.warning(self, _("Error"), _("Cannot delete character: no ID found"))
+            return
+        
+        try:
+            # Get main window to access managers
+            main_window = self.parent()
+            while main_window and not hasattr(main_window, 'project_controller'):
+                main_window = main_window.parent()
+            
+            if not main_window:
+                QMessageBox.critical(self, _("Error"), _("Cannot access project controller"))
+                return
+            
+            # Get managers
+            managers = main_window.project_controller.get_current_managers()
+            character_manager = managers.get('character_manager')
+            
+            if not character_manager:
+                QMessageBox.critical(self, _("Error"), _("Character manager not available"))
+                return
+            
+            # Check dependencies - find where this character is used
+            dependencies = character_manager.get_character_dependencies(character_id)
+            
+            if dependencies['total_count'] > 0:
+                # Show confirmation dialog with dependency list
+                scene_list = []
+                for scene in dependencies.get('scenes', []):
+                    role_text = f" ({scene['role']})" if scene.get('role') else ""
+                    scene_list.append(f"• {scene.get('title', _('Untitled Scene'))}{role_text}")
+                
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Warning)
+                msg.setWindowTitle(_("Confirm Character Deletion"))
+                msg.setText(_("Character '{}' is used in {} scene(s):").format(character_name, len(dependencies['scenes'])))
+                msg.setDetailedText("\n".join(scene_list))
+                msg.setInformativeText(_("Deleting this character will remove it from all scenes. This action cannot be undone.\n\nAre you sure you want to continue?"))
+                
+                delete_button = msg.addButton(_("Delete Character"), QMessageBox.DestructiveRole)
+                cancel_button = msg.addButton(_("Cancel"), QMessageBox.RejectRole)
+                msg.setDefaultButton(cancel_button)
+                
+                msg.exec()
+                
+                if msg.clickedButton() != delete_button:
+                    return  # User cancelled
+            else:
+                # No dependencies - simple confirmation
+                reply = QMessageBox.question(
+                    self, 
+                    _("Confirm Character Deletion"),
+                    _("Are you sure you want to delete character '{}'?\n\nThis action cannot be undone.").format(character_name),
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                
+                if reply != QMessageBox.Yes:
+                    return
+            
+            # Perform deletion (this will cascade to scene_characters table)
+            success = character_manager.delete_character(character_id)
+            
+            if success:
+                QMessageBox.information(
+                    self, 
+                    _("Character Deleted"), 
+                    _("Character '{}' has been successfully deleted.").format(character_name)
+                )
+                
+                # Close dialog and emit refresh signal via parent
+                if hasattr(main_window, 'character_controller'):
+                    main_window.character_controller.charactersRefreshNeeded.emit()
+                
+                self.accept()  # Close dialog
+            else:
+                QMessageBox.critical(
+                    self, 
+                    _("Deletion Failed"), 
+                    _("Failed to delete character '{}'. Please try again.").format(character_name)
+                )
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                _("Error"), 
+                _("An error occurred while deleting the character: {}").format(str(e))
+            )

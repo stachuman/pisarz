@@ -208,6 +208,10 @@ class LLMService:
         """Clean LLM response by removing think tags and formatting artifacts."""
         import re
         
+        # Store original response for debugging
+        original_response = response
+        self.logger.debug(f"Cleaning response of length {len(response)}")
+        
         # Remove <think>...</think> blocks (case insensitive, multiline)
         response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL | re.IGNORECASE)
         
@@ -218,9 +222,30 @@ class LLMService:
         response = re.sub(r'\n\s*\n\s*\n+', '\n\n', response)
         response = response.strip()
         
-        # If response is empty after cleaning, return a placeholder
+        # Log cleaning results for debugging
+        self.logger.debug(f"After cleaning: length {len(response)}")
+        
+        # If response is empty after cleaning, try alternative approaches
         if not response:
-            response = _("Generated response was empty after processing.")
+            self.logger.warning("Response is empty after cleaning thinking tags")
+            
+            # Try to extract content from thinking blocks as fallback
+            think_blocks = re.findall(r'<think>(.*?)</think>', original_response, flags=re.DOTALL | re.IGNORECASE)
+            if think_blocks:
+                # Look for actual content in thinking blocks (not just reasoning)
+                for block in think_blocks:
+                    # Look for story content, dialogue, or narrative text
+                    if any(indicator in block.lower() for indicator in ['scena', 'dialog', 'powiedział', 'spojrzał', 'była', 'była', '"', '—', 'rozdział']):
+                        cleaned_block = block.strip()
+                        if len(cleaned_block) > 50:  # Minimum length for meaningful content
+                            self.logger.info("Recovered content from thinking block")
+                            response = cleaned_block
+                            break
+            
+            # If still empty, return more informative placeholder
+            if not response:
+                self.logger.error("Generated response was completely empty after processing - this may indicate an issue with the thinking LLM response format")
+                response = _("Generated response was empty after processing.")
         
         return response
     

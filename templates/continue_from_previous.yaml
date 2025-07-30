@@ -1,0 +1,93 @@
+allow_context_editing: false
+author: System
+auto_apply_selection: false
+category: writing
+confirm_before_execution: false
+created_date: null
+custom_params: {}
+default_context_length: 51200
+description: Kontynuuj pisanie od poprzedniej sceny ze świadomością tego, co się wydarzyło
+  wcześniej
+format_version: '3.0'
+max_context_chars: 128000
+max_tokens: 64000
+modified_date: null
+name: Kontynuacja od poprzedniej sceny
+preview_length: 100
+repeat_penalty: 1.15
+scene_summary_length: 25600
+scene_summary_source: full_scene
+selection_priority: false
+show_context_preview: false
+show_params_editor: false
+tags:
+- kontynuacja
+- przepływ-fabuły
+- poprzednia-scena
+temperature: 0.7
+template_content: 'Kontynuuj pisanie historii od poprzedniej sceny w naturalny sposób.
+
+
+  {% if project_description %}
+
+  Kontekst projektu: {{ project_description }}
+
+  {% endif %}
+
+
+  {% if scene_contexts %}
+
+  {% set contexts_with_content = scene_contexts|selectattr("has_content")|list %}
+
+  {% if contexts_with_content|length >= 1 %}
+
+
+  **Co działo się w poprzedniej scenie:**
+
+  {% set previous_context = contexts_with_content[-1] %}
+
+  {{ previous_context.scene_title }}: {{ previous_context.content }}
+
+  {% endif %}
+
+
+  **Pozycja w historii:** Następna po {{ contexts_with_content|length }} scenach z
+  kontekstem ({{ scene_contexts|length }} scen łącznie)
+
+  {% endif %}
+
+
+  **Obecna scena:** {{ scene_title }}
+
+
+  {% if characters %}
+
+  **Postacie w tej scenie:**
+
+  {% for character in characters %}
+
+  - {{ character }}
+
+  {% endfor %}
+
+  {% endif %}
+
+
+  {% if locations %}
+
+  **Lokalizacja:** {{ locations|join('', '') }}
+
+  {% endif %}
+
+
+  **Kontynuuj od tego miejsca:**
+
+  {{ current_text }}
+
+  '
+template_id: continue_from_previous
+top_k: 30
+top_p: 0.8
+use_selection: false
+version: '2.0'
+word_boundary_trim: true

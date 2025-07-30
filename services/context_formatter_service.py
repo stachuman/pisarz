@@ -184,3 +184,54 @@ class ContextFormatterService:
             formatted_context['locations'] = self.format_locations_list(locations)
         
         return formatted_context
+    
+    def format_scene_context_description(self, context_data: Dict[str, Any]) -> str:
+        """
+        Format a single scene context's data into a description string for LLM.
+        
+        Args:
+            context_data: Dictionary containing scene context information
+            
+        Returns:
+            Formatted scene context description string
+        """
+        if not isinstance(context_data, dict):
+            return str(context_data)
+        
+        scene_title = context_data.get('scene_title', 'Untitled Scene')
+        content = context_data.get('content', '').strip()
+        has_content = context_data.get('has_content', False)
+        scene_ord = context_data.get('scene_ord', 0)
+        
+        # Start with scene title and position
+        context_desc = f"{scene_title}"
+        
+        # Add content if available
+        if has_content and content:
+            context_desc += f": {content}"
+        else:
+            context_desc += ": (no context available)"
+        
+        return context_desc
+    
+    def format_scene_contexts_list(self, scene_contexts: List[Any]) -> List[str]:
+        """
+        Format a list of scene contexts into description strings for LLM.
+        
+        Args:
+            scene_contexts: List of scene context data (dicts or other types)
+            
+        Returns:
+            List of formatted scene context description strings
+        """
+        if not scene_contexts:
+            return []
+        
+        context_descriptions = []
+        for context in scene_contexts:
+            formatted_desc = self.format_scene_context_description(context)
+            context_descriptions.append(formatted_desc)
+        
+        self.logger.debug(f"Formatted {len(context_descriptions)} scene context descriptions")
+        return context_descriptions
+

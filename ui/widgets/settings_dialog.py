@@ -8,7 +8,7 @@ from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPalette, QColor
 
-from ..styles.themes import ThemeManager
+from ..base.enhanced_theme_manager import EnhancedThemeManager
 from .llm_settings_widget import LLMSettingsWidget
 from .ai_content_settings_widget import AIContentSettingsWidget
 from i18n import _, get_available_languages, get_current_language, set_language
@@ -201,7 +201,7 @@ class SettingsDialog(BaseDialog):
         )
         
         # Override BaseDialog's theme_manager with the specific one we need for settings
-        self.settings_theme_manager = ThemeManager()
+        self.settings_theme_manager = EnhancedThemeManager()
         self.current_theme = self.settings_theme_manager.get_current_theme()
         self.current_language = get_current_language()
         self.theme_previews = []  # Store theme preview widgets

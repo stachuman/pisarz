@@ -72,6 +72,11 @@ class LocationEditorDialog(BaseDialog):
         save_btn = self.create_custom_button(_("Save"), self._save_location, "primary")
         save_btn.setDefault(True)
         
+        # Delete button (only show for existing locations)
+        if self.is_editing and self.location and hasattr(self.location, 'id'):
+            delete_btn = self.create_custom_button(_("Delete"), self.delete_location, "danger")
+            self.add_button(delete_btn)
+        
         # Add buttons with stretch
         self.add_button_stretch()
         self.add_button(cancel_btn)
@@ -506,3 +511,92 @@ class LocationEditorDialog(BaseDialog):
             location_id = getattr(self.location, 'id', None) if self.location else None
             if location_id:
                 self.sceneUnlinked.emit(location_id, scene_data.get('id'))
+    
+    def delete_location(self):
+        """Delete the location with dependency checking."""
+        if not self.location or not hasattr(self.location, 'id'):
+            QMessageBox.warning(self, _("Error"), _("Cannot delete location: no ID found"))
+            return
+        
+        location_id = self.location.id
+        location_name = getattr(self.location, 'name', _('Unknown Location'))
+        
+        try:
+            # Check dependencies - find where this location is used
+            dependencies = self.location_manager.get_location_dependencies(location_id)
+            
+            if dependencies['total_count'] > 0:
+                # Build dependency list for display
+                dependency_list = []
+                
+                # Add scenes
+                for scene in dependencies.get('scenes', []):
+                    role_text = f" ({scene['role']})" if scene.get('role') else ""
+                    dependency_list.append(f"• Scene: {scene.get('title', _('Untitled Scene'))}{role_text}")
+                
+                # Add characters (if any)
+                for char in dependencies.get('characters', []):
+                    rel_text = f" ({char['relationship_type']})" if char.get('relationship_type') else ""
+                    dependency_list.append(f"• Character: {char.get('name', _('Unknown Character'))}{rel_text}")
+                
+                # Show confirmation dialog with dependency list
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Warning)
+                msg.setWindowTitle(_("Confirm Location Deletion"))
+                msg.setText(_("Location '{}' is used in {} places:").format(location_name, dependencies['total_count']))
+                msg.setDetailedText("\n".join(dependency_list))
+                msg.setInformativeText(_("Deleting this location will remove it from all scenes and character associations. This action cannot be undone.\n\nAre you sure you want to continue?"))
+                
+                delete_button = msg.addButton(_("Delete Location"), QMessageBox.DestructiveRole)
+                cancel_button = msg.addButton(_("Cancel"), QMessageBox.RejectRole)
+                msg.setDefaultButton(cancel_button)
+                
+                msg.exec()
+                
+                if msg.clickedButton() != delete_button:
+                    return  # User cancelled
+            else:
+                # No dependencies - simple confirmation
+                reply = QMessageBox.question(
+                    self, 
+                    _("Confirm Location Deletion"),
+                    _("Are you sure you want to delete location '{}'?\n\nThis action cannot be undone.").format(location_name),
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                
+                if reply != QMessageBox.Yes:
+                    return
+            
+            # Perform deletion (this will cascade to scene_locations and character_locations tables)
+            success = self.location_manager.delete_location(location_id)
+            
+            if success:
+                QMessageBox.information(
+                    self, 
+                    _("Location Deleted"), 
+                    _("Location '{}' has been successfully deleted.").format(location_name)
+                )
+                
+                # Get main window to emit refresh signal
+                main_window = self.parent()
+                while main_window and not hasattr(main_window, 'location_controller'):
+                    main_window = main_window.parent()
+                
+                if main_window and hasattr(main_window, 'location_controller'):
+                    main_window.location_controller.locationsRefreshNeeded.emit()
+                
+                self.accept()  # Close dialog
+            else:
+                QMessageBox.critical(
+                    self, 
+                    _("Deletion Failed"), 
+                    _("Failed to delete location '{}'. Please try again.").format(location_name)
+                )
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                _("Error"), 
+                _("An error occurred while deleting the location: {}").format(str(e))
+            )

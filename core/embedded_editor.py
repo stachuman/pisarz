@@ -9,7 +9,6 @@ from PySide6.QtGui import (QFont, QFontInfo, QTextCharFormat, QColor, QKeySequen
 import re
 from .toolbar_manager import ToolbarManager
 from .find_replace_manager import FindReplaceManager
-from .context_panel_manager import ContextPanelManager
 from .rtf_font_manager import RTFFontManager
 
 
@@ -20,7 +19,7 @@ class EmbeddedRichTextWidget(QWidget):
     saveRequested = Signal(str)
     autoSaveRequested = Signal(str)     # Periodic auto-save signal
     focusModeRequested = Signal()
-    contextPanelToggled = Signal(bool)  # New signal for context panel toggle
+    contextPanelToggled = Signal()      # New signal for context panel toggle
     aiAssistantToggled = Signal()       # New signal for AI assistant toggle
     narrativeContextToggled = Signal()  # New signal for narrative context toggle
     textSelectionChanged = Signal(str, str)  # selected_text, current_text
@@ -47,8 +46,6 @@ class EmbeddedRichTextWidget(QWidget):
         # Initialize find/replace manager (will be created after text_edit)
         self.find_replace_manager = None
         
-        # Initialize context panel manager (will be created after splitter)
-        self.context_panel_manager = None
         
         # Initialize font manager (will be created after text_edit)
         self.font_manager = None
@@ -97,8 +94,6 @@ class EmbeddedRichTextWidget(QWidget):
         # Initialize find/replace manager after text_edit is created
         self.find_replace_manager = FindReplaceManager(self.text_edit, self)
         
-        # Initialize context panel manager after splitter is created
-        self.context_panel_manager = ContextPanelManager(self.splitter, self)
         
         # Initialize font manager after text_edit is created
         self.font_manager = RTFFontManager(self.text_edit, self)
@@ -131,21 +126,9 @@ class EmbeddedRichTextWidget(QWidget):
         self.toolbar_manager.alignmentChanged.connect(self.font_manager.set_alignment)
         self.toolbar_manager.saveRequested.connect(self.save_content)
         self.toolbar_manager.focusModeRequested.connect(self.focusModeRequested.emit)
-        self.toolbar_manager.contextPanelToggled.connect(self.context_panel_manager.toggle_context_panel)
+        self.toolbar_manager.contextPanelToggled.connect(self.contextPanelToggled.emit)
         self.toolbar_manager.aiAssistantToggled.connect(self.aiAssistantToggled.emit)
         self.toolbar_manager.narrativeContextToggled.connect(self.narrativeContextToggled.emit)
-        
-        # Connect context panel manager signals
-        self.context_panel_manager.contextPanelToggled.connect(self.contextPanelToggled.emit)
-        self.context_panel_manager.contextPanelToggled.connect(self.toolbar_manager.set_context_panel_state)
-        self.context_panel_manager.characterAddedToScene.connect(self.characterAddedToScene.emit)
-        self.context_panel_manager.characterRemovedFromScene.connect(self.characterRemovedFromScene.emit)
-        self.context_panel_manager.locationAddedToScene.connect(self.locationAddedToScene.emit)
-        self.context_panel_manager.locationRemovedFromScene.connect(self.locationRemovedFromScene.emit)
-        self.context_panel_manager.newCharacterRequestedFromScene.connect(self.newCharacterRequestedFromScene.emit)
-        self.context_panel_manager.newLocationRequestedFromScene.connect(self.newLocationRequestedFromScene.emit)
-        self.context_panel_manager.characterSelectedFromScene.connect(self.characterSelectedFromScene.emit)
-        self.context_panel_manager.locationSelectedFromScene.connect(self.locationSelectedFromScene.emit)
         
         # Set focus policy for toolbar controls
         self.toolbar_manager.set_font_focus_policy(Qt.FocusPolicy.StrongFocus)
@@ -172,9 +155,9 @@ class EmbeddedRichTextWidget(QWidget):
         save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self.text_edit)
         save_shortcut.activated.connect(self.save_content)
         
-        # Toggle Context Panel - Ctrl+E (for "Editor context")
+        # Toggle Context Panel - Ctrl+E (for "Editor context") - now handled by main window
         context_shortcut = QShortcut(QKeySequence("Ctrl+E"), self.text_edit)
-        context_shortcut.activated.connect(self.context_panel_manager.toggle_context_panel)
+        context_shortcut.activated.connect(self.contextPanelToggled.emit)
         
         # Find/Replace shortcuts
         find_shortcut = QShortcut(QKeySequence("Ctrl+F"), self.text_edit)
@@ -282,25 +265,24 @@ class EmbeddedRichTextWidget(QWidget):
         return self._has_changes
     
     def initialize_context_panel(self, character_manager, location_manager, project_id):
-        """Initialize the context panel with managers."""
-        self.context_panel_manager.initialize_context_panel(character_manager, location_manager, project_id)
+        """Initialize the context panel with managers - deprecated, handled by main window."""
+        pass
     
     def set_scene_context(self, scene_id):
-        """Set the current scene for the context panel."""
-        self.context_panel_manager.set_scene_context(scene_id)
+        """Set the current scene for the context panel - deprecated, handled by main window."""
+        pass
     
     def toggle_context_panel(self):
-        """Toggle the visibility of the context panel."""
-        self.context_panel_manager.toggle_context_panel()
+        """Toggle the visibility of the context panel - deprecated, handled by main window."""
+        pass
     
     def _connect_context_panel_signals(self):
-        """Connect context panel signals to handle character/location management."""
-        # This method is now handled by the ContextPanelManager
+        """Connect context panel signals - deprecated, handled by main window."""
         pass
     
     def refresh_context_panel(self):
-        """Refresh the context panel data."""
-        self.context_panel_manager.refresh_context_panel()
+        """Refresh the context panel data - deprecated, handled by main window."""
+        pass
     
     def show_find_replace_dialog(self):
         """Show the Find/Replace dialog."""
@@ -391,6 +373,11 @@ class EmbeddedRichTextWidget(QWidget):
         if self.toolbar_manager:
             self.toolbar_manager.set_narrative_context_state(visible)
     
+    def set_context_panel_state(self, visible: bool):
+        """Set the scene context button state in the toolbar."""
+        if self.toolbar_manager:
+            self.toolbar_manager.set_context_panel_state(visible)
+    
     def _on_cursor_position_changed(self):
         """Handle cursor position changes."""
         try:
@@ -435,6 +422,4 @@ class EmbeddedRichTextWidget(QWidget):
         
         if self.find_replace_manager:
             self.find_replace_manager.cleanup()
-        if self.context_panel_manager:
-            self.context_panel_manager.cleanup()
         # Font manager doesn't need cleanup

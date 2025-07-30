@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QColor
 
 from ..styles.styles import SECONDARY_TEXT_COLOR
-from ..styles.themes import ThemeManager
+from ..base.enhanced_theme_manager import EnhancedThemeManager
 
 
 class ProjectCard(QFrame):
@@ -48,7 +48,7 @@ class ProjectCard(QFrame):
         
     def _apply_theme_style(self):
         """Zastosuj style zgodne z aktualnym motywem."""
-        theme_manager = ThemeManager()
+        theme_manager = EnhancedThemeManager()
         colors = theme_manager.get_theme_colors()
         
         style = f"""

@@ -1416,3 +1416,158 @@ msgstr "Describe your character's appearance, personality, background..."
 msgid "Character Notes"
 msgstr "Character Notes"
 
+# Basic UI buttons and actions (only new ones, avoiding duplicates)
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Create"
+msgstr "Create"
+
+msgid "Remove"
+msgstr "Remove"
+
+msgid "Update"
+msgstr "Update"
+
+msgid "Confirm"
+msgstr "Confirm"
+
+msgid "Open"
+msgstr "Open"
+
+msgid "Paste"
+msgstr "Paste"
+
+msgid "Cut"
+msgstr "Cut"
+
+msgid "Undo"
+msgstr "Undo"
+
+msgid "Redo"
+msgstr "Redo"
+
+msgid "Search"
+msgstr "Search"
+
+msgid "Find"
+msgstr "Find"
+
+msgid "Replace"
+msgstr "Replace"
+
+msgid "Import"
+msgstr "Import"
+
+msgid "Export"
+msgstr "Export"
+
+msgid "Execute"
+msgstr "Execute"
+
+msgid "Stop"
+msgstr "Stop"
+
+msgid "Start"
+msgstr "Start"
+
+msgid "Pause"
+msgstr "Pause"
+
+msgid "Resume"
+msgstr "Resume"
+
+msgid "Refresh"
+msgstr "Refresh"
+
+msgid "Reload"
+msgstr "Reload"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "No"
+msgstr "No"
+
+# Delete functionality specific translations
+msgid "Delete Character"
+msgstr "Delete Character"
+
+msgid "Delete Location"
+msgstr "Delete Location"
+
+msgid "Confirm Character Deletion"
+msgstr "Confirm Character Deletion"
+
+msgid "Confirm Location Deletion"
+msgstr "Confirm Location Deletion"
+
+msgid "Character '{}' is used in {} scene(s):"
+msgstr "Character '{}' is used in {} scene(s):"
+
+msgid "Location '{}' is used in {} places:"
+msgstr "Location '{}' is used in {} places:"
+
+msgid "Deleting this character will remove it from all scenes. This action cannot be undone.\n\nAre you sure you want to continue?"
+msgstr "Deleting this character will remove it from all scenes. This action cannot be undone.\n\nAre you sure you want to continue?"
+
+msgid "Deleting this location will remove it from all scenes and character associations. This action cannot be undone.\n\nAre you sure you want to continue?"
+msgstr "Deleting this location will remove it from all scenes and character associations. This action cannot be undone.\n\nAre you sure you want to continue?"
+
+msgid "Are you sure you want to delete character '{}'?\n\nThis action cannot be undone."
+msgstr "Are you sure you want to delete character '{}'?\n\nThis action cannot be undone."
+
+msgid "Are you sure you want to delete location '{}'?\n\nThis action cannot be undone."
+msgstr "Are you sure you want to delete location '{}'?\n\nThis action cannot be undone."
+
+msgid "Character Deleted"
+msgstr "Character Deleted"
+
+msgid "Location Deleted"
+msgstr "Location Deleted"
+
+msgid "Character '{}' has been successfully deleted."
+msgstr "Character '{}' has been successfully deleted."
+
+msgid "Location '{}' has been successfully deleted."
+msgstr "Location '{}' has been successfully deleted."
+
+msgid "Deletion Failed"
+msgstr "Deletion Failed"
+
+msgid "Failed to delete character '{}'. Please try again."
+msgstr "Failed to delete character '{}'. Please try again."
+
+msgid "Failed to delete location '{}'. Please try again."
+msgstr "Failed to delete location '{}'. Please try again."
+
+msgid "Cannot delete character: no ID found"
+msgstr "Cannot delete character: no ID found"
+
+msgid "Cannot delete location: no ID found"
+msgstr "Cannot delete location: no ID found"
+
+msgid "Character manager not available"
+msgstr "Character manager not available"
+
+msgid "Cannot access project controller"
+msgstr "Cannot access project controller"
+
+msgid "An error occurred while deleting the character: {}"
+msgstr "An error occurred while deleting the character: {}"
+
+msgid "An error occurred while deleting the location: {}"
+msgstr "An error occurred while deleting the location: {}"
+
+msgid "Unknown Location"
+msgstr "Unknown Location"
+

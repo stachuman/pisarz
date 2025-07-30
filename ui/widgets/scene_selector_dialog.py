@@ -67,8 +67,6 @@ class SceneSelector(BaseDialog):
         details_layout.addWidget(self.scene_info_label)
         
         # Link settings form
-        form_layout = QFormLayout()
-        
         # Role in scene
         self.role_combo = QComboBox()
         self.role_combo.setEditable(True)
@@ -81,16 +79,14 @@ class SceneSelector(BaseDialog):
             _("Narrator"),
             _("Cameo")
         ])
-        form_layout.addRow(_("Role in Scene:"), self.role_combo)
+        details_layout.addRow(_("Role in Scene:"), self.role_combo)
         
         # Importance level
         self.importance_spin = QSpinBox()
         self.importance_spin.setRange(1, 5)
         self.importance_spin.setValue(3)
         self.importance_spin.setToolTip(_("1=Minor, 2=Secondary, 3=Regular, 4=Important, 5=Central"))
-        form_layout.addRow(_("Importance (1-5):"), self.importance_spin)
-        
-        details_layout.addLayout(form_layout)
+        details_layout.addRow(_("Importance (1-5):"), self.importance_spin)
         
         # Add to selection button
         self.add_scene_btn = self.create_custom_button(_("Add Scene"), self.add_scene_to_selection, "primary")
@@ -113,7 +109,10 @@ class SceneSelector(BaseDialog):
         self.selected_list.itemClicked.connect(lambda: self.remove_btn.setEnabled(True))
         details_layout.addWidget(self.remove_btn)
         
-        details_layout.addStretch()
+        # QFormLayout doesn't have addStretch, use a spacer widget instead
+        from PySide6.QtWidgets import QSpacerItem, QSizePolicy
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        details_layout.addItem(spacer)
         
         # Add to splitter
         splitter.addWidget(scenes_widget)

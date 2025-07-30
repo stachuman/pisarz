@@ -16,9 +16,8 @@ from .settings_dialog import SettingsDialog
 from .search_view import SearchView
 from .search_result_card import SearchResultCard
 from .find_replace_dialog import FindReplaceDialog
-from .llm_assistant_panel import LLMAssistantPanel
 from .template_editor_dialog import TemplateEditorDialog
 from .templates_list_dialog import TemplatesListDialog
-from .narrative_context_panel import NarrativeContextPanel
+from .json_import_dialog import JSONImportDialog
 
-__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ProjectPropertiesDialog', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog', 'LLMAssistantPanel', 'TemplateEditorDialog', 'TemplatesListDialog', 'NarrativeContextPanel']
+__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ProjectPropertiesDialog', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog', 'TemplateEditorDialog', 'TemplatesListDialog', 'JSONImportDialog']

@@ -42,7 +42,7 @@ template_content: 'Stwórz zwięzłe streszczenie następującej sceny w języku
 
   {% if characters %}
 
-  Postacie:
+  Postacie występujące:
 
   {% for character in characters %}
 
@@ -55,7 +55,7 @@ template_content: 'Stwórz zwięzłe streszczenie następującej sceny w języku
 
   {% if locations %}
 
-  Lokalizacje:
+  Lokalizacje występujące:
 
   {% for location in locations %}
 

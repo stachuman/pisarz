@@ -1,0 +1,70 @@
+allow_context_editing: false
+author: System
+auto_apply_selection: false
+category: writing
+confirm_before_execution: false
+created_date: null
+custom_params: {}
+default_context_length: 51200
+description: Twórz płynne przejścia między scenami ze świadomością ostatnich wydarzeń
+format_version: '3.0'
+max_context_chars: 128000
+max_tokens: 64000
+modified_date: null
+name: Pomoc w przejściach między scenami
+preview_length: 100
+repeat_penalty: 1.15
+scene_summary_length: 25600
+scene_summary_source: full_scene
+selection_priority: false
+show_context_preview: false
+show_params_editor: false
+tags:
+- przejście
+- przepływ-scen
+- ciągłość
+temperature: 0.7
+template_content: |
+  Stwórz płynne przejście do nowej sceny łączące się naturalnie z poprzednimi wydarzeniami.
+  
+  {% if scene_contexts %}
+  {% set contexts_with_content = scene_contexts|selectattr("has_content")|list %}
+  **Pozycja:** Następna po {{ contexts_with_content|length }} scenach z kontekstem ({{ scene_contexts|length }} scen łącznie)
+  
+  {% if contexts_with_content|length >= 1 %}
+  **Ostatnie sceny:**
+  {% set recent_count = [contexts_with_content|length, 3]|min %}
+  {% for context in contexts_with_content[-recent_count:] %}
+  {{ context.scene_title }}: {{ context.content }}
+  {% endfor %}
+  {% endif %}
+  {% endif %}
+  
+  **Nowa scena:** {{ scene_title }}
+  
+  {% if characters %}
+  **Zaangażowane postacie:**
+  {% for character in characters %}
+  - {{ character }}
+  {% endfor %}
+  {% endif %}
+  
+  {% if locations %}
+  **Miejsce akcji:** {{ locations|join(', ') }}
+  {% endif %}
+  
+  {% if current_text %}
+  **Obecna treść sceny:**
+  {{ current_text }}
+  
+  **Rozwiń tę scenę płynnie łącząc z tym co było wcześniej.**
+  {% else %}
+  **Zacznij pisać nową scenę dbając o naturalny przepływ z poprzednich wydarzeń.**
+  {% endif %}
+  
+template_id: scene_transition
+top_k: 30
+top_p: 0.8
+use_selection: false
+version: '2.0'
+word_boundary_trim: true

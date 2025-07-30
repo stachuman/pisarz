@@ -416,12 +416,74 @@ class TemplateEditorDialog(BaseDialog):
             
             main_window = None
             for widget in app.topLevelWidgets():
-                if hasattr(widget, 'project_controller') and hasattr(widget, 'llm_panel'):
+                if hasattr(widget, 'project_controller') and hasattr(widget, 'ai_assistant_window'):
                     main_window = widget
                     break
             
-            # Use exactly the same build_context method as real LLM execution
-            context_data = main_window.llm_panel.build_context()
+            # Use exactly the same execution path as real LLM execution
+            if not main_window:
+                self.preview_text.setPlainText("Preview unavailable: No main window found")
+                return
+                
+            # Get managers (same as real execution)
+            managers = None
+            project_name = "Current Project"
+            if hasattr(main_window, 'project_controller') and hasattr(main_window.project_controller, 'get_current_managers'):
+                try:
+                    managers = main_window.project_controller.get_current_managers()
+                    project_name = getattr(managers.get('project_controller'), 'current_project_name', 'Current Project')
+                except Exception as e:
+                    self.logger.warning(f"Could not get managers for preview: {e}")
+            
+            if not managers:
+                self.preview_text.setPlainText("Preview requires an open project")
+                return
+            
+            # Get current scene ID (same as real execution)
+            current_scene_id = getattr(main_window.ai_assistant_window.panel, 'current_scene_id', None)
+            if not current_scene_id:
+                self.preview_text.setPlainText("Preview requires a selected scene")
+                return
+            
+            # Get UI-specific context (selected text, etc.) from LLM panel
+            ui_context_data = {}
+            try:
+                llm_panel_context = main_window.ai_assistant_window.panel.build_context()
+                # Extract only the UI-specific keys we need
+                for key in ['selected_text', 'current_text', 'has_selection', 'content_source']:
+                    if key in llm_panel_context:
+                        ui_context_data[key] = llm_panel_context[key]
+            except Exception as e:
+                self.logger.warning(f"Could not get UI context from LLM panel: {e}")
+                # Use safe defaults
+                ui_context_data = {
+                    'selected_text': '',
+                    'current_text': '',
+                    'has_selection': False,
+                    'content_source': 'selection'
+                }
+            
+            # Use the EXACT same path as real LLM execution
+            from controllers.app_llm_controller import get_llm_controller
+            llm_controller = get_llm_controller()
+            if not llm_controller:
+                self.preview_text.setPlainText("Preview unavailable: No LLM controller")
+                return
+                
+            # Call the exact same method as real execution
+            context_data = llm_controller.prepare_template_execution(
+                current_scene_id,
+                self.template_config.template_id,  # Use template_id as template_name
+                managers,
+                project_name
+            )
+            
+            if not context_data:
+                self.preview_text.setPlainText("Preview unavailable: Could not prepare template execution context")
+                return
+            
+            # Merge in the UI-specific data (selected_text, etc.)
+            context_data.update(ui_context_data)
             
             # Use the template manager to build enhanced context (full chain) - same as real execution
             from core.llm.templates import get_template_manager

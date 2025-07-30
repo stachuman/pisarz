@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QApplication, QSizePolicy, QGroupBox, QToolButton,
     QSpacerItem, QDialog, QComboBox
 )
+from ui.base.base_dialog import BaseDialog
 from PySide6.QtCore import Qt, Signal, QTimer, QThread, QSize
 from PySide6.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon
 
@@ -128,10 +129,10 @@ class LLMAssistantPanel(QWidget):
     def _create_header_controls(self, layout: QVBoxLayout):
         """Create header controls (title, status, progress)."""
         # Compact title
-        title_label = QLabel(_("🤖 AI Assistant"))
-        from ui.styles.llm_panel_styles import UIStyleManager
-        UIStyleManager.apply_additional_style(title_label, 'ai_assistant_title')
-        layout.addWidget(title_label)
+        #title_label = QLabel(_("🤖 AI Assistant"))
+        #from ui.styles.llm_panel_styles import UIStyleManager
+        #UIStyleManager.apply_additional_style(title_label, 'ai_assistant_title')
+        #layout.addWidget(title_label)
         
         # Status indicator
         self.status_label = QLabel(_("Ready"))
@@ -157,9 +158,14 @@ class LLMAssistantPanel(QWidget):
         
         # Refresh templates button
         self.refresh_templates_button = QPushButton("🔄")
-        self.refresh_templates_button.setFixedSize(24, 24)
+        self.refresh_templates_button.setFixedSize(38 , 38)
+        self.refresh_templates_button.setContentsMargins(0,0,0,0)
         self.refresh_templates_button.setToolTip(_("Refresh templates from disk"))
         self.refresh_templates_button.clicked.connect(self._refresh_templates)
+        
+        # Apply standard theme styling to refresh button (same as other buttons in the app)
+        from ui.base.enhanced_theme_manager import EnhancedThemeManager
+        theme_manager = EnhancedThemeManager()        
         template_layout.addWidget(self.refresh_templates_button)
         
         layout.addLayout(template_layout)
@@ -465,18 +471,97 @@ class LLMAssistantPanel(QWidget):
         return clean_html_css(content)
 
     def build_context(self) -> Dict[str, Any]:
-        """Build context for LLM task from current scene."""
-        from core.llm.context_builder import ContextBuilder
+        """Build context for LLM task from current scene using the same path as template preview."""
+        try:
+            # Use the exact same method as template preview to ensure consistency
+            from controllers.app_llm_controller import get_llm_controller
+            llm_controller = get_llm_controller()
+            
+            if not llm_controller:
+                self.logger.error("No LLM controller available")
+                return {}
+            
+            # Get current managers (needed for prepare_template_execution)
+            # Access project controller through parent (main window)
+            main_window = self.parent()
+            while main_window and not hasattr(main_window, 'project_controller'):
+                main_window = main_window.parent()
+            
+            if not main_window or not hasattr(main_window, 'project_controller'):
+                self.logger.error("Cannot access project controller from parent")
+                return {}
+            
+            project_controller = main_window.project_controller
+            if not project_controller.has_current_project():
+                self.logger.error("No project loaded")
+                return {}
+            
+            managers = project_controller.get_current_managers()
+            project_name = project_controller.get_project_name()
+            
+            # Get the selected template ID from the dropdown
+            template_name = self.task_combo.currentData()
+            if not template_name:
+                template_name = 'custom_prompt'
+            
+            # Use the same prepare_template_execution method as preview
+            context_data = llm_controller.prepare_template_execution(
+                self.current_scene_id,
+                template_name,
+                managers,
+                project_name
+            )
+            
+            if not context_data:
+                self.logger.error("Could not prepare template execution context")
+                return {}
+            
+            # Add UI-specific context (selection, content source choice, etc.)
+            content_source_selection = self.content_source_combo.currentIndex()
+            
+            # Get current text selection from LLM service
+            selected_text = ""
+            current_selection_text = ""
+            
+            if llm_controller.llm_service and llm_controller.llm_service.context_manager:
+                selection_info = llm_controller.llm_service.context_manager.get_text_selection()
+                if selection_info:
+                    selected_text = selection_info.get('selected_text', '')
+                    current_selection_text = selection_info.get('current_text', '')
+            
+            # Update context with UI selections
+            if selected_text:
+                context_data['selected_text'] = selected_text
+                context_data['has_selection'] = True
+                context_data['current_text'] = selected_text  # Use selection as current text
+            elif current_selection_text:
+                context_data['current_text'] = current_selection_text
+                context_data['has_selection'] = False
+            else:
+                context_data['has_selection'] = False
+            
+            # Add content source selection
+            context_data['content_source'] = self._map_content_source_selection(content_source_selection)
+            
+            return context_data
+            
+        except Exception as e:
+            self.logger.error(f"Error building context: {e}")
+            return {}
+    
+    def _map_content_source_selection(self, selected_index: int):
+        """Map content source selection index to ContextSource enum."""
+        from core.llm.templates.config import ContextSource
         
-        builder = ContextBuilder()
-        content_source_selection = self.content_source_combo.currentIndex()
+        content_source_map = {
+            0: ContextSource.SELECTION,      # "Selection (if any)"
+            1: ContextSource.FULL_SCENE,     # "Full Scene" 
+            2: ContextSource.SCENE_BEGINNING, # "Scene Beginning"
+            3: ContextSource.SCENE_END,      # "Scene End"
+            4: ContextSource.CUSTOM_LENGTH   # "Custom Length"
+        }
         
-        return builder.build_context(
-            current_scene_content=self.current_scene_content,
-            current_scene_id=self.current_scene_id,
-            additional_context=self.additional_context,
-            content_source_selection=content_source_selection
-        )
+        return content_source_map.get(selected_index, ContextSource.SELECTION)
     
     def set_task_executing(self, task_id: str, executing: bool):
         """Set task execution state."""
@@ -586,16 +671,26 @@ class LLMAssistantPanel(QWidget):
         """Automatically save response to narrative context with scene linkage."""
         try:
             self.logger.info(f"Starting auto-save: scene_id={self.auto_save_scene_id}, template={self.auto_save_template_name}")
+            self.logger.info(f"Response length for auto-save: {len(response)} characters")
+            self.logger.info(f"Response preview: {response[:200]}..." if len(response) > 200 else f"Full response: {response}")
+            
+            # Check if response is empty or too short
+            if not response or len(response.strip()) < 10:
+                self.logger.warning(f"Response is empty or too short ({len(response)} chars) - skipping auto-save")
+                return
             
             # Get the narrative context manager directly
             from PySide6.QtWidgets import QApplication
             from core.database.narrative_context_repository import NarrativeContextManager
             from pathlib import Path
             
-            # Get main window for project path
-            main_window = QApplication.instance().activeWindow()
+            # Get main window for project path through parent hierarchy
+            main_window = self.parent()
+            while main_window and not hasattr(main_window, 'project_controller'):
+                main_window = main_window.parent()
+            
             if not main_window:
-                self.logger.error("No active window found for auto-save")
+                self.logger.error("No main window found in parent hierarchy for auto-save")
                 return
                 
             # Get project path from main window
@@ -607,7 +702,9 @@ class LLMAssistantPanel(QWidget):
             if not project_id:
                 self.logger.error("No current project path for auto-save")
                 return
-                
+            
+            self.logger.info(f"Auto-save project info: project_id={project_id}")
+            
             # Get narrative context manager directly
             context_manager = NarrativeContextManager()
             if not context_manager:
@@ -628,6 +725,8 @@ class LLMAssistantPanel(QWidget):
             # Create more descriptive title with scene info
             scene_title = self.additional_context.get("scene_title", _("Scene"))
             full_title = f"{base_title}: {scene_title}"
+            
+            self.logger.info(f"Auto-save title: {full_title}")
             
             # Create the context entry with scene linkage, replacing any existing context of this type
             context_id = context_manager.replace_scene_context(
@@ -655,10 +754,12 @@ class LLMAssistantPanel(QWidget):
                 # Update status
                 self.update_status(_("✅ Context automatically saved and linked"), "success")
             else:
-                self.logger.error("Failed to auto-save context to database")
+                self.logger.error("Failed to auto-save context to database - replace_scene_context returned None")
                 
         except Exception as e:
             self.logger.error(f"Error during auto-save to narrative context: {e}")
+            import traceback
+            self.logger.error(f"Auto-save traceback: {traceback.format_exc()}")
     
     def copy_response(self):
         """Copy response to clipboard."""
@@ -856,3 +957,62 @@ class LLMAssistantPanel(QWidget):
             self.llm_controller.llm_response_ready.disconnect(self.on_response_ready)
             self.llm_controller.llm_error.disconnect(self.on_error)
             self.llm_controller.llm_status_changed.disconnect(self.on_status_changed)
+
+
+class AIAssistantWindow(BaseDialog):
+    """AI Assistant as an undocked window."""
+    
+    # Forward signals from the panel
+    insertTextRequested = Signal(str)
+    contextAutoSaved = Signal(int)
+    
+    def __init__(self, parent=None):
+        super().__init__(
+            title=_("AI Assistant"),
+            width=800,
+            height=400,
+            modal=False,
+            parent=parent
+        )
+        
+        # Create and add the panel
+        self.panel = LLMAssistantPanel(self)
+        self.add_content_widget(self.panel)
+        
+        # Forward panel signals
+        self.panel.insertTextRequested.connect(self.insertTextRequested.emit)
+        self.panel.contextAutoSaved.connect(self.contextAutoSaved.emit)
+        
+        # Hide default dialog buttons by creating an empty widget in button area
+        button_spacer = QWidget()
+        button_spacer.setFixedHeight(0)
+        self.button_layout.addWidget(button_spacer)
+        
+        # Set proper window flags
+        self.setWindowFlags(
+            Qt.Window | 
+            Qt.WindowCloseButtonHint | 
+            Qt.WindowMinimizeButtonHint |
+            Qt.WindowMaximizeButtonHint |
+            Qt.WindowStaysOnTopHint
+        )
+        
+    def set_llm_controller(self, controller):
+        """Set LLM controller."""
+        self.panel.set_llm_controller(controller)
+        
+    def update_scene_context(self, scene_id: int, scene_title: str, scene_content: str):
+        """Update scene context."""
+        self.panel.set_scene_context(scene_id, scene_content)
+        
+    def set_additional_context(self, context: dict):
+        """Set additional context."""
+        self.panel.set_additional_context(context)
+        
+    def closeEvent(self, event):
+        """Hide window instead of closing, unless app is shutting down."""
+        if hasattr(self, '_closing') and self._closing:
+            event.accept()  # Allow closing when main window is shutting down
+        else:
+            self.hide()
+            event.ignore()

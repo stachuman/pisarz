@@ -149,6 +149,102 @@ class LocationRepository(BaseRepository[Location]):
         except Exception as e:
             self.logger.error(f"Error unlinking location {location_id} from scene {scene_id}: {e}")
             return False
+    
+    def get_location_dependencies(self, location_id: int) -> dict:
+        """Get all dependencies for a location (where it's used)."""
+        dependencies = {
+            'scenes': [],
+            'characters': [],
+            'total_count': 0
+        }
+        
+        try:
+            # Get scenes that use this location
+            query = """
+                SELECT s.id, s.title, s.ord, sl.role 
+                FROM scenes s
+                JOIN scene_locations sl ON s.id = sl.scene_id
+                WHERE sl.location_id = ?
+                ORDER BY s.ord ASC, s.title ASC
+            """
+            rows = self.execute_custom_query(query, [location_id])
+            
+            for row in rows:
+                scene_info = {
+                    'id': row['id'] if hasattr(row, 'keys') else row[0],
+                    'title': row['title'] if hasattr(row, 'keys') else row[1],
+                    'ord': row['ord'] if hasattr(row, 'keys') else row[2],
+                    'role': row['role'] if hasattr(row, 'keys') else row[3]
+                }
+                dependencies['scenes'].append(scene_info)
+            
+            # Get characters linked to this location (if character_locations table exists)
+            try:
+                query = """
+                    SELECT c.id, c.name, cl.relationship_type, cl.description
+                    FROM characters c
+                    JOIN character_locations cl ON c.id = cl.character_id
+                    WHERE cl.location_id = ?
+                    ORDER BY c.name ASC
+                """
+                rows = self.execute_custom_query(query, [location_id])
+                
+                for row in rows:
+                    char_info = {
+                        'id': row['id'] if hasattr(row, 'keys') else row[0],
+                        'name': row['name'] if hasattr(row, 'keys') else row[1],
+                        'relationship_type': row['relationship_type'] if hasattr(row, 'keys') else row[2],
+                        'description': row['description'] if hasattr(row, 'keys') else row[3]
+                    }
+                    dependencies['characters'].append(char_info)
+            except Exception:
+                # Table might not exist, that's okay
+                pass
+            
+            dependencies['total_count'] = len(dependencies['scenes']) + len(dependencies['characters'])
+            
+        except Exception as e:
+            self.logger.error(f"Error getting dependencies for location {location_id}: {e}")
+        
+        return dependencies
+    
+    def delete_with_cascade(self, location_id: int) -> bool:
+        """Delete a location and cascade delete from all related tables."""
+        try:
+            from core.db import get_db_connection
+            with get_db_connection(self.db_path) as conn:
+                # Start transaction
+                conn.execute("BEGIN TRANSACTION")
+                
+                try:
+                    # Delete from scene_locations table first (foreign key dependency)
+                    conn.execute("DELETE FROM scene_locations WHERE location_id = ?", [location_id])
+                    
+                    # Delete from character_locations table if it exists
+                    try:
+                        conn.execute("DELETE FROM character_locations WHERE location_id = ?", [location_id])
+                    except Exception:
+                        # Table might not exist, that's okay
+                        pass
+                    
+                    # Delete the location itself
+                    conn.execute("DELETE FROM locations WHERE id = ?", [location_id])
+                    
+                    # Commit transaction
+                    conn.commit()
+                    
+                    self.logger.info(f"Successfully deleted location {location_id} with cascade")
+                    return True
+                    
+                except Exception as e:
+                    # Rollback on any error
+                    conn.rollback()
+                    self.logger.error(f"Error in cascade delete transaction for location {location_id}: {e}")
+                    return False
+                    
+        except Exception as e:
+            self.logger.error(f"Error deleting location {location_id} with cascade: {e}")
+            return False
 
 
 class PlotThreadRepository(BaseRepository[PlotThread]):
@@ -239,8 +335,8 @@ class LocationManager:
         return self.location_repo.update(location_id, **kwargs)
     
     def delete_location(self, location_id: int) -> bool:
-        """Delete a location."""
-        return self.location_repo.delete(location_id)
+        """Delete a location with cascade deletion from all related tables."""
+        return self.location_repo.delete_with_cascade(location_id)
     
     def search_locations(self, project_id: int, name_pattern: str) -> List[Location]:
         """Search locations by name."""
@@ -350,6 +446,10 @@ class LocationManager:
     def get_location_count(self, project_id: int) -> int:
         """Get the number of locations in a project."""
         return self.location_repo.count({"project_id": project_id})
+    
+    def get_location_dependencies(self, location_id: int) -> dict:
+        """Get all dependencies for a location (where it's used)."""
+        return self.location_repo.get_location_dependencies(location_id)
     
     def get_plot_thread_count(self, project_id: int) -> int:
         """Get the number of plot threads in a project."""

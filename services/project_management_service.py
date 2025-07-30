@@ -91,10 +91,10 @@ class ProjectManagementService:
             self.logger.error(f"Failed to load scene {scene_id}")
             return False
         
-        # Update LLM panel with scene context
-        if hasattr(self.main_window, 'llm_panel'):
+        # Update AI Assistant window with scene context
+        if hasattr(self.main_window, 'ai_assistant_window'):
             scene_content = self._get_scene_content(scene_id)
-            self.main_window.llm_panel.set_scene_context(scene_id, scene_content)
+            self.main_window.ai_assistant_window.panel.set_scene_context(scene_id, scene_content)
         
         return True
     
@@ -227,8 +227,8 @@ class ProjectManagementService:
     def _setup_narrative_context_panel(self, project_id: int):
         """Setup narrative context panel for the project."""
         try:
-            if hasattr(self.main_window, 'narrative_context_panel'):
-                self.main_window.narrative_context_panel.set_project_id(project_id)
+            if hasattr(self.main_window, 'narrative_context_window'):
+                self.main_window.narrative_context_window.set_project(project_id)
         except Exception as e:
             self.logger.debug(f"Could not setup narrative context panel: {e}")
     

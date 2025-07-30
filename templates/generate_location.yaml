@@ -1,0 +1,52 @@
+allow_context_editing: false
+author: System
+auto_apply_selection: true
+category: writing
+confirm_before_execution: false
+created_date: null
+custom_params: {}
+default_context_length: 4000
+description: Generuj lokacje dla historii w strukturalnym formacie JSON
+format_version: '3.0'
+max_context_chars: 4000
+max_tokens: 4000
+modified_date: null
+name: Generuj Lokację
+preview_length: 180
+repeat_penalty: 1.08
+scene_summary_length: 12000
+scene_summary_source: full_scene
+selection_priority: true
+show_context_preview: true
+show_params_editor: true
+tags:
+- writing
+- locations
+- worldbuilding
+temperature: 0.91
+template_content: "Wygeneruj lokacje dla historii w formacie JSON. Wynik MUSI być\
+  \ poprawną strukturą JSON.\n\n{% if project_description %}\nKontekst projektu: {{\
+  \ project_description }}\n{% endif %}\n\n{% if scene_contexts %}\n{% set contexts_with_content\
+  \ = scene_contexts|selectattr(\"has_content\")|list %}\n{% if contexts_with_content\
+  \ %}\nKontekst historii z poprzednich scen:\n{% for context in contexts_with_content\
+  \ %}\n- {{ context.scene_title }}: {{ context.content }}\n{% endfor %}\n{% endif\
+  \ %}\n{% endif %}\n\n{% if locations %}\nIstniejące lokacje (unikaj duplikatów):\n\
+  {% for location in locations %}\n- {{ location }}\n{% endfor %}\n{% endif %}\n\n\
+  {% if characters %}\nPostacie występujące:\n{% for character in characters %}\n\
+  - {{ character }}\n{% endfor %}\n{% endif %}\n\n{% if has_selection %}\n{{ selected_text\
+  \ }}\n{% if scene_summary and scene_summary != selected_text %}\nKontekst sceny:\n\
+  {{ scene_summary }}\n{% endif %}\n{% else %}\n{{ current_text }}\n{% endif %}\n\n\
+  Format wyjściowy (tylko poprawny JSON):\n```json\n{\n  \"locations\": [\n    {\n\
+  \      \"name\": \"Nazwa lokacji\",\n      \"type\": \"Indoor/Outdoor/Mixed/Virtual\"\
+  ,\n      \"description\": \"Szczegółowy opis lokacji\",\n      \"atmosphere\": \"\
+  Nastrój i klimat miejsca\",\n      \"details\": \"Konkretne szczegóły fizyczne i\
+  \ cechy\",\n      \"significance\": \"Dlaczego ta lokacja jest ważna dla historii\"\
+  ,\n      \"notes\": \"Dodatkowe notatki lub szczegóły\"\n    }\n  ]\n}\n```\n\n\
+  Wygeneruj 1-3 szczegółowe lokacje na podstawie obecnej sceny i kontekstu historii.\
+  \ Uczyń je żywe i atmosferyczne.\n"
+template_id: generate_location
+top_k: 45
+top_p: 0.92
+use_selection: true
+version: '2.0'
+word_boundary_trim: true

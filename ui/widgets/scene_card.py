@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QColor, QAction
 
 from ..styles.styles import SECONDARY_TEXT_COLOR, SEPARATOR_COLOR
-from ..styles.themes import ThemeManager
+from ..base.enhanced_theme_manager import EnhancedThemeManager
 from core.error_handler import get_error_handler, ErrorCategory
 from i18n import _
 
@@ -116,7 +116,7 @@ class SceneCard(QFrame):
         
     def _apply_theme_style(self):
         """Zastosuj style zgodne z aktualnym motywem."""
-        theme_manager = ThemeManager()
+        theme_manager = EnhancedThemeManager()
         colors = theme_manager.get_theme_colors()
         
         style = f"""

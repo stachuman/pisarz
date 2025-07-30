@@ -18,8 +18,10 @@ from controllers.app_search_controller import AppSearchController
 from controllers.app_ui_controller import AppUIController
 from controllers.app_focus_controller import AppFocusController
 from controllers.app_llm_controller import AppLLMController
-from ui.widgets import (ProjectsView, ProjectTreeView, Workspace,
-                       LLMAssistantPanel, NarrativeContextPanel)
+from ui.widgets import (ProjectsView, ProjectTreeView, Workspace)
+from ui.widgets.llm_assistant_panel import AIAssistantWindow
+from ui.widgets.narrative_context_panel import NarrativeContextWindow
+from ui.widgets.scene_context_panel import SceneContextWindow
 from services import LLMEventService, UIEventService, ProjectManagementService, SettingsService
 from i18n import _
 
@@ -64,6 +66,9 @@ class PisarzApp(QMainWindow):
         # Non-modal editor windows
         self.location_editor_windows = {}   # location_id -> window
         
+        # Panel windows
+        self.panel_windows = {}
+        
         self.setup_ui()
         self.setup_controllers()
         self.setup_connections()
@@ -88,48 +93,29 @@ class PisarzApp(QMainWindow):
         project_layout = QVBoxLayout(self.project_widget)
         project_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Główny splitter pionowy (góra: nawigacja+workspace, dół: AI assistant)
-        self.main_splitter = QSplitter(Qt.Orientation.Vertical)
-        project_layout.addWidget(self.main_splitter)
-        
-        # Górny widget zawierający nawigację i workspace
-        top_widget = QWidget()
-        top_layout = QHBoxLayout(top_widget)
-        top_layout.setContentsMargins(0, 0, 0, 0)
+        # Main content layout (just horizontal splitter for navigation and workspace)
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
         # Splitter poziomy dla nawigacji i workspace
-        horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
-        top_layout.addWidget(horizontal_splitter)
+        self.horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
+        main_layout.addWidget(self.horizontal_splitter)
         
         # Drzewko nawigacji w projekcie
         self.project_tree = ProjectTreeView()
-        horizontal_splitter.addWidget(self.project_tree)
+        self.horizontal_splitter.addWidget(self.project_tree)
         
         # Obszar roboczy
         self.workspace = Workspace()
-        horizontal_splitter.addWidget(self.workspace)
+        self.horizontal_splitter.addWidget(self.workspace)
         
         # Proporcje splitter poziomego (nawigacja vs workspace)
-        horizontal_splitter.setSizes([300, 900])
+        self.horizontal_splitter.setSizes([300, 900])
         
-        # Dodaj górny widget do głównego splitteru
-        self.main_splitter.addWidget(top_widget)
+        project_layout.addLayout(main_layout)
         
-        # LLM Assistant Panel (teraz na dole)
-        self.llm_panel = LLMAssistantPanel(self)  # Pass self as parent
-        self.llm_panel.setMinimumHeight(250)  # Minimum height for usability
-        self.llm_panel.setVisible(False)  # Hidden by default
-        self.main_splitter.addWidget(self.llm_panel)
-        
-        # Narrative Context Panel
-        self.narrative_context_panel = NarrativeContextPanel()
-        self.narrative_context_panel.setMinimumHeight(300)  # Minimum height for usability
-        self.narrative_context_panel.setVisible(False)  # Hidden by default
-        self.main_splitter.addWidget(self.narrative_context_panel)
-        
-        # Proporcje głównego splitteru (góra vs dół)
-        # Initial setup: main area gets all space, panels get 0 (hidden)
-        self.main_splitter.setSizes([1000, 0, 0])
+        # Create panel windows (hidden by default)
+        self.create_panel_windows()
         
         self.main_stack.addWidget(self.project_widget)
         
@@ -140,6 +126,34 @@ class PisarzApp(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage(_("Select project to start"))
+    
+    def create_panel_windows(self):
+        """Create panel windows."""
+        # AI Assistant Window
+        self.ai_assistant_window = AIAssistantWindow(self)
+        self.panel_windows['ai_assistant'] = self.ai_assistant_window
+        
+        # Narrative Context Window
+        self.narrative_context_window = NarrativeContextWindow(self)
+        self.panel_windows['narrative_context'] = self.narrative_context_window
+        
+        # Scene Context Window  
+        self.scene_context_window = SceneContextWindow(self)
+        self.panel_windows['scene_context'] = self.scene_context_window
+        
+        # Connect window signals to main window (replace old panel references)
+        self.ai_assistant_window.insertTextRequested.connect(self._on_insert_text_requested)
+        self.ai_assistant_window.contextAutoSaved.connect(self.narrative_context_window.refresh_contexts)
+        
+        # Connect scene context window signals
+        self.scene_context_window.character_added.connect(self.on_character_added_to_scene)
+        self.scene_context_window.character_removed.connect(self.on_character_removed_from_scene)
+        self.scene_context_window.location_added.connect(self.on_location_added_to_scene)
+        self.scene_context_window.location_removed.connect(self.on_location_removed_from_scene)
+        self.scene_context_window.new_character_requested.connect(self.on_new_character_requested)
+        self.scene_context_window.new_location_requested.connect(self.on_new_location_requested)
+        self.scene_context_window.character_selected.connect(self.on_character_selected_for_editing)
+        self.scene_context_window.location_selected.connect(self.on_location_selected_for_editing)
         
     def setup_controllers(self) -> None:
         """Setup controller references and connections."""
@@ -151,12 +165,12 @@ class PisarzApp(QMainWindow):
         
         # Setup focus controller with components
         self.focus_controller.setup_components(
-            self.project_widget, self.workspace, self.status_bar, self.llm_panel
+            self.project_widget, self.workspace, self.status_bar, self.ai_assistant_window
         )
         
         # Initialize LLM controller
         self.llm_controller.initialize()
-        self.llm_panel.set_llm_controller(self.llm_controller)
+        self.ai_assistant_window.set_llm_controller(self.llm_controller)
         
         # Connect controller signals
         self._connect_controller_signals()
@@ -184,6 +198,14 @@ class PisarzApp(QMainWindow):
         self.narrative_context_action.triggered.connect(self.toggle_narrative_context)
         tools_menu.addAction(self.narrative_context_action)
         
+        # Scene Context toggle action
+        self.scene_context_action = QAction(_("Scene Context"), self)
+        self.scene_context_action.setCheckable(True)
+        self.scene_context_action.setChecked(False)
+        self.scene_context_action.setShortcut(QKeySequence("Ctrl+Alt+S"))
+        self.scene_context_action.triggered.connect(self.toggle_scene_context)
+        tools_menu.addAction(self.scene_context_action)
+        
         # Templates action
         tools_menu.addSeparator()
         templates_action = QAction(_("Templates"), self)
@@ -200,13 +222,17 @@ class PisarzApp(QMainWindow):
             tools_menu.addAction(settings_action)
     
     def toggle_ai_assistant(self):
-        """Toggle AI Assistant panel visibility."""
-        is_visible = self.llm_panel.isVisible()
-        self.llm_panel.setVisible(not is_visible)
-        self.ai_assistant_action.setChecked(not is_visible)
+        """Toggle AI Assistant window visibility."""
+        is_visible = self.ai_assistant_window.isVisible()
         
-        # Update splitter sizes to properly show/hide the panel
-        self._update_splitter_sizes()
+        if is_visible:
+            self.ai_assistant_window.hide()
+        else:
+            self.ai_assistant_window.show()
+            self.ai_assistant_window.raise_()
+            self.ai_assistant_window.activateWindow()
+        
+        self.ai_assistant_action.setChecked(not is_visible)
         
         # Update editor button state
         self.workspace.set_ai_assistant_state(not is_visible)
@@ -216,72 +242,59 @@ class PisarzApp(QMainWindow):
         
         # Update status message
         if not is_visible:
-            self.status_bar.showMessage(_("AI Assistant panel opened"))
+            self.status_bar.showMessage(_("AI Assistant window opened"))
         else:
-            self.status_bar.showMessage(_("AI Assistant panel closed"))
+            self.status_bar.showMessage(_("AI Assistant window closed"))
         
         self.logger.info(f"AI Assistant panel {'opened' if not is_visible else 'closed'}")
     
-    def _update_splitter_sizes(self):
-        """Update splitter sizes based on panel visibility."""
-        ai_visible = self.llm_panel.isVisible()
-        narrative_visible = self.narrative_context_panel.isVisible()
-        
-        # Get current total height
-        current_sizes = self.main_splitter.sizes()
-        total_height = sum(current_sizes) if current_sizes else 1000
-        
-        # Define minimum sizes for panels
-        ai_min_height = 250
-        narrative_min_height = 300
-        main_min_height = 400
-        
-        # Calculate sizes based on visibility
-        if ai_visible and narrative_visible:
-            # Both panels visible
-            main_height = max(main_min_height, total_height - ai_min_height - narrative_min_height)
-            ai_height = ai_min_height
-            narrative_height = narrative_min_height
-        elif ai_visible:
-            # Only AI panel visible
-            main_height = max(main_min_height, total_height - ai_min_height)
-            ai_height = ai_min_height
-            narrative_height = 0
-        elif narrative_visible:
-            # Only narrative panel visible
-            main_height = max(main_min_height, total_height - narrative_min_height)
-            ai_height = 0
-            narrative_height = narrative_min_height
-        else:
-            # No panels visible
-            main_height = total_height
-            ai_height = 0
-            narrative_height = 0
-        
-        # Set the new sizes
-        self.main_splitter.setSizes([main_height, ai_height, narrative_height])
-        
-        self.logger.debug(f"Updated splitter sizes: main={main_height}, ai={ai_height}, narrative={narrative_height}")
-    
     def toggle_narrative_context(self):
-        """Toggle Narrative Context panel visibility."""
-        is_visible = self.narrative_context_panel.isVisible()
-        self.narrative_context_panel.setVisible(not is_visible)
-        self.narrative_context_action.setChecked(not is_visible)
+        """Toggle Narrative Context window visibility."""
+        is_visible = self.narrative_context_window.isVisible()
         
-        # Update splitter sizes to properly show/hide the panel
-        self._update_splitter_sizes()
+        if is_visible:
+            self.narrative_context_window.hide()
+        else:
+            self.narrative_context_window.show()
+            self.narrative_context_window.raise_()
+            self.narrative_context_window.activateWindow()
+        
+        self.narrative_context_action.setChecked(not is_visible)
         
         # Update button state in workspace
         self.workspace.set_narrative_context_state(not is_visible)
         
         # Update status message
         if not is_visible:
-            self.status_bar.showMessage(_("Narrative Context panel opened"))
+            self.status_bar.showMessage(_("Narrative Context window opened"))
         else:
-            self.status_bar.showMessage(_("Narrative Context panel closed"))
+            self.status_bar.showMessage(_("Narrative Context window closed"))
         
         self.logger.info(f"Narrative Context panel {'opened' if not is_visible else 'closed'}")
+    
+    def toggle_scene_context(self):
+        """Toggle Scene Context window visibility."""
+        is_visible = self.scene_context_window.isVisible()
+        
+        if is_visible:
+            self.scene_context_window.hide()
+        else:
+            self.scene_context_window.show()
+            self.scene_context_window.raise_()
+            self.scene_context_window.activateWindow()
+        
+        self.scene_context_action.setChecked(not is_visible)
+        
+        # Update button state in workspace
+        self.workspace.set_scene_context_state(not is_visible)
+        
+        # Update status message
+        if not is_visible:
+            self.status_bar.showMessage(_("Scene Context window opened"))
+        else:
+            self.status_bar.showMessage(_("Scene Context window closed"))
+        
+        self.logger.info(f"Scene Context panel {'opened' if not is_visible else 'closed'}")
         
     def _connect_controller_signals(self) -> None:
         """Connect signals from controllers."""
@@ -313,8 +326,8 @@ class PisarzApp(QMainWindow):
         self.location_controller.statusMessage.connect(self.status_bar.showMessage)
         self.location_controller.errorOccurred.connect(self._show_error_message)
         
-        # LLM assistant panel signals
-        self.llm_panel.insertTextRequested.connect(self._on_insert_text_requested)
+        # LLM assistant window signals - already connected in create_panel_windows()
+        # self.ai_assistant_window.insertTextRequested.connect(self._on_insert_text_requested)
         
         # Search controller signals
         self.search_controller.searchResultsReady.connect(self._on_search_results_ready)
@@ -356,7 +369,7 @@ class PisarzApp(QMainWindow):
         self.project_tree.editContextRequested.connect(self.on_edit_context_requested)
         
         # LLM Assistant signals for context auto-save
-        self.llm_panel.contextAutoSaved.connect(self.on_context_auto_saved)
+        self.ai_assistant_window.contextAutoSaved.connect(self.on_context_auto_saved)
         
         # Workspace
         self.workspace.saveRequested.connect(self.save_scene_content)
@@ -382,6 +395,7 @@ class PisarzApp(QMainWindow):
         self.workspace.newLocationRequestedFromScene.connect(self.create_new_location)
         self.workspace.characterSelectedFromScene.connect(self.on_character_selected_from_scene)
         self.workspace.locationSelectedFromScene.connect(self.on_location_selected_from_scene)
+        self.workspace.contextPanelToggled.connect(self.toggle_scene_context)
         
         # Search signals
         self.workspace.searchRequested.connect(self.perform_search)
@@ -415,6 +429,22 @@ class PisarzApp(QMainWindow):
         except Exception as e:
             # Don't block application closing if auto-save fails
             self.error_handler.log_warning(f"Auto-save failed on close: {e}", 
+                                         ErrorCategory.SYSTEM, show_to_user=False)
+        
+        # Signal undocked windows that we're closing and force close them
+        try:
+            if hasattr(self, 'ai_assistant_window') and self.ai_assistant_window:
+                self.ai_assistant_window._closing = True
+                self.ai_assistant_window.close()
+            if hasattr(self, 'narrative_context_window') and self.narrative_context_window:
+                self.narrative_context_window._closing = True
+                self.narrative_context_window.close()
+            if hasattr(self, 'scene_context_window') and self.scene_context_window:
+                self.scene_context_window._closing = True
+                self.scene_context_window.close()
+        except Exception as e:
+            # Don't block application closing if window cleanup fails
+            self.error_handler.log_warning(f"Window cleanup failed on close: {e}", 
                                          ErrorCategory.SYSTEM, show_to_user=False)
         
         # Accept the close event
@@ -452,8 +482,8 @@ class PisarzApp(QMainWindow):
         self.llm_controller.update_project_context(project_name, project_id)
         
         # Initialize narrative context panel with current project
-        if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
-            self.narrative_context_panel.set_project(project_id, project_name)
+        if hasattr(self, 'narrative_context_window') and self.narrative_context_window:
+            self.narrative_context_window.set_project(project_id)
         
         # Set up narrative context manager for project tree
         from core.database.narrative_context_repository import NarrativeContextManager
@@ -485,10 +515,23 @@ class PisarzApp(QMainWindow):
             )
             
             # Update LLM panel with scene context
-            self.llm_panel.set_scene_context(scene_id, content)
+            # Get scene title from scene controller
+            managers = self.project_controller.get_current_managers()
+            if managers and managers.get('scene_manager'):
+                scene_data = managers['scene_manager'].get_scene(scene_id)
+                scene_title = scene_data.get('title', '') if scene_data else ''
+                self.ai_assistant_window.update_scene_context(scene_id, scene_title, content)
             
             # Update LLM controller with scene context
             self.llm_controller.update_scene_context(scene_id, scene_title, content)
+            
+            # Update scene context window with managers and current scene
+            self.scene_context_window.set_managers(
+                managers['character_manager'], 
+                managers['location_manager'],
+                project_id
+            )
+            self.scene_context_window.set_scene_id(scene_id)
             
     def _on_scene_saved(self, is_auto_save: bool):
         """Handle scene saved signal."""
@@ -613,10 +656,15 @@ class PisarzApp(QMainWindow):
         """Zapisz zawartość sceny."""
         success = self.project_management_service.save_scene_content(content, is_auto_save)
         if success:
-            # Update LLM panel with latest content
+            # Update AI Assistant window with latest content
             current_scene_id = self.scene_controller.get_current_scene_id()
             if current_scene_id:
-                self.llm_panel.set_scene_context(current_scene_id, content)
+                # Get scene title from scene controller
+                managers = self.project_controller.get_current_managers()
+                if managers and managers.get('scene_manager'):
+                    scene_data = managers['scene_manager'].get_scene(current_scene_id)
+                    scene_title = scene_data.get('title', '') if scene_data else ''
+                    self.ai_assistant_window.update_scene_context(current_scene_id, scene_title, content)
     
     def auto_save_scene_content(self, content: str) -> None:
         """Handle periodic auto-save."""
@@ -624,10 +672,15 @@ class PisarzApp(QMainWindow):
         if success and self.workspace.current_editor:
             self.workspace.current_editor.confirm_auto_save()
             
-            # Update LLM panel with latest content
+            # Update AI Assistant window with latest content
             current_scene_id = self.scene_controller.get_current_scene_id()
             if current_scene_id:
-                self.llm_panel.set_scene_context(current_scene_id, content)
+                # Get scene title from scene controller
+                managers = self.project_controller.get_current_managers()
+                if managers and managers.get('scene_manager'):
+                    scene_data = managers['scene_manager'].get_scene(current_scene_id)
+                    scene_title = scene_data.get('title', '') if scene_data else ''
+                    self.ai_assistant_window.update_scene_context(current_scene_id, scene_title, content)
             
     def _refresh_scenes_data(self):
         """Odśwież dane scen zachowując selekcję."""
@@ -824,6 +877,22 @@ class PisarzApp(QMainWindow):
         if location:
             self.ui_event_service.handle_location_selection(location_id, location.name)
     
+    def on_new_character_requested(self, name):
+        """Handle new character request from scene context panel."""
+        self.create_new_character(name)
+    
+    def on_new_location_requested(self, name):
+        """Handle new location request from scene context panel."""
+        self.create_new_location(name)
+    
+    def on_character_selected_for_editing(self, character_id):
+        """Handle character selected for editing from scene context panel."""
+        self.on_character_selected_from_scene(character_id)
+    
+    def on_location_selected_for_editing(self, location_id):
+        """Handle location selected for editing from scene context panel."""
+        self.on_location_selected_from_scene(location_id)
+    
     def on_search_requested(self):
         """Handle search category selection from tree."""
         self.ui_event_service.handle_search_request()
@@ -922,8 +991,8 @@ class PisarzApp(QMainWindow):
             toolbar_widget.hide()
             
         # Pobierz kolory z aktualnego motywu
-        from ui.styles.themes import ThemeManager
-        theme_manager = ThemeManager()
+        from ui.base.enhanced_theme_manager import EnhancedThemeManager
+        theme_manager = EnhancedThemeManager()
         colors = theme_manager.get_theme_colors()
         
         # Zastosuj minimalistyczny styl zgodny z motywem
@@ -961,8 +1030,8 @@ class PisarzApp(QMainWindow):
         
     def _apply_focus_window_style(self):
         """Zastosuj styl okna w trybie fokusu."""
-        from ui.styles.themes import ThemeManager
-        theme_manager = ThemeManager()
+        from ui.base.enhanced_theme_manager import EnhancedThemeManager
+        theme_manager = EnhancedThemeManager()
         colors = theme_manager.get_theme_colors()
         
         # Zastosuj tło zgodne z motywem
@@ -1038,9 +1107,18 @@ class PisarzApp(QMainWindow):
         """Handle request to edit a template."""
         try:
             from ui.widgets.template_editor_dialog import TemplateEditorDialog
+            from core.llm.templates import get_template_manager
+            
+            # Get template config from template manager
+            template_manager = get_template_manager()
+            template_config = template_manager.get_template(template_name)
+            
+            if not template_config:
+                self.status_bar.showMessage(_("Template not found: {}").format(template_name))
+                return
             
             # Open template editor
-            dialog = TemplateEditorDialog(template_name, self)
+            dialog = TemplateEditorDialog(template_config, self)
             dialog.exec()
             
             self.status_bar.showMessage(_("Template editor opened"))
@@ -1087,7 +1165,7 @@ class PisarzApp(QMainWindow):
                     updated_data = dialog.get_data()
                     
                     # Update the context entry
-                    success = narrative_manager.update_narrative_context(
+                    success = narrative_manager.update_context(
                         context_entry["id"],
                         title=updated_data["title"],
                         content=updated_data["content"],
@@ -1104,8 +1182,8 @@ class PisarzApp(QMainWindow):
                         
                         # Refresh UI
                         self.on_context_auto_saved(scene_id)  # Refresh scene tree
-                        if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
-                            self.narrative_context_panel.refresh_contexts()
+                        if hasattr(self, 'narrative_context_window') and self.narrative_context_window:
+                            self.narrative_context_window.refresh_contexts()
                         
                         self.status_bar.showMessage(_("✓ Context updated successfully"))
                     else:
@@ -1113,33 +1191,52 @@ class PisarzApp(QMainWindow):
                         
             else:
                 # Multiple context entries - show selection dialog first
-                from PySide6.QtWidgets import QDialog, QVBoxLayout, QListWidget, QDialogButtonBox, QLabel
+                from PySide6.QtWidgets import QVBoxLayout, QListWidget, QDialogButtonBox, QLabel
+                from ui.base.base_dialog import BaseDialog
                 
-                selection_dialog = QDialog(self)
-                selection_dialog.setWindowTitle(_("Select Context to Edit"))
-                selection_dialog.setModal(True)
-                selection_dialog.resize(400, 300)
+                class ContextSelectionDialog(BaseDialog):
+                    def __init__(self, contexts, parent=None):
+                        super().__init__(
+                            title=_("Select Context to Edit"),
+                            width=400,
+                            height=300,
+                            modal=True,
+                            parent=parent
+                        )
+                        self.contexts = contexts
+                        self.selected_context = None
+                        self._setup_ui()
+                        
+                    def _setup_ui(self):
+                        label = QLabel(_("Multiple contexts found for this scene. Select one to edit:"))
+                        self.add_content_widget(label)
+                        
+                        self.context_list = QListWidget()
+                        for context in self.contexts:
+                            title = context.get("title", _("Untitled"))
+                            context_type = context.get("context_type", "")
+                            item_text = f"{title} ({context_type})"
+                            self.context_list.addItem(item_text)
+                            self.context_list.item(self.context_list.count() - 1).setData(1, context)
+                        
+                        self.add_content_widget(self.context_list)
+                        
+                        # Create standard buttons
+                        buttons = self.create_standard_buttons(
+                            save_text=_("Select"),
+                            save_callback=self._on_select,
+                            cancel_text=_("Cancel")
+                        )
+                        
+                    def _on_select(self):
+                        if self.context_list.currentItem():
+                            self.selected_context = self.context_list.currentItem().data(1)
+                            self.accept()
                 
-                layout = QVBoxLayout(selection_dialog)
-                layout.addWidget(QLabel(_("Multiple contexts found for this scene. Select one to edit:")))
+                selection_dialog = ContextSelectionDialog(existing_context, self)
                 
-                context_list = QListWidget()
-                for context in existing_context:
-                    title = context.get("title", _("Untitled"))
-                    context_type = context.get("context_type", "")
-                    item_text = f"{title} ({context_type})"
-                    context_list.addItem(item_text)
-                    context_list.item(context_list.count() - 1).setData(1, context)  # Store context data
-                
-                layout.addWidget(context_list)
-                
-                buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-                buttons.accepted.connect(selection_dialog.accept)
-                buttons.rejected.connect(selection_dialog.reject)
-                layout.addWidget(buttons)
-                
-                if selection_dialog.exec() == QDialog.DialogCode.Accepted and context_list.currentItem():
-                    selected_context = context_list.currentItem().data(1)
+                if selection_dialog.exec() == selection_dialog.DialogCode.Accepted and selection_dialog.selected_context:
+                    selected_context = selection_dialog.selected_context
                     
                     # Open edit dialog for selected context
                     dialog = NarrativeContextDialog(selected_context, self)
@@ -1149,7 +1246,7 @@ class PisarzApp(QMainWindow):
                         updated_data = dialog.get_data()
                         
                         # Update the context entry
-                        success = narrative_manager.update_narrative_context(
+                        success = narrative_manager.update_context(
                             selected_context["id"],
                             title=updated_data["title"],
                             content=updated_data["content"],
@@ -1166,8 +1263,8 @@ class PisarzApp(QMainWindow):
                             
                             # Refresh UI
                             self.on_context_auto_saved(scene_id)  # Refresh scene tree
-                            if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
-                                self.narrative_context_panel.refresh_contexts()
+                            if hasattr(self, 'narrative_context_window') and self.narrative_context_window:
+                                self.narrative_context_window.refresh_contexts()
                             
                             self.status_bar.showMessage(_("✓ Context updated successfully"))
                         else:
@@ -1195,8 +1292,8 @@ class PisarzApp(QMainWindow):
                         self.project_tree.load_scenes(scenes)
             
             # Also refresh the narrative context panel
-            if hasattr(self, 'narrative_context_panel') and self.narrative_context_panel:
-                self.narrative_context_panel.refresh_contexts()
+            if hasattr(self, 'narrative_context_window') and self.narrative_context_window:
+                self.narrative_context_window.refresh_contexts()
             
             self.status_bar.showMessage(_("✓ Context automatically saved and linked to scene"))
             self.logger.info(f"Context auto-saved for scene {scene_id}")
@@ -1235,8 +1332,8 @@ def main():
         app.setFont(font)
         
         # Załaduj i zastosuj zapisany motyw
-        from ui.styles.themes import ThemeManager
-        theme_manager = ThemeManager()
+        from ui.base.enhanced_theme_manager import EnhancedThemeManager
+        theme_manager = EnhancedThemeManager()
         theme_manager.set_theme(theme_manager.get_current_theme())
         
         # Stwórz i pokaż główne okno

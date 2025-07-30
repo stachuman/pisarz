@@ -27,6 +27,7 @@ logs/
 MANIFEST
 pisarz.md
 CLAUDE.md
+*plan.md
 # PyInstaller
 *.manifest
 *.spec

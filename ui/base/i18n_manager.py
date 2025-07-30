@@ -20,7 +20,10 @@ class I18nManager:
         
     def get_current_locale(self) -> str:
         """Get the current locale."""
-        saved_locale = self.settings.value("locale", "")
+        # Check both keys for backward compatibility
+        saved_locale = self.settings.value("language", "")
+        if not saved_locale:
+            saved_locale = self.settings.value("locale", "")
         if saved_locale:
             return saved_locale
         
@@ -74,8 +77,8 @@ class I18nManager:
         if locale_code not in self.available_locales:
             return False
         
-        # Save to settings
-        self.settings.setValue("locale", locale_code)
+        # Save to settings (use 'language' key for consistency with main.py)
+        self.settings.setValue("language", locale_code)
         self.current_locale = locale_code
         
         # Load translation
@@ -88,6 +91,24 @@ class I18nManager:
                 app.installTranslator(self.translator)
         
         return success
+    
+    def set_language(self, language_code: str) -> bool:
+        """Set the application language (alias for set_locale for backward compatibility)."""
+        # First update the old i18n system which is what most UI uses
+        try:
+            import i18n
+            gettext_success = i18n.set_language(language_code)
+        except ImportError:
+            gettext_success = False
+        
+        # Also update Qt translation system 
+        qt_success = self.set_locale(language_code)
+        
+        # Save language to settings for next app start
+        self.settings.setValue("language", language_code)
+        
+        # For full effect, application restart is needed
+        return gettext_success or qt_success
     
     def load_translation(self, locale_code: str) -> bool:
         """Load translation for the specified locale."""

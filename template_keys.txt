@@ -1,0 +1,189 @@
+● How to Add New Template Keys
+
+  To add new keys that templates can use, you need to modify these locations:
+
+  1. controllers/app_llm_controller.py (for regular scene-based templates)
+
+  In the prepare_template_execution method around line 380, the context is built via 
+  scene_context_service.build_scene_context(). To add new keys, modify:
+
+  services/scene_context_service.py in the build_scene_context method around line 60:
+
+  context_data = {
+      "scene_id": scene_id,
+      "scene_title": scene.get("title", ""),
+      "scene_content": scene.get("content_rtf", ""),
+      "project_description": getattr(managers.get("project_controller"), 'project_description', ''),
+      "project_name": project_name,
+      "template_type": template_name,
+      "characters": scene_characters,
+      "locations": scene_locations,
+      "character_count": len(scene_characters),
+      "location_count": len(scene_locations),
+      # ADD YOUR NEW KEY HERE:
+      "your_new_key": get_your_data_from_managers(managers),
+  }
+
+  2. controllers/app_llm_controller.py (for custom prompt contexts)
+
+  In the prepare_custom_prompt_context method around line 420, add your new key to the context_data.update() call:
+
+  context_data.update({
+      "scene_title": scene.get("title", ""),
+      "project_name": getattr(managers.get('project_controller'), 'current_project_name', ''),
+      "project_description": getattr(managers.get("project_controller"), 'project_description', ''),
+      "character_count": len(context_data["characters"]),
+      "location_count": len(context_data["locations"]),
+      # ADD YOUR NEW KEY HERE:
+      "your_new_key": get_your_data_from_managers(managers),
+  })
+
+  3. Optional: core/llm/templates/manager.py (for template-config-controlled keys)
+
+  If you want the key to be controlled by template configuration (like include_project_info), add it to the _build_additional_context method around line 323:
+
+  if config.include_your_feature:
+      context['your_new_key'] = scene_data.get('your_new_key', '')
+
+  4. Template Configuration (if using config-controlled keys)
+
+  Add the configuration option to your template YAML files:
+
+  context_config:
+    include_your_feature: true  # or false
+
+  ---
+
+====
+
+● Basic Context Keys (always available):
+
+  - scene_id - ID of the current scene
+  - scene_title - Title of the current scene
+  - scene_content - Full RTF content of the scene (from scene_context_service)
+  - scene_summary - Summary of scene content (configurable length, from template manager)
+  - project_name - Name of the current project
+  - template_id - ID of the template being used (added by app_llm_controller)
+  - template_name - Display name of the template (added by template manager)
+  - template_type - Template name passed to build_scene_context (deprecated, use template_id)
+  - selected_text - Currently selected text in editor
+  - current_text - Current context text (configurable from selection or scene content)
+  - has_selection - Boolean indicating if text is selected
+  - content_source - Source of content (scene/selection/etc) as enum value
+  - context_type - Type of context ("template_execution" or "custom_prompt")
+  - execution_timestamp - Timestamp when template was executed (template_execution only)
+
+  Scene Contexts (NEW - auto-populated when used):
+
+  - scene_contexts - List of scene context dictionaries (not formatted strings) for the project, ordered by scene order
+    Each dictionary contains: scene_id, scene_title, scene_ord, content, has_content
+    Only scenes with narrative context entries have content; others have has_content=False
+    Use with filters like {{ scene_contexts|selectattr("has_content")|list }} to get only scenes with context
+    Access attributes like {{ context.scene_title }} and {{ context.content }}
+
+  Character & Location Keys:
+
+  - characters - List of formatted character descriptions for the scene (auto-populated if used in template)
+  - locations - List of formatted location descriptions for the scene (auto-populated if used in template)
+  - character_count - Number of characters in the scene
+  - location_count - Number of locations in the scene
+  - scene_contexts_count - Number of scene contexts in the project
+
+  Project Information Keys:
+
+  - project_description - Description field from projects table (auto-populated if used in template)
+
+  Narrative Context Keys:
+
+  - narrative_context - Narrative context summary for the project (auto-populated if used in template)
+
+  Template Configuration Keys:
+
+  These control what gets included in the context:
+  - include_characters - Whether to include character data
+  - include_locations - Whether to include location data
+  - include_project_info - Whether to include project information
+  - include_scene_content - Whether to include scene content
+  - include_narrative_context - Whether to include narrative context
+  - use_selection - Whether to prioritize selected text
+  - selection_priority - Whether selection overrides other content
+  - default_context_length - Length of context text to extract
+  - scene_summary_length - Length of scene summary
+  - scene_summary_source - Source for scene summary (beginning/end/full/etc)
+  - max_context_chars - Maximum context characters
+  - word_boundary_trim - Whether to trim at word boundaries
+
+  All these keys can be used in template content with Jinja2 syntax like {{ project_description }} or {% if has_selection %}{{ selected_text }}{% endif %}.
+
+● Currently Used Template Variables (found in existing templates):
+
+  Core variables actually used:
+  - {{ characters }} - Formatted list of characters (can use |join filter)
+  - {{ locations }} - Formatted list of locations (can use |join filter) 
+  - {{ current_text }} - Current scene text or selection
+  - {{ selected_text }} - Selected text in editor
+  - {{ scene_summary }} - Scene summary (length configurable in template)
+  - {{ project_name }} - Project name
+  - {{ project_description }} - Project description
+  - {{ narrative_context }} - Narrative context for the project
+
+  NEW: Scene Context Variables (auto-populated when used):
+  - {{ scene_contexts }} - List of all scene contexts for the project, ordered by scene order
+
+  Common usage patterns:
+  - {% if characters %}...{% endif %} - Conditional inclusion
+  - {{ characters|join(', ') }} - Join list with commas (for formatted strings)
+  - {{ characters|join('', '') }} - Join list without separators (for formatted strings)
+  - {% for context in scene_contexts %}{{ context.scene_title }}: {{ context.content }}{% endfor %} - Loop through all scene contexts
+  - {% set contexts_with_content = scene_contexts|selectattr("has_content")|list %} - Get only scenes with content
+  - {% for context in contexts_with_content[:-1] %}{{ context.scene_title }}{% endfor %} - Previous scenes with content
+
+● Template Context Population:
+
+  The template manager always populates ALL available context data regardless of whether
+  it's used in the template. This ensures consistent behavior and eliminates complexity.
+
+  All templates automatically have access to:
+  - characters (formatted list)
+  - locations (formatted list)  
+  - scene_contexts (formatted list)
+  - project_description (string)
+  - narrative_context (string)
+
+  You can use any of these variables in your templates without special configuration.
+
+● Example Template Using Scene Contexts:
+
+```yaml
+template_content: |
+  {% if scene_contexts %}
+  {% set contexts_with_content = scene_contexts|selectattr("has_content")|list %}
+  {% if contexts_with_content %}
+  **Story Context from Previous Scenes**:
+  {% for context in contexts_with_content[:-1] %}  {# All but current scene #}
+  - {{ context }}
+  {% endfor %}
+  {% endif %}
+  {% endif %}
+  
+  **Current Scene**: {{ scene_title }}
+  Continue the story from here:
+  {{ current_text }}
+  
+  {% if characters %}
+  **Characters in this scene**:
+  {% for character in characters %}
+  - {{ character }}
+  {% endfor %}
+  {% endif %}
+```
+
+This template will:
+1. Always have access to all scene contexts for the project
+2. Filter to only scenes that have narrative context using Jinja2 filters
+3. Display context from all previous scenes (excluding current)
+4. Always have access to character data
+
+IMPORTANT: All context data is always available in every template. Scene contexts include
+all scenes but only those with narrative context entries have actual content.
+Use Jinja2 filters like selectattr("has_content") to work only with scenes that have context.

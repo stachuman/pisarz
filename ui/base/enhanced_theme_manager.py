@@ -13,7 +13,22 @@ class EnhancedThemeManager:
     def __init__(self):
         self.settings = QSettings()
         self.current_theme = self.get_current_theme()
-        self.theme_colors = get_theme_colors(self.current_theme)
+        self.theme_colors = get_theme_colors(self._map_theme_name(self.current_theme))
+        
+    def _map_theme_name(self, old_theme_name: str) -> str:
+        """Map old theme names to new theme names for backward compatibility."""
+        theme_mapping = {
+            "Professional": "default",
+            "Jasny": "default", 
+            "Ciemny": "dark",
+            "Sepia": "default",
+            "Leśny": "default",
+            "Niebieskoszary": "blue",
+            "Light": "default",
+            "Dark": "dark",
+            "Blue-gray": "blue"
+        }
+        return theme_mapping.get(old_theme_name, old_theme_name)
         
     def get_current_theme(self) -> str:
         """Get the current theme name."""
@@ -21,9 +36,10 @@ class EnhancedThemeManager:
     
     def set_theme(self, theme_name: str):
         """Set the current theme."""
-        if theme_name in THEME_COLORS:
-            self.current_theme = theme_name
-            self.theme_colors = get_theme_colors(theme_name)
+        mapped_theme = self._map_theme_name(theme_name)
+        if mapped_theme in THEME_COLORS:
+            self.current_theme = theme_name  # Store original name for compatibility
+            self.theme_colors = get_theme_colors(mapped_theme)
             self.settings.setValue("theme", theme_name)
             self.apply_global_theme()
             
@@ -31,9 +47,35 @@ class EnhancedThemeManager:
         """Get current theme colors."""
         return self.theme_colors
         
-    def get_available_themes(self) -> list:
-        """Get list of available themes."""
-        return list(THEME_COLORS.keys())
+    def get_available_themes(self) -> dict:
+        """Get available themes in the old format for compatibility."""
+        # Return themes in the old format expected by settings dialog
+        return {
+            "Professional": {
+                "name": "Professional",
+                "description": "Modern professional theme with subtle colors",
+                "background": THEME_COLORS["default"]["background"],
+                "text": THEME_COLORS["default"]["text"],
+                "accent": THEME_COLORS["default"]["accent"],
+                "border": THEME_COLORS["default"]["border"]
+            },
+            "Ciemny": {
+                "name": "Ciemny", 
+                "description": "Dark theme for night work",
+                "background": THEME_COLORS["dark"]["background"],
+                "text": THEME_COLORS["dark"]["text"],
+                "accent": THEME_COLORS["dark"]["accent"],
+                "border": THEME_COLORS["dark"]["border"]
+            },
+            "Niebieskoszary": {
+                "name": "Niebieskoszary",
+                "description": "Professional theme in blue shades",
+                "background": THEME_COLORS["blue"]["background"],
+                "text": THEME_COLORS["blue"]["text"],
+                "accent": THEME_COLORS["blue"]["accent"],
+                "border": THEME_COLORS["blue"]["border"]
+            }
+        }
         
     def apply_global_theme(self):
         """Apply theme to the entire application."""
@@ -310,6 +352,76 @@ class EnhancedThemeManager:
         QProgressBar::chunk {{
             background-color: {colors["accent"]};
             border-radius: 2px;
+        }}
+        
+        /* Dialogs - Enhanced styling */
+        QDialog {{
+            background-color: {colors["background"]};
+            color: {colors["text"]};
+            border: 1px solid {colors["border"]};
+        }}
+        
+        /* Message Box styling */
+        QMessageBox {{
+            background-color: {colors["background"]};
+            color: {colors["text"]};
+        }}
+        
+        QMessageBox QPushButton {{
+            min-width: 80px;
+            min-height: 24px;
+        }}
+        
+        /* List widgets */
+        QListWidget {{
+            background-color: {colors["input_background"]};
+            border: 1px solid {colors["border"]};
+            border-radius: 4px;
+            color: {colors["text"]};
+            selection-background-color: {colors["accent"]};
+            selection-color: white;
+            outline: none;
+        }}
+        
+        QListWidget::item {{
+            padding: 4px 8px;
+            border: none;
+            min-height: 20px;
+        }}
+        
+        QListWidget::item:hover {{
+            background-color: {colors["button_hover"]};
+        }}
+        
+        QListWidget::item:selected {{
+            background-color: {colors["accent"]};
+            color: white;
+        }}
+        
+        /* Tree widgets */
+        QTreeWidget {{
+            background-color: {colors["input_background"]};
+            border: 1px solid {colors["border"]};
+            border-radius: 4px;
+            color: {colors["text"]};
+            selection-background-color: {colors["accent"]};
+            selection-color: white;
+            outline: none;
+        }}
+        
+        QTreeWidget::item {{
+            padding: 4px;
+            border: none;
+            min-height: 20px;
+        }}
+        
+        QTreeWidget::item:hover {{
+            background-color: {colors["button_hover"]};
+        }}
+        
+        QTreeWidget::item:selected {{
+            background-color: {colors["accent"]};
+            color: white;
         }}
         """
     

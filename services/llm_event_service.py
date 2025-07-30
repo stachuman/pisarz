@@ -59,7 +59,7 @@ class LLMEventService:
                 return False
             
             # Show AI Assistant panel if not visible
-            if not self.main_window.llm_panel.isVisible():
+            if not self.main_window.ai_assistant_window.isVisible():
                 self.main_window.toggle_ai_assistant()
             
             # Set context and execute task
@@ -67,7 +67,7 @@ class LLMEventService:
             
             # Execute the template with streaming
             template_id = context_data.get("template_id", "scene_summary")
-            self.main_window.llm_panel.execute_task_streaming(template_id)
+            self.main_window.ai_assistant_window.panel.execute_task_streaming(template_id)
             
             self._show_status_message(_("Generating narrative context with template: {}").format(template_name))
             self.logger.info(f"Generated context for scene {scene_id} with template {template_name}")
@@ -222,13 +222,13 @@ class LLMEventService:
         try:
             # Set scene context
             scene_content = context_data.get("scene_content", "")
-            self.main_window.llm_panel.set_scene_context(scene_id, scene_content)
+            self.main_window.ai_assistant_window.panel.set_scene_context(scene_id, scene_content)
             
             # Set additional context
-            self.main_window.llm_panel.set_additional_context(context_data)
+            self.main_window.ai_assistant_window.panel.set_additional_context(context_data)
             
             # Set auto-save context info
-            self.main_window.llm_panel.set_auto_save_context_info(scene_id, template_name)
+            self.main_window.ai_assistant_window.panel.set_auto_save_context_info(scene_id, template_name)
             
         except Exception as e:
             self.logger.error(f"Error setting up LLM panel context: {e}")

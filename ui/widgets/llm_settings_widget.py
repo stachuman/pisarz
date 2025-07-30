@@ -733,7 +733,7 @@ class LLMSettingsWidget(QWidget):
             self.settings_changed.emit()
             
             self.logger.info("LLM settings applied")
-            QMessageBox.information(self, _("Settings"), _("LLM settings have been applied successfully"))
+            # QMessageBox.information(self, _("Settings"), _("LLM settings have been applied successfully"))
             
         except Exception as e:
             self.logger.error(f"Error applying LLM settings: {e}")

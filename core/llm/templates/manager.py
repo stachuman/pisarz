@@ -182,7 +182,7 @@ class EnhancedTemplateManager:
             ))
             
             enhanced_context.update(self._build_additional_context(
-                template, scene_data, template.template_content
+                template, scene_data
             ))
             
             # Add metadata
@@ -282,46 +282,46 @@ class EnhancedTemplateManager:
         context['scene_summary'] = summary.strip()
         return context
     
-    def _build_additional_context(self, config: TemplateConfig, scene_data: Dict[str, Any], template_content: str) -> Dict[str, Any]:
-        """Build additional context data based on template variables."""
+    def _build_additional_context(self, config: TemplateConfig, scene_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Build additional context data - always populate all available data."""
         context = {}
         project_id = scene_data.get('project_id')
-        
-        # Parse template to detect used variables
-        used_vars = self.get_template_variables(template_content)
 
         # Use ContextFormatterService for consistent formatting
         from services import ContextFormatterService
         formatter = ContextFormatterService()
         
-        # Characters - populate if used in template
-        if 'characters' in used_vars:
-            characters = scene_data.get('characters', [])
-            if isinstance(characters, list):
-                context['characters'] = formatter.format_characters_list(characters)
-            else:
-                context['characters'] = []
+        # Characters - always populate
+        characters = scene_data.get('characters', [])
+        if isinstance(characters, list):
+            context['characters'] = formatter.format_characters_list(characters)
+        else:
+            context['characters'] = []
         
-        # Locations - populate if used in template
-        if 'locations' in used_vars:
-            locations = scene_data.get('locations', [])
-            if isinstance(locations, list):
-                context['locations'] = formatter.format_locations_list(locations)
-            else:
-                context['locations'] = []
+        # Locations - always populate
+        locations = scene_data.get('locations', [])
+        if isinstance(locations, list):
+            context['locations'] = formatter.format_locations_list(locations)
+        else:
+            context['locations'] = []
+        
+        # Scene contexts - always populate (keep as raw dicts for template filtering)
+        scene_contexts = scene_data.get('scene_contexts', [])
+        if isinstance(scene_contexts, list):
+            context['scene_contexts'] = scene_contexts  # Keep raw dicts for selectattr() filtering
+        else:
+            context['scene_contexts'] = []
                 
-        # Project info - populate if used in template
-        if 'project_description' in used_vars:
-            context['project_description'] = scene_data.get('project_description', '')
+        # Project info - always populate
+        context['project_description'] = scene_data.get('project_description', '')
              
-        # Narrative context - populate if used in template
-        if 'narrative_context' in used_vars:
-            if project_id:
-                context['narrative_context'] = self._build_narrative_context(project_id)
-            elif 'narrative_context' in scene_data:
-                context['narrative_context'] = scene_data['narrative_context']
-            else:
-                context['narrative_context'] = ''
+        # Narrative context - always populate
+        if project_id:
+            context['narrative_context'] = self._build_narrative_context(project_id)
+        elif 'narrative_context' in scene_data:
+            context['narrative_context'] = scene_data['narrative_context']
+        else:
+            context['narrative_context'] = ''
         
         return context
     
@@ -462,22 +462,6 @@ class EnhancedTemplateManager:
             })
         
         return sorted(template_list, key=lambda x: x['name'])
-    
-    def get_template_variables(self, template_content: str) -> set:
-        """Parse template content and return set of used variables."""
-        if not template_content:
-            return set()
-            
-        # Find {{ variable }} patterns
-        variable_pattern = r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)'
-        # Find {% if variable %} patterns  
-        if_pattern = r'\{\%\s*if\s+([a-zA-Z_][a-zA-Z0-9_]*)'
-        
-        variables = set()
-        variables.update(re.findall(variable_pattern, template_content))
-        variables.update(re.findall(if_pattern, template_content))
-        
-        return variables
     
     def refresh_templates(self):
         """Refresh templates by reloading from files."""

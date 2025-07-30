@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QSizePolicy, QToolButton, QMenu)
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
+from ui.base.base_dialog import BaseDialog
+from core.logging_config import get_logger
 from i18n import _
 
 
@@ -29,6 +31,7 @@ class SceneContextPanel(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.logger = get_logger("ui.scene_context")
         self.scene_id = None
         self.character_manager = None
         self.location_manager = None
@@ -623,3 +626,74 @@ class SceneContextPanel(QWidget):
                     QMessageBox.warning(self, _("Warning"), _("Failed to link character to scene."))
         except Exception as e:
             QMessageBox.critical(self, _("Error"), _("Failed to link character: {}").format(str(e)))
+
+
+class SceneContextWindow(BaseDialog):
+    """Scene Context as an undocked window."""
+    
+    # Forward signals from the panel
+    character_added = Signal(int, str)  # character_id, role
+    character_removed = Signal(int)  # character_id
+    location_added = Signal(int, str)  # location_id, role
+    location_removed = Signal(int)  # location_id
+    new_character_requested = Signal(str)  # name
+    new_location_requested = Signal(str)  # name
+    character_selected = Signal(int)  # character_id for editing
+    location_selected = Signal(int)  # location_id for editing
+    
+    def __init__(self, parent=None):
+        super().__init__(
+            title=_("Scene Context"),
+            width=300,
+            height=400,
+            modal=False,
+            parent=parent
+        )
+        
+        # Create and add the panel
+        self.panel = SceneContextPanel(self)
+        self.add_content_widget(self.panel)
+        
+        # Forward panel signals
+        self.panel.character_added.connect(self.character_added.emit)
+        self.panel.character_removed.connect(self.character_removed.emit)
+        self.panel.location_added.connect(self.location_added.emit)
+        self.panel.location_removed.connect(self.location_removed.emit)
+        self.panel.new_character_requested.connect(self.new_character_requested.emit)
+        self.panel.new_location_requested.connect(self.new_location_requested.emit)
+        self.panel.character_selected.connect(self.character_selected.emit)
+        self.panel.location_selected.connect(self.location_selected.emit)
+        
+        # Hide default dialog buttons by creating an empty widget in button area
+        button_spacer = QWidget()
+        button_spacer.setFixedHeight(0)
+        self.button_layout.addWidget(button_spacer)
+        
+        # Set proper window flags
+        self.setWindowFlags(
+            Qt.Window | 
+            Qt.WindowCloseButtonHint | 
+            Qt.WindowMinimizeButtonHint |
+            Qt.WindowMaximizeButtonHint |
+            Qt.WindowStaysOnTopHint
+        )
+        
+    def set_managers(self, character_manager, location_manager, project_id):
+        """Set character and location managers."""
+        self.panel.set_managers(character_manager, location_manager, project_id)
+        
+    def set_scene_id(self, scene_id):
+        """Set current scene ID."""
+        self.panel.set_scene_id(scene_id)
+        
+    def refresh_context(self):
+        """Refresh context."""
+        self.panel.refresh_context()
+        
+    def closeEvent(self, event):
+        """Hide window instead of closing, unless app is shutting down."""
+        if hasattr(self, '_closing') and self._closing:
+            event.accept()  # Allow closing when main window is shutting down
+        else:
+            self.hide()
+            event.ignore()

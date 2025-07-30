@@ -166,15 +166,15 @@ class ToolbarManager(QObject):
     def _create_action_buttons_section(self, layout: QHBoxLayout):
         """Create action buttons (save, focus mode, context panel)."""
         # Save button
-        self.save_btn = QPushButton(_("Zapisz"))
-        self.save_btn.setToolTip(_("Zapisz (Ctrl+S)"))
+        self.save_btn = QPushButton(_("Save"))
+        self.save_btn.setToolTip(_("Save (Ctrl+S)"))
         layout.addWidget(self.save_btn)
         
         self._add_separator(layout)
         
         # Focus mode button
-        self.focus_mode_btn = QPushButton(_("Fokus"))
-        self.focus_mode_btn.setToolTip(_("Tryb fokusu pisania (F11)"))
+        self.focus_mode_btn = QPushButton(_("Focus"))
+        self.focus_mode_btn.setToolTip(_("Focus mode (F11)"))
         layout.addWidget(self.focus_mode_btn)
         
         # Context panel toggle

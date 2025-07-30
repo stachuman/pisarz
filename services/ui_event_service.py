@@ -237,8 +237,8 @@ class UIEventService:
     def _refresh_scene_context_panel(self):
         """Refresh the scene context panel if it exists."""
         try:
-            if hasattr(self.main_window, 'scene_context_panel') and self.main_window.scene_context_panel:
-                self.main_window.scene_context_panel.refresh_context()
+            if hasattr(self.main_window, 'scene_context_window') and self.main_window.scene_context_window:
+                self.main_window.scene_context_window.refresh_context()
         except Exception as e:
             self.logger.debug(f"Could not refresh scene context panel: {e}")
     

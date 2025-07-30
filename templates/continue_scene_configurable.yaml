@@ -28,7 +28,7 @@ temperature: 0.75
 template_content: 'Kontynuuj tę scenę, pisząc naturalną kontynuację, zachowując styl
   i ton tekstu.
 
-  Utrzymuj styl pisania Stanisława Lema.
+  Utrzymuj styl pisania Murakami.
 
 
   {% if characters %}

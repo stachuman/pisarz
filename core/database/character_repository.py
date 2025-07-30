@@ -153,6 +153,78 @@ class CharacterRepository(BaseRepository[Character]):
         except Exception as e:
             self.logger.error(f"Error unlinking character {character_id} from scene {scene_id}: {e}")
             return False
+    
+    def get_character_dependencies(self, character_id: int) -> dict:
+        """Get all dependencies for a character (where it's used)."""
+        dependencies = {
+            'scenes': [],
+            'total_count': 0
+        }
+        
+        try:
+            # Get scenes that use this character
+            query = """
+                SELECT s.id, s.title, s.ord, sc.role 
+                FROM scenes s
+                JOIN scene_characters sc ON s.id = sc.scene_id
+                WHERE sc.character_id = ?
+                ORDER BY s.ord ASC, s.title ASC
+            """
+            rows = self.execute_custom_query(query, [character_id])
+            
+            for row in rows:
+                scene_info = {
+                    'id': row['id'] if hasattr(row, 'keys') else row[0],
+                    'title': row['title'] if hasattr(row, 'keys') else row[1],
+                    'ord': row['ord'] if hasattr(row, 'keys') else row[2],
+                    'role': row['role'] if hasattr(row, 'keys') else row[3]
+                }
+                dependencies['scenes'].append(scene_info)
+            
+            dependencies['total_count'] = len(dependencies['scenes'])
+            
+        except Exception as e:
+            self.logger.error(f"Error getting dependencies for character {character_id}: {e}")
+        
+        return dependencies
+    
+    def delete_with_cascade(self, character_id: int) -> bool:
+        """Delete a character and cascade delete from all related tables."""
+        try:
+            from core.db import get_db_connection
+            with get_db_connection(self.db_path) as conn:
+                # Start transaction
+                conn.execute("BEGIN TRANSACTION")
+                
+                try:
+                    # Delete from scene_characters table first (foreign key dependency)
+                    conn.execute("DELETE FROM scene_characters WHERE character_id = ?", [character_id])
+                    
+                    # Delete from character_locations table if it exists
+                    try:
+                        conn.execute("DELETE FROM character_locations WHERE character_id = ?", [character_id])
+                    except Exception:
+                        # Table might not exist, that's okay
+                        pass
+                    
+                    # Delete the character itself
+                    conn.execute("DELETE FROM characters WHERE id = ?", [character_id])
+                    
+                    # Commit transaction
+                    conn.commit()
+                    
+                    self.logger.info(f"Successfully deleted character {character_id} with cascade")
+                    return True
+                    
+                except Exception as e:
+                    # Rollback on any error
+                    conn.rollback()
+                    self.logger.error(f"Error in cascade delete transaction for character {character_id}: {e}")
+                    return False
+                    
+        except Exception as e:
+            self.logger.error(f"Error deleting character {character_id} with cascade: {e}")
+            return False
 
 
 class CharacterManager:
@@ -189,8 +261,8 @@ class CharacterManager:
         return self.character_repo.update(character_id, **kwargs)
     
     def delete_character(self, character_id: int) -> bool:
-        """Delete a character."""
-        return self.character_repo.delete(character_id)
+        """Delete a character with cascade deletion from all related tables."""
+        return self.character_repo.delete_with_cascade(character_id)
     
     def search_characters(self, project_id: int, name_pattern: str) -> List[Character]:
         """Search characters by name."""
@@ -237,6 +309,10 @@ class CharacterManager:
     def get_character_count(self, project_id: int) -> int:
         """Get the number of characters in a project."""
         return self.character_repo.count({"project_id": project_id})
+    
+    def get_character_dependencies(self, character_id: int) -> dict:
+        """Get all dependencies for a character (where it's used)."""
+        return self.character_repo.get_character_dependencies(character_id)
     
     def get_scenes_for_character(self, character_id: int) -> List[Dict[str, Any]]:
         """Get all scenes that feature a specific character."""

@@ -10,6 +10,7 @@ from core.database.scene_repository import SceneManager
 from core.database.character_repository import CharacterManager
 from core.database.location_repository import LocationManager
 from core.database.search_repository import SearchManager
+from core.database.narrative_context_repository import NarrativeContextManager
 from core.error_handler import get_error_handler, ErrorLevel, ErrorCategory
 from i18n import _
 
@@ -36,6 +37,7 @@ class AppProjectController(QObject):
         self.current_character_manager: Optional[CharacterManager] = None
         self.current_location_manager: Optional[LocationManager] = None
         self.current_search_manager: Optional[SearchManager] = None
+        self.current_narrative_context_manager: Optional[NarrativeContextManager] = None
         
     def list_projects(self) -> list:
         """Get list of all projects."""
@@ -65,6 +67,7 @@ class AppProjectController(QObject):
             self.current_character_manager = CharacterManager()
             self.current_location_manager = LocationManager()
             self.current_search_manager = SearchManager()
+            self.current_narrative_context_manager = NarrativeContextManager(project_id)
             
             # Store current project info
             self.current_project_id = project_id
@@ -165,7 +168,8 @@ class AppProjectController(QObject):
             'scene_manager': self.current_scene_manager,
             'character_manager': self.current_character_manager,
             'location_manager': self.current_location_manager,
-            'search_manager': self.current_search_manager
+            'search_manager': self.current_search_manager,
+            'narrative_context_manager': self.current_narrative_context_manager
         }
     
     def has_current_project(self) -> bool:

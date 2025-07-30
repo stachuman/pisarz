@@ -109,7 +109,7 @@ class ProjectTreeView(QWidget):
         
     def _create_icon(self, icon_type, size=16):
         """Stwórz ikonę geometryczną dostosowaną do motywu."""
-        from ..styles.themes import ThemeManager
+        from ..base.enhanced_theme_manager import EnhancedThemeManager
         
         pixmap = QPixmap(size, size)
         pixmap.fill(Qt.GlobalColor.transparent)
@@ -119,7 +119,7 @@ class ProjectTreeView(QWidget):
         
         # Użyj kolorów z aktualnego motywu
         try:
-            theme_manager = ThemeManager()
+            theme_manager = EnhancedThemeManager()
             colors = theme_manager.get_theme_colors()
             main_color = QColor(colors["accent"])
             text_color = QColor(colors["text"])

@@ -93,6 +93,14 @@ class EnhancedResponseArea(QWidget):
         self.add_to_narrative_button.setFixedSize(70, 30)
         actions_layout.addWidget(self.add_to_narrative_button)
         
+        # JSON Import button
+        self.import_json_button = QPushButton(_("📥"))
+        self.import_json_button.setEnabled(False)
+        self.import_json_button.setToolTip(_("Import characters/locations from JSON"))
+        self.import_json_button.setFixedSize(70, 30)
+        self.import_json_button.clicked.connect(self.import_json_data)
+        actions_layout.addWidget(self.import_json_button)
+        
         # Clear button
         self.clear_button = QPushButton(_("🗑️"))
         self.clear_button.setEnabled(False)
@@ -111,6 +119,12 @@ class EnhancedResponseArea(QWidget):
         self.insert_button.setEnabled(True)
         self.add_to_narrative_button.setEnabled(True)
         self.clear_button.setEnabled(True)
+        
+        # Enable JSON import button if JSON structure detected
+        # Always enable
+        self.import_json_button.setEnabled(True) 
+        #self._detect_json_data(text))
+        
         self.update_word_count()
     
     def clear_response(self):
@@ -120,6 +134,7 @@ class EnhancedResponseArea(QWidget):
         self.select_all_button.setEnabled(False)
         self.insert_button.setEnabled(False)
         self.add_to_narrative_button.setEnabled(False)
+        self.import_json_button.setEnabled(False)
         self.clear_button.setEnabled(False)
         self.update_word_count()
     
@@ -138,6 +153,7 @@ class EnhancedResponseArea(QWidget):
             self.insert_button.setEnabled(True)
             self.add_to_narrative_button.setEnabled(True)
             self.clear_button.setEnabled(True)
+            self.import_json_button.setEnabled(True) 
         
         # Update word count
         self.update_word_count()
@@ -157,3 +173,46 @@ class EnhancedResponseArea(QWidget):
         word_count = len(text.split()) if text.strip() else 0
         char_count = len(text)
         self.word_count_label.setText(f"{word_count} words, {char_count} chars")
+    
+    def _detect_json_data(self, text: str) -> bool:
+        """Detect if text contains importable JSON data for characters or locations."""
+        import json
+        
+        try:
+            # Extract JSON from markdown code blocks if present
+            json_text = text
+            if '```json' in text:
+                start = text.find('```json') + 7
+                end = text.find('```', start)
+                if end != -1:
+                    json_text = text[start:end].strip()
+            elif '```' in text:
+                start = text.find('```') + 3
+                end = text.find('```', start)
+                if end != -1:
+                    json_text = text[start:end].strip()
+            
+            data = json.loads(json_text)
+            
+            # Check if it contains characters or locations arrays
+            if isinstance(data, dict):
+                if 'characters' in data and isinstance(data['characters'], list) and data['characters']:
+                    return True
+                if 'locations' in data and isinstance(data['locations'], list) and data['locations']:
+                    return True
+            
+            return False
+            
+        except (json.JSONDecodeError, ValueError, KeyError):
+            return False
+    
+    def import_json_data(self):
+        """Open JSON import dialog with the response text."""
+        from .json_import_dialog import JSONImportDialog
+
+        text = self.response_text.toPlainText()
+        if not text.strip():
+            return
+        
+        dialog = JSONImportDialog(text, parent=self)
+        dialog.exec()
