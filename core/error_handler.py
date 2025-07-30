@@ -29,6 +29,7 @@ class ErrorCategory(Enum):
     UI = "ui"
     BUSINESS_LOGIC = "business_logic"
     SYSTEM = "system"
+    EXPORT = "export"
 
 
 class ErrorHandler(QObject):

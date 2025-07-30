@@ -37,12 +37,13 @@ class ProjectTreeView(QWidget):
     refreshContextRequested = Signal(int)           # scene_id
     editContextRequested = Signal(int)              # scene_id
     
-    def __init__(self, project_name="", parent=None):
+    def __init__(self, project_name="", export_controller=None, parent=None):
         super().__init__(parent)
         self.project_name = project_name
         self.project_title_label = None
         self.logger = get_logger(__name__)
         self.narrative_context_manager = None  # Will be set externally
+        self.export_controller = export_controller
         self.theme_manager = EnhancedThemeManager()
         self.setup_ui()
         self.apply_theme()
@@ -610,6 +611,8 @@ class ProjectTreeView(QWidget):
         """Handle right-click context menu requests."""
         item = self.tree.itemAt(position)
         if not item:
+            # Show project-level context menu
+            self._show_project_context_menu(position)
             return
         
         data = item.data(0, Qt.ItemDataRole.UserRole)
@@ -669,6 +672,47 @@ class ProjectTreeView(QWidget):
         edit_templates_action = QAction(_("Edit Templates..."), self)
         edit_templates_action.triggered.connect(lambda: self.editTemplateRequested.emit("scene_summary"))
         menu.addAction(edit_templates_action)
+        
+        # Add export options if export controller is available
+        if self.export_controller:
+            menu.addSeparator()
+            
+            # Export scene to PDF
+            export_scene_pdf_action = QAction(_("📄 Export Scene to PDF"), self)
+            export_scene_pdf_action.triggered.connect(lambda: self.export_controller.quick_export_scene_pdf(scene_id))
+            menu.addAction(export_scene_pdf_action)
+            
+            # Export scene to TXT
+            export_scene_txt_action = QAction(_("📝 Export Scene to Text"), self)
+            export_scene_txt_action.triggered.connect(lambda: self.export_controller.quick_export_scene_txt(scene_id))
+            menu.addAction(export_scene_txt_action)
+        
+        # Show the menu
+        menu.exec(self.tree.mapToGlobal(position))
+    
+    def _show_project_context_menu(self, position):
+        """Show project-level context menu for project export options."""
+        if not self.export_controller:
+            return
+            
+        menu = QMenu(self)
+        
+        # Project export to PDF
+        export_project_pdf_action = QAction(_("📄 Export Project to PDF"), self)
+        export_project_pdf_action.triggered.connect(self.export_controller.quick_export_pdf)
+        menu.addAction(export_project_pdf_action)
+        
+        # Project export to TXT
+        export_project_txt_action = QAction(_("📝 Export Project to Text"), self)
+        export_project_txt_action.triggered.connect(self.export_controller.quick_export_txt)
+        menu.addAction(export_project_txt_action)
+        
+        menu.addSeparator()
+        
+        # Export with options
+        export_options_action = QAction(_("⚙️ Export with Options..."), self)
+        export_options_action.triggered.connect(self.export_controller.show_export_dialog)
+        menu.addAction(export_options_action)
         
         # Show the menu
         menu.exec(self.tree.mapToGlobal(position))

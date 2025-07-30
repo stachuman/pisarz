@@ -19,5 +19,6 @@ from .find_replace_dialog import FindReplaceDialog
 from .template_editor_dialog import TemplateEditorDialog
 from .templates_list_dialog import TemplatesListDialog
 from .json_import_dialog import JSONImportDialog
+from .export_dialog import ExportDialog
 
-__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ProjectPropertiesDialog', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog', 'TemplateEditorDialog', 'TemplatesListDialog', 'JSONImportDialog']
+__all__ = ['ProjectCard', 'SceneCard', 'CharacterCard', 'NavigationPanel', 'Workspace', 'ProjectsView', 'ProjectTreeView', 'ProjectPropertiesDialog', 'ScenesGridView', 'CharactersGridView', 'CharacterEditorDialog', 'SceneSelector', 'SettingsDialog', 'SearchView', 'SearchResultCard', 'FindReplaceDialog', 'TemplateEditorDialog', 'TemplatesListDialog', 'JSONImportDialog', 'ExportDialog']

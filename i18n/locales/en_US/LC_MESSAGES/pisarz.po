@@ -492,6 +492,9 @@ msgstr "{} provider cleaned up"
 msgid "Failed to {} file: {}"
 msgstr "Failed to {} file: {}"
 
+msgid "File"
+msgstr "File"
+
 # Language Settings
 msgid "Language"
 msgstr "Language"

@@ -17,11 +17,12 @@ class SceneCard(QFrame):
     sceneSelected = Signal(int, str)  # id, title
     sceneRenameRequested = Signal(int, str)  # id, new_title
     
-    def __init__(self, scene_data, character_manager=None, location_manager=None, parent=None):
+    def __init__(self, scene_data, character_manager=None, location_manager=None, export_controller=None, parent=None):
         super().__init__(parent)
         self.scene_data = scene_data
         self.character_manager = character_manager
         self.location_manager = location_manager
+        self.export_controller = export_controller
         self.setup_ui()
         
     def setup_ui(self):
@@ -307,13 +308,32 @@ class SceneCard(QFrame):
         super().mousePressEvent(event)
     
     def show_context_menu(self, position):
-        """Show context menu with rename option."""
+        """Show context menu with rename and export options."""
         menu = QMenu(self)
         
         # Rename action
         rename_action = QAction(_("📝 Rename Scene"), self)
         rename_action.triggered.connect(self.rename_scene)
         menu.addAction(rename_action)
+        
+        # Add export options if export controller is available
+        if self.export_controller:
+            menu.addSeparator()
+            
+            # Export scene to PDF
+            export_pdf_action = QAction(_("📄 Export Scene to PDF"), self)
+            export_pdf_action.triggered.connect(self.export_scene_to_pdf)
+            menu.addAction(export_pdf_action)
+            
+            # Export scene to TXT
+            export_txt_action = QAction(_("📝 Export Scene to Text"), self)
+            export_txt_action.triggered.connect(self.export_scene_to_txt)
+            menu.addAction(export_txt_action)
+            
+            # Export with options
+            export_options_action = QAction(_("⚙️ Export with Options..."), self)
+            export_options_action.triggered.connect(self.export_with_options)
+            menu.addAction(export_options_action)
         
         menu.exec(position)
     
@@ -330,3 +350,22 @@ class SceneCard(QFrame):
         
         if ok and new_title.strip() and new_title.strip() != current_title:
             self.sceneRenameRequested.emit(self.scene_data["id"], new_title.strip())
+    
+    def export_scene_to_pdf(self):
+        """Export this scene to PDF using existing export controller."""
+        if self.export_controller:
+            scene_id = self.scene_data["id"]
+            self.export_controller.quick_export_scene_pdf(scene_id)
+    
+    def export_scene_to_txt(self):
+        """Export this scene to TXT using existing export controller.""" 
+        if self.export_controller:
+            scene_id = self.scene_data["id"]
+            self.export_controller.quick_export_scene_txt(scene_id)
+    
+    def export_with_options(self):
+        """Open export dialog with this scene pre-selected."""
+        if self.export_controller:
+            # For now, just open the full export dialog
+            # In the future, could pre-select this scene
+            self.export_controller.show_export_dialog()

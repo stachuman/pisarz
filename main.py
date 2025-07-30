@@ -18,6 +18,7 @@ from controllers.app_search_controller import AppSearchController
 from controllers.app_ui_controller import AppUIController
 from controllers.app_focus_controller import AppFocusController
 from controllers.app_llm_controller import AppLLMController
+from controllers.app_export_controller import AppExportController
 from ui.widgets import (ProjectsView, ProjectTreeView, Workspace)
 from ui.widgets.llm_assistant_panel import AIAssistantWindow
 from ui.widgets.narrative_context_panel import NarrativeContextWindow
@@ -45,6 +46,7 @@ class PisarzApp(QMainWindow):
         self.ui_controller = AppUIController(self, self)
         self.focus_controller = AppFocusController(self, self)
         self.llm_controller = AppLLMController(self)
+        self.export_controller = AppExportController(self, self.project_controller)
         
         # Set global LLM controller instance
         from controllers.app_llm_controller import set_llm_controller
@@ -102,11 +104,11 @@ class PisarzApp(QMainWindow):
         main_layout.addWidget(self.horizontal_splitter)
         
         # Drzewko nawigacji w projekcie
-        self.project_tree = ProjectTreeView()
+        self.project_tree = ProjectTreeView(export_controller=self.export_controller)
         self.horizontal_splitter.addWidget(self.project_tree)
         
         # Obszar roboczy
-        self.workspace = Workspace()
+        self.workspace = Workspace(self.export_controller)
         self.horizontal_splitter.addWidget(self.workspace)
         
         # Proporcje splitter poziomego (nawigacja vs workspace)
@@ -175,9 +177,44 @@ class PisarzApp(QMainWindow):
         # Connect controller signals
         self._connect_controller_signals()
         
+        # Connect export controller signals
+        self._connect_export_signals()
+        
     def setup_menu_bar(self):
-        """Setup the menu bar with AI Assistant toggle."""
+        """Setup the menu bar with File, Tools, and other menus."""
         menubar = self.menuBar()
+        
+        # File menu
+        file_menu = menubar.addMenu(_("File"))
+        
+        # Export submenu
+        export_menu = file_menu.addMenu(_("Export"))
+        export_menu.setEnabled(False)  # Disabled until project loaded
+        
+        # Export Document action
+        self.export_document_action = QAction(_("Export Document..."), self)
+        self.export_document_action.setShortcut(QKeySequence("Ctrl+E"))
+        self.export_document_action.triggered.connect(self.export_controller.show_export_dialog)
+        self.export_document_action.setEnabled(False)
+        export_menu.addAction(self.export_document_action)
+        
+        export_menu.addSeparator()
+        
+        # Quick export actions
+        self.quick_export_pdf_action = QAction(_("Quick Export to PDF"), self)
+        self.quick_export_pdf_action.setShortcut(QKeySequence("Ctrl+Shift+P"))
+        self.quick_export_pdf_action.triggered.connect(self.export_controller.quick_export_pdf)
+        self.quick_export_pdf_action.setEnabled(False)
+        export_menu.addAction(self.quick_export_pdf_action)
+        
+        self.quick_export_txt_action = QAction(_("Quick Export to Text"), self)
+        self.quick_export_txt_action.setShortcut(QKeySequence("Ctrl+Shift+T"))
+        self.quick_export_txt_action.triggered.connect(self.export_controller.quick_export_txt)
+        self.quick_export_txt_action.setEnabled(False)
+        export_menu.addAction(self.quick_export_txt_action)
+        
+        # Store export menu reference for enabling/disabling
+        self.export_menu = export_menu
         
         # Tools menu
         tools_menu = menubar.addMenu(_("Tools"))
@@ -470,6 +507,9 @@ class PisarzApp(QMainWindow):
         self.location_controller.set_managers(managers_dict['location_manager'], managers_dict['scene_manager'], project_id)
         self.search_controller.set_manager(managers_dict['search_manager'], project_id)
         
+        # Enable export functionality
+        self.enable_export_menu(True)
+        
         # Show project view
         self.ui_controller.show_project_view(
             project_name, 
@@ -573,6 +613,9 @@ class PisarzApp(QMainWindow):
         
     def show_projects_view(self) -> None:
         """Pokaż widok projektów."""
+        # Disable export functionality when no project loaded
+        self.enable_export_menu(False)
+        
         projects = self.project_controller.list_projects()
         self.ui_controller.show_projects_view(projects)
             
@@ -1303,6 +1346,36 @@ class PisarzApp(QMainWindow):
             self.error_handler.log_error(e, ErrorCategory.BUSINESS_LOGIC,
                                        context=f"Auto-saving context for scene {scene_id}",
                                        show_to_user=True, parent_widget=self)
+    
+    def enable_export_menu(self, enabled: bool):
+        """Enable or disable export menu based on project state."""
+        self.export_menu.setEnabled(enabled)
+        self.export_document_action.setEnabled(enabled)
+        self.quick_export_pdf_action.setEnabled(enabled)
+        self.quick_export_txt_action.setEnabled(enabled)
+    
+    def _connect_export_signals(self):
+        """Connect export controller signals to main window."""
+        self.export_controller.exportStarted.connect(self.on_export_started)
+        self.export_controller.exportCompleted.connect(self.on_export_completed)
+        self.export_controller.exportFailed.connect(self.on_export_failed)
+        self.export_controller.statusMessage.connect(self.status_bar.showMessage)
+        self.export_controller.errorOccurred.connect(self._show_error_message)
+    
+    def on_export_started(self, format_name: str):
+        """Handle export started."""
+        self.status_bar.showMessage(_("Exporting to {}...").format(format_name.upper()))
+    
+    def on_export_completed(self, format_name: str, output_path: str):
+        """Handle export completed."""
+        message = _("Export to {} completed").format(format_name.upper())
+        if output_path:
+            message += f": {Path(output_path).name}"
+        self.status_bar.showMessage(message, 5000)
+    
+    def on_export_failed(self, format_name: str, error_message: str):
+        """Handle export failed."""
+        self.status_bar.showMessage(_("Export to {} failed: {}").format(format_name.upper(), error_message), 10000)
 
 
 def main():

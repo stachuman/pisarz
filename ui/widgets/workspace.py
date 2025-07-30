@@ -46,8 +46,9 @@ class Workspace(QWidget):
     searchRequested = Signal(str, str)           # query, filter_type
     searchResultSelected = Signal(str, int, str, str) # result_type, id, title, search_query
     
-    def __init__(self, parent=None):
+    def __init__(self, export_controller=None, parent=None):
         super().__init__(parent)
+        self.export_controller = export_controller
         self.current_editor = None
         self.scenes_grid_view = None
         self.characters_grid_view = None
@@ -71,7 +72,7 @@ class Workspace(QWidget):
         self._create_welcome_screen()
         
         # === WIDOK KAFELKÓW SCEN ===
-        self.scenes_grid_view = ScenesGridView()
+        self.scenes_grid_view = ScenesGridView(self.export_controller)
         self.scenes_grid_view.sceneSelected.connect(self.sceneSelectedFromGrid.emit)
         self.scenes_grid_view.newSceneRequested.connect(self.newSceneRequestedFromGrid.emit)
         self.scenes_grid_view.sceneRenameRequested.connect(self.sceneRenameRequestedFromGrid.emit)

@@ -493,6 +493,9 @@ msgstr "Dostawca {} został wyczyszczony"
 msgid "Failed to {} file: {}"
 msgstr "Nie udało się {} pliku: {}"
 
+msgid "File"
+msgstr "Plik"
+
 # Language Settings
 msgid "Language"
 msgstr "Język"

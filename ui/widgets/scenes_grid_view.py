@@ -16,7 +16,7 @@ class ScenesGridView(BaseGridView):
     newSceneRequested = Signal(str)         # title
     sceneRenameRequested = Signal(int, str) # id, new_title
     
-    def __init__(self, parent=None):
+    def __init__(self, export_controller=None, parent=None):
         super().__init__(
             title=_("Scenes"), 
             icon="📝", 
@@ -26,6 +26,7 @@ class ScenesGridView(BaseGridView):
         self.scenes_data = []
         self.character_manager = None
         self.location_manager = None
+        self.export_controller = export_controller
         
         # Add scene-specific filters
         self._setup_scene_filters()
@@ -106,7 +107,7 @@ class ScenesGridView(BaseGridView):
         
     def create_item_card(self, item):
         """Create a scene card for an item."""
-        card = SceneCard(item, self.character_manager, self.location_manager)
+        card = SceneCard(item, self.character_manager, self.location_manager, self.export_controller)
         card.sceneSelected.connect(self.sceneSelected.emit)
         card.sceneRenameRequested.connect(self.sceneRenameRequested.emit)
         return card
