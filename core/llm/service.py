@@ -54,6 +54,9 @@ class LLMService:
             elif provider_name == "openai":
                 from .providers.openai_provider import OpenAIProvider
                 self.provider = OpenAIProvider()
+            elif provider_name == "openrouter":
+                from .providers.openrouter_provider import OpenRouterProvider
+                self.provider = OpenRouterProvider()
             else:
                 self.logger.warning(f"Provider {provider_name} not yet implemented, using mock")
                 self.provider = MockLLMProvider()

@@ -147,6 +147,26 @@ class LLMSettingsManager:
                 'timeout': 120
             }
         )
+        
+        # OpenRouter provider for multiple AI models
+        self.providers['openrouter'] = LLMProviderConfig(
+            name='openrouter',
+            display_name='OpenRouter.ai (Multiple Models)',
+            enabled=True,
+            settings={
+                'api_key': '',
+                'model': 'openai/gpt-3.5-turbo',
+                'max_tokens': 10000,
+                'temperature': 0.7,
+                'top_p': 1.0,
+                'presence_penalty': 0.0,
+                'frequency_penalty': 0.0,
+                'base_url': 'https://openrouter.ai/api/v1',
+                'timeout': 30,
+                'site_url': '',
+                'app_name': 'Pisarz-Writer'
+            }
+        )
     
     def _load_settings(self):
         """Load settings from QSettings."""

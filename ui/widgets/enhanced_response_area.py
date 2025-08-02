@@ -48,7 +48,7 @@ class EnhancedResponseArea(QWidget):
         # Text area
         self.response_text = QTextEdit()
         self.response_text.setPlaceholderText(_("AI responses will appear here..."))
-        self.response_text.setReadOnly(True)
+        self.response_text.setReadOnly(False)
         self.response_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         from ui.styles.llm_panel_styles import UIStyleManager
         UIStyleManager.apply_response_area_style(self.response_text, 'response_text')
@@ -66,14 +66,14 @@ class EnhancedResponseArea(QWidget):
         
         # Copy button
         self.copy_button = QPushButton(_("📋"))
-        self.copy_button.setEnabled(False)
+        self.copy_button.setEnabled(True)
         self.copy_button.setToolTip(_("Copy response to clipboard"))
         self.copy_button.setFixedSize(70, 30)
         actions_layout.addWidget(self.copy_button)
         
         # Select All button
         self.select_all_button = QPushButton(_("📝"))
-        self.select_all_button.setEnabled(False)
+        self.select_all_button.setEnabled(True)
         self.select_all_button.setToolTip(_("Select all response text"))
         self.select_all_button.setFixedSize(70, 30)
         self.select_all_button.clicked.connect(self.select_all_text)
@@ -81,21 +81,21 @@ class EnhancedResponseArea(QWidget):
         
         # Insert button
         self.insert_button = QPushButton(_("📄"))
-        self.insert_button.setEnabled(False)
+        self.insert_button.setEnabled(True)
         self.insert_button.setToolTip(_("Insert response into current document"))
         self.insert_button.setFixedSize(70, 30)
         actions_layout.addWidget(self.insert_button)
         
         # Add to Narrative Context button
         self.add_to_narrative_button = QPushButton(_("📚"))
-        self.add_to_narrative_button.setEnabled(False)
+        self.add_to_narrative_button.setEnabled(True)
         self.add_to_narrative_button.setToolTip(_("Add response to Narrative Context"))
         self.add_to_narrative_button.setFixedSize(70, 30)
         actions_layout.addWidget(self.add_to_narrative_button)
         
         # JSON Import button
         self.import_json_button = QPushButton(_("📥"))
-        self.import_json_button.setEnabled(False)
+        self.import_json_button.setEnabled(True)
         self.import_json_button.setToolTip(_("Import characters/locations from JSON"))
         self.import_json_button.setFixedSize(70, 30)
         self.import_json_button.clicked.connect(self.import_json_data)
@@ -103,7 +103,7 @@ class EnhancedResponseArea(QWidget):
         
         # Clear button
         self.clear_button = QPushButton(_("🗑️"))
-        self.clear_button.setEnabled(False)
+        self.clear_button.setEnabled(True)
         self.clear_button.setToolTip(_("Clear response area"))
         self.clear_button.setFixedSize(70, 30)
         actions_layout.addWidget(self.clear_button)
@@ -130,12 +130,12 @@ class EnhancedResponseArea(QWidget):
     def clear_response(self):
         """Clear response and disable buttons."""
         self.response_text.clear()
-        self.copy_button.setEnabled(False)
-        self.select_all_button.setEnabled(False)
-        self.insert_button.setEnabled(False)
-        self.add_to_narrative_button.setEnabled(False)
-        self.import_json_button.setEnabled(False)
-        self.clear_button.setEnabled(False)
+        #self.copy_button.setEnabled(False)
+        #self.select_all_button.setEnabled(False)
+        #self.insert_button.setEnabled(False)
+        #self.add_to_narrative_button.setEnabled(False)
+        #self.import_json_button.setEnabled(False)
+        #self.clear_button.setEnabled(False)
         self.update_word_count()
     
     def append_chunk(self, chunk: str):
@@ -147,13 +147,13 @@ class EnhancedResponseArea(QWidget):
         self.response_text.setTextCursor(cursor)
         
         # Enable buttons on first chunk
-        if self.response_text.toPlainText().strip():
-            self.copy_button.setEnabled(True)
-            self.select_all_button.setEnabled(True)
-            self.insert_button.setEnabled(True)
-            self.add_to_narrative_button.setEnabled(True)
-            self.clear_button.setEnabled(True)
-            self.import_json_button.setEnabled(True) 
+        #if self.response_text.toPlainText().strip():
+        #    self.copy_button.setEnabled(True)
+        #    self.select_all_button.setEnabled(True)
+        #    self.insert_button.setEnabled(True)
+        #    self.add_to_narrative_button.setEnabled(True)
+        #    self.clear_button.setEnabled(True)
+        #    self.import_json_button.setEnabled(True) 
         
         # Update word count
         self.update_word_count()

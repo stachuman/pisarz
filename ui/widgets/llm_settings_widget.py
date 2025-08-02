@@ -151,6 +151,7 @@ class LLMSettingsWidget(QWidget):
         self.setup_llamacpp_tab()
         self.setup_ollama_tab()
         self.setup_openai_tab()
+        self.setup_openrouter_tab()
         self.setup_anthropic_tab()
         self.setup_mock_tab()
         
@@ -498,6 +499,126 @@ class LLMSettingsWidget(QWidget):
         
         self.config_tabs.addTab(scroll_area, _("OpenAI"))
     
+    def setup_openrouter_tab(self):
+        """Setup OpenRouter configuration tab."""
+        # Create scroll area for the tab content
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(15)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # API settings
+        api_group = QGroupBox(_("API Configuration"))
+        api_layout = QFormLayout(api_group)
+        api_layout.setSpacing(8)
+        
+        self.openrouter_api_key = QLineEdit()
+        self.openrouter_api_key.setEchoMode(QLineEdit.Password)
+        self.openrouter_api_key.setPlaceholderText(_("Enter your OpenRouter API key"))
+        self.openrouter_api_key.setMinimumWidth(300)
+        api_layout.addRow(_("API Key:"), self.openrouter_api_key)
+        
+        self.openrouter_model = QComboBox()
+        self.openrouter_model.setEditable(True)
+        self.openrouter_model.addItems([
+            'openai/gpt-4o',
+            'openai/gpt-4o-mini', 
+            'openai/gpt-3.5-turbo',
+            'anthropic/claude-3-5-sonnet',
+            'anthropic/claude-3-haiku',
+            'google/gemini-pro',
+            'meta-llama/llama-3-70b-instruct',
+            'mistralai/mixtral-8x7b-instruct'
+        ])
+        self.openrouter_model.setMinimumWidth(300)
+        api_layout.addRow(_("Model:"), self.openrouter_model)
+        
+        layout.addWidget(api_group)
+        
+        # Optional tracking settings
+        tracking_group = QGroupBox(_("Usage Tracking (Optional)"))
+        tracking_layout = QFormLayout(tracking_group)
+        tracking_layout.setSpacing(8)
+        
+        self.openrouter_site_url = QLineEdit()
+        self.openrouter_site_url.setPlaceholderText(_("https://yoursite.com (for OpenRouter analytics)"))
+        self.openrouter_site_url.setMinimumWidth(300)
+        tracking_layout.addRow(_("Site URL:"), self.openrouter_site_url)
+        
+        self.openrouter_app_name = QLineEdit()
+        self.openrouter_app_name.setPlaceholderText(_("Your App Name"))
+        self.openrouter_app_name.setMinimumWidth(300)
+        tracking_layout.addRow(_("App Name:"), self.openrouter_app_name)
+        
+        layout.addWidget(tracking_group)
+        
+        # Generation settings  
+        gen_group = QGroupBox(_("Generation Parameters"))
+        gen_layout = QFormLayout(gen_group)
+        gen_layout.setSpacing(8)
+        
+        self.openrouter_max_tokens = QSpinBox()
+        self.openrouter_max_tokens.setRange(1, 32000)
+        self.openrouter_max_tokens.setValue(10000)
+        self.openrouter_max_tokens.setMinimumWidth(120)
+        gen_layout.addRow(_("Max Tokens:"), self.openrouter_max_tokens)
+        
+        self.openrouter_temperature = QDoubleSpinBox()
+        self.openrouter_temperature.setRange(0.0, 2.0)
+        self.openrouter_temperature.setSingleStep(0.1)
+        self.openrouter_temperature.setValue(0.7)
+        self.openrouter_temperature.setDecimals(2)
+        self.openrouter_temperature.setMinimumWidth(120)
+        gen_layout.addRow(_("Temperature:"), self.openrouter_temperature)
+        
+        self.openrouter_top_p = QDoubleSpinBox()
+        self.openrouter_top_p.setRange(0.0, 1.0)
+        self.openrouter_top_p.setSingleStep(0.1)
+        self.openrouter_top_p.setValue(1.0)
+        self.openrouter_top_p.setDecimals(2)
+        self.openrouter_top_p.setMinimumWidth(120)
+        gen_layout.addRow(_("Top P:"), self.openrouter_top_p)
+        
+        self.openrouter_presence_penalty = QDoubleSpinBox()
+        self.openrouter_presence_penalty.setRange(-2.0, 2.0)
+        self.openrouter_presence_penalty.setSingleStep(0.1)
+        self.openrouter_presence_penalty.setValue(0.0)
+        self.openrouter_presence_penalty.setDecimals(2)
+        self.openrouter_presence_penalty.setMinimumWidth(120)
+        gen_layout.addRow(_("Presence Penalty:"), self.openrouter_presence_penalty)
+        
+        self.openrouter_frequency_penalty = QDoubleSpinBox()
+        self.openrouter_frequency_penalty.setRange(-2.0, 2.0)
+        self.openrouter_frequency_penalty.setSingleStep(0.1)
+        self.openrouter_frequency_penalty.setValue(0.0)
+        self.openrouter_frequency_penalty.setDecimals(2)
+        self.openrouter_frequency_penalty.setMinimumWidth(120)
+        gen_layout.addRow(_("Frequency Penalty:"), self.openrouter_frequency_penalty)
+        
+        layout.addWidget(gen_group)
+        
+        # Help text
+        help_text = QLabel(_(
+            "OpenRouter.ai provides access to 100+ AI models through a single API. "
+            "Get your API key from https://openrouter.ai/keys. "
+            "You can use any model available on OpenRouter including GPT-4, Claude, Gemini, and open-source models."
+        ))
+        help_text.setWordWrap(True)
+        help_text.setStyleSheet("color: #666666; font-style: italic; margin-top: 10px; padding: 10px;")
+        layout.addWidget(help_text)
+        
+        # Add stretch to push everything to the top
+        layout.addStretch()
+        
+        # Set widget to scroll area
+        scroll_area.setWidget(widget)
+        
+        self.config_tabs.addTab(scroll_area, _("OpenRouter"))
+    
     def setup_anthropic_tab(self):
         """Setup Anthropic configuration tab."""
         # Create scroll area for the tab content
@@ -610,6 +731,7 @@ class LLMSettingsWidget(QWidget):
             self.load_llamacpp_settings()
             self.load_ollama_settings()
             self.load_openai_settings()
+            self.load_openrouter_settings()
             self.load_anthropic_settings()
             self.load_mock_settings()
             
@@ -678,6 +800,26 @@ class LLMSettingsWidget(QWidget):
             self.openai_presence_penalty.setValue(provider.get_setting('presence_penalty', 0.0))
             self.openai_frequency_penalty.setValue(provider.get_setting('frequency_penalty', 0.0))
     
+    def load_openrouter_settings(self):
+        """Load OpenRouter specific settings."""
+        provider = self.settings_manager.get_provider_config('openrouter')
+        if provider:
+            self.openrouter_api_key.setText(provider.get_setting('api_key', ''))
+            model = provider.get_setting('model', 'openai/gpt-3.5-turbo')
+            index = self.openrouter_model.findText(model)
+            if index >= 0:
+                self.openrouter_model.setCurrentIndex(index)
+            else:
+                # If model not in predefined list, add it
+                self.openrouter_model.setCurrentText(model)
+            self.openrouter_site_url.setText(provider.get_setting('site_url', ''))
+            self.openrouter_app_name.setText(provider.get_setting('app_name', 'Pisarz-Writer'))
+            self.openrouter_max_tokens.setValue(provider.get_setting('max_tokens', 10000))
+            self.openrouter_temperature.setValue(provider.get_setting('temperature', 0.7))
+            self.openrouter_top_p.setValue(provider.get_setting('top_p', 1.0))
+            self.openrouter_presence_penalty.setValue(provider.get_setting('presence_penalty', 0.0))
+            self.openrouter_frequency_penalty.setValue(provider.get_setting('frequency_penalty', 0.0))
+    
     def load_anthropic_settings(self):
         """Load Anthropic specific settings."""
         provider = self.settings_manager.get_provider_config('anthropic')
@@ -726,6 +868,7 @@ class LLMSettingsWidget(QWidget):
             self.apply_llamacpp_settings()
             self.apply_ollama_settings()
             self.apply_openai_settings()
+            self.apply_openrouter_settings()
             self.apply_anthropic_settings()
             self.apply_mock_settings()
             
@@ -786,6 +929,23 @@ class LLMSettingsWidget(QWidget):
         
         for key, value in settings.items():
             self.settings_manager.update_provider_setting('openai', key, value)
+    
+    def apply_openrouter_settings(self):
+        """Apply OpenRouter specific settings."""
+        settings = {
+            'api_key': self.openrouter_api_key.text().strip(),
+            'model': self.openrouter_model.currentText(),
+            'site_url': self.openrouter_site_url.text().strip(),
+            'app_name': self.openrouter_app_name.text().strip(),
+            'max_tokens': self.openrouter_max_tokens.value(),
+            'temperature': self.openrouter_temperature.value(),
+            'top_p': self.openrouter_top_p.value(),
+            'presence_penalty': self.openrouter_presence_penalty.value(),
+            'frequency_penalty': self.openrouter_frequency_penalty.value()
+        }
+        
+        for key, value in settings.items():
+            self.settings_manager.update_provider_setting('openrouter', key, value)
     
     def apply_anthropic_settings(self):
         """Apply Anthropic specific settings."""

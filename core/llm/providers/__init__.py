@@ -10,5 +10,6 @@ from .mock_provider import MockLLMProvider
 from .llamacpp_provider import LlamaCppProvider
 from .ollama_provider import OllamaProvider
 from .openai_provider import OpenAIProvider
+from .openrouter_provider import OpenRouterProvider
 
-__all__ = ['BaseLLMProvider', 'MockLLMProvider', 'LlamaCppProvider', 'OllamaProvider', 'OpenAIProvider']
+__all__ = ['BaseLLMProvider', 'MockLLMProvider', 'LlamaCppProvider', 'OllamaProvider', 'OpenAIProvider', 'OpenRouterProvider']

@@ -1,13 +1,195 @@
-# 📝 Pisarz - Inteligentny Asystent Pisarza
+# 📝 Pisarz (Lazy Writer) - AI-Powered Writing Assistant
 
 <div align="center">
 
-**Profesjonalna aplikacja do pisania z zaawansowanym wsparciem AI**
+**Professional writing application with advanced AI integration**
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![PySide6](https://img.shields.io/badge/PySide6-6.5.0%2B-green)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
+
+*Transform your writing with the power of artificial intelligence*
+
+</div>
+
+## ✨ Why Choose Pisarz?
+
+Pisarz isn't just another text editor - it's a **complete creative writing environment** designed for authors who want to focus on creating, not on technical details.
+
+### 🎯 **Key Features:**
+- **🤖 Advanced AI Integration** - Collaborate with multiple LLM models (OpenAI, LLaMA, Ollama)
+- **📚 Project Management** - Organize your books, stories, and articles in one place
+- **🎭 Deep Character & Location Management** - Create rich worlds with consistent details
+- **🔍 Intelligent Search** - Find any information in your projects instantly
+- **📄 Professional Export System** - Export to PDF, TXT with Polish character support
+- **🌍 Multilingual** - Full support for Polish and English interface
+- **🎨 Modern Interface** - Clean, responsive design based on Qt6
+
+## 🚀 What Can Pisarz Do?
+
+### 📖 **Literary Project Management**
+- Create and organize book, story, and article projects
+- Scene structure with advanced RTF editor
+- Automatic saving and change history
+- Professional export to multiple formats (PDF, TXT)
+- Context menus for quick scene and project exports
+
+### 🎭 **Intelligent Character Management**
+- Detailed character profiles with full characterization
+- Track relationships between characters
+- Automatic character linking to scenes
+- Visualize connections within projects
+
+### 🗺️ **World Building**
+- Create and manage locations
+- Atmosphere, details, and significance of each place
+- Connections between locations and scenes
+- Map relationships of places in your story
+
+### 🤖 **AI Assistant for Writers**
+- **Scene Continuation** - AI helps develop your plot
+- **Style Improvement** - Language and stylistic suggestions
+- **Dialogue Generation** - Natural character conversations
+- **Description Creation** - Rich location and atmosphere descriptions
+- **Consistency Analysis** - Check plot consistency
+- **Extensive Template System** - Customizable AI prompts for every writing need
+
+### 📄 **Professional Export System**
+- **PDF Export** - Professional formatting with Unicode font support
+- **Text Export** - Clean, formatted plain text
+- **Context Menu Integration** - Right-click export from scenes and project tree
+- **Flexible Options** - Export all scenes, selected scenes, or full project with metadata
+
+### 🔍 **Advanced Search**
+- Full-text search with FTS5
+- Filter by characters, locations, scenes
+- Quick project navigation
+- Intelligent suggestions
+
+## 📥 Installation
+
+### System Requirements
+- **Python 3.8+** (recommended 3.11+)
+- **4GB RAM** (minimum)
+- **500MB** free disk space
+- **Windows 10+, Linux Ubuntu 20.04+, macOS 10.15+**
+
+### Quick Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/pisarz.git
+cd pisarz
+
+# Create virtual environment
+python -m venv venv
+
+# Activate environment
+# Windows:
+venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# For PDF export with Polish characters (Linux):
+sudo apt install fonts-dejavu fonts-dejavu-core fonts-dejavu-extra
+
+# Run Pisarz
+python main.py
+```
+
+## 🎮 Quick Start
+
+### 1️⃣ **Create your first project**
+```
+File → New Project → Enter name → OK
+```
+
+### 2️⃣ **Add your first scene**
+- Right-click on project in tree
+- Select "Add Scene"
+- Start writing!
+
+### 3️⃣ **Configure AI (optional)**
+- Go to Settings → LLM
+- Choose provider (OpenAI, Ollama, LLaMA)
+- Enter API key or configure local model
+- Ready - you have an intelligent assistant!
+
+### 4️⃣ **Export your work**
+- **Quick Export**: Right-click on scene → Export Scene to PDF/TXT
+- **Project Export**: Right-click in empty space → Export Project to PDF/TXT
+- **Advanced Export**: File → Export Document... (Ctrl+E)
+
+### 5️⃣ **Harness AI power**
+- Select text in scene
+- Right-click
+- Choose "Continue with AI" or "Improve Style"
+- Watch AI help with your writing!
+
+## 🛠️ Advanced Features
+
+### 🎨 **Customization**
+- **Color Themes** - Light, dark, and custom themes
+- **Configurable Keyboard Shortcuts**
+- **Customizable AI Templates** - Create your own prompts
+- **Flexible Panel Layouts**
+
+### 📊 **Writing Analytics**
+- Word and character statistics
+- Daily progress tracking
+- Change history and versioning
+- Writing pace analysis
+
+### 🔌 **Extensibility**
+- Custom prompt templates for AI
+- Custom color themes
+- Plugin architecture (in development)
+- API for external integrations (planned)
+
+## 🤝 Community and Support
+
+### 💬 **Get Help**
+- 📖 **Documentation**: [Project Wiki](https://github.com/yourusername/pisarz/wiki)
+- 🐛 **Bugs**: [GitHub Issues](https://github.com/yourusername/pisarz/issues)
+- 💡 **Ideas**: [GitHub Discussions](https://github.com/yourusername/pisarz/discussions)
+- 📧 **Contact**: contact@pisarz.app
+
+### 🌟 **Support the Project**
+- ⭐ **Star** on GitHub
+- 🐛 **Report bugs** and suggestions
+- 💻 **Contribute** - pull requests welcome
+- 📢 **Share** with other writers
+
+## 🔬 Tech Stack
+
+- **🐍 Python 3.8+** - Main application language
+- **🖼️ PySide6 (Qt6)** - Modern user interface
+- **🗄️ SQLite + FTS5** - Fast database with full-text search
+- **🤖 Multi-LLM Support** - OpenAI, Anthropic, LLaMA, Ollama
+- **📄 ReportLab** - Professional PDF generation
+- **🔤 Jinja2** - Template engine for AI prompts
+- **🌐 i18n** - Full internationalization
+
+## 📈 Roadmap
+
+### 🎯 **Coming Soon**
+- [ ] EPUB export
+- [ ] Cloud synchronization
+- [ ] Plugin marketplace
+- [ ] Enhanced themes
+- [ ] DOCX export support
+
+---
+
+# 📝 Pisarz - Inteligentny Asystent Pisarza
+
+<div align="center">
+
+**Profesjonalna aplikacja do pisania z zaawansowanym wsparciem AI**
 
 *Przekształć swoje pisanie dzięki mocy sztucznej inteligencji*
 
@@ -22,16 +204,18 @@ Pisarz to nie tylko kolejny edytor tekstu - to **kompletne środowisko do twórc
 - **📚 Zarządzanie projektami** - Organizuj swoje książki, opowiadania i artykuły w jednym miejscu
 - **🎭 Głębokie zarządzanie postaciami i lokacjami** - Twórz bogate światy z konsystentnymi detalami
 - **🔍 Inteligentne wyszukiwanie** - Znajdź dowolną informację w swoich projektach błyskawicznie
+- **📄 Profesjonalny system eksportu** - Eksport do PDF, TXT z pełnym wsparciem polskich znaków
 - **🌍 Wielojęzyczność** - Pełne wsparcie dla polskiego i angielskiego interfejsu
 - **🎨 Nowoczesny interfejs** - Przejrzysty, responsywny design oparty na Qt6
 
 ## 🚀 Co Pisarz potrafi?
 
 ### 📖 **Zarządzanie projektami literackimi**
-- Tworzenie i organizowanie projektów książek, opowiadań, artykuł
+- Tworzenie i organizowanie projektów książek, opowiadań, artykułów
 - Struktura scen z zaawansowanym edytorem RTF
 - Automatyczne zapisywanie i historia zmian
-- Eksport do różnych formatów
+- Profesjonalny eksport do wielu formatów (PDF, TXT)
+- Menu kontekstowe do szybkiego eksportu scen i projektów
 
 ### 🎭 **Inteligentne zarządzanie postaciami**
 - Szczegółowe profile postaci z pełną charakterystyką
@@ -51,6 +235,14 @@ Pisarz to nie tylko kolejny edytor tekstu - to **kompletne środowisko do twórc
 - **Generowanie dialogów** - Naturalne rozmowy postaci
 - **Tworzenie opisów** - Bogate opisy lokacji i atmosfery
 - **Analiza spójności** - Sprawdzanie konsystencji fabuły
+- **Rozbudowany system szablonów** - Konfigurowalne prompty AI dla każdej potrzeby pisarskiej
+
+### 📄 **Profesjonalny system eksportu**
+- **Eksport PDF** - Profesjonalne formatowanie z wsparciem czcionek Unicode
+- **Eksport tekstowy** - Czysty, sformatowany tekst
+- **Wsparcie polskich znaków** - Idealne renderowanie ą, ć, ę, ł, ń, ó, ś, ź, ż
+- **Integracja z menu kontekstowym** - Eksport prawym klikiem ze scen i drzewa projektu
+- **Elastyczne opcje** - Eksport wszystkich scen, wybranych scen lub całego projektu z metadanymi
 
 ### 🔍 **Zaawansowane wyszukiwanie**
 - Pełnotekstowe wyszukiwanie z FTS5
@@ -69,7 +261,7 @@ Pisarz to nie tylko kolejny edytor tekstu - to **kompletne środowisko do twórc
 ### Szybka instalacja
 
 ```bash
-# Klonuj repozytorium
+# Sklonuj repozytorium
 git clone https://github.com/yourusername/pisarz.git
 cd pisarz
 
@@ -85,14 +277,11 @@ source venv/bin/activate
 # Zainstaluj zależności
 pip install -r requirements.txt
 
+# Dla eksportu PDF z polskimi znakami (Linux):
+sudo apt install fonts-dejavu fonts-dejavu-core fonts-dejavu-extra
+
 # Uruchom Pisarz
 python main.py
-```
-
-### Alternatywnie - instalacja przez pip (wkrótce)
-```bash
-pip install pisarz-app
-pisarz
 ```
 
 ## 🎮 Szybki start
@@ -113,7 +302,12 @@ Plik → Nowy Projekt → Wpisz nazwę → OK
 - Wprowadź klucz API lub skonfiguruj lokalny model
 - Gotowe - masz inteligentnego asystenta!
 
-### 4️⃣ **Wykorzystaj moc AI**
+### 4️⃣ **Eksportuj swoją pracę**
+- **Szybki eksport**: Prawy klik na scenę → Eksportuj scenę do PDF/TXT
+- **Eksport projektu**: Prawy klik w pustą przestrzeń → Eksportuj projekt do PDF/TXT
+- **Zaawansowany eksport**: Plik → Eksportuj dokument... (Ctrl+E)
+
+### 5️⃣ **Wykorzystaj moc AI**
 - Zaznacz tekst w scenie
 - Kliknij prawym przyciskiem
 - Wybierz "Kontynuuj z AI" lub "Popraw styl"
@@ -124,7 +318,7 @@ Plik → Nowy Projekt → Wpisz nazwę → OK
 ### 🎨 **Personalizacja**
 - **Motywy kolorystyczne** - Jasny, ciemny i niestandardowe
 - **Konfigurowane skróty klawiszowe**
-- **Dostosowywalne szablony AI**
+- **Dostosowywalne szablony AI** - Twórz własne prompty
 - **Elastyczne układy paneli**
 
 ### 📊 **Analityka pisania**
@@ -136,7 +330,7 @@ Plik → Nowy Projekt → Wpisz nazwę → OK
 ### 🔌 **Rozszerzalność**
 - Własne szablony promptów dla AI
 - Niestandardowe motywy kolorystyczne
-- Plugin architecture (w rozwoju)
+- Architektura pluginów (w rozwoju)
 - API dla integracji zewnętrznych (planowane)
 
 ## 🤝 Społeczność i wsparcie
@@ -159,16 +353,18 @@ Plik → Nowy Projekt → Wpisz nazwę → OK
 - **🖼️ PySide6 (Qt6)** - Nowoczesny interfejs użytkownika
 - **🗄️ SQLite + FTS5** - Szybka baza danych z pełnotekstowym wyszukiwaniem
 - **🤖 Multi-LLM Support** - OpenAI, Anthropic, LLaMA, Ollama
+- **📄 ReportLab** - Profesjonalne generowanie PDF
 - **🔤 Jinja2** - Silnik szablonów dla promptów AI
 - **🌐 i18n** - Pełna internacjonalizacja
 
 ## 📈 Roadmapa
 
 ### 🎯 **W najbliższym czasie**
-- [ ] Export do EPUB/PDF
+- [ ] Eksport do EPUB
 - [ ] Synchronizacja w chmurze
-- [ ] Plugin marketplace
+- [ ] Marketplace pluginów
 - [ ] Ulepszone motywy
+- [ ] Wsparcie eksportu DOCX
 
 ## 📄 Licencja
 
@@ -178,10 +374,14 @@ Projekt udostępniony na licencji **MIT License** - możesz go używać, modyfik
 
 <div align="center">
 
+**Ready to start your writing journey with AI?**
+
 **Gotowy zacząć swoją pisarską przygodę z AI?**
 
-[⬇️ Pobierz Pisarz](https://github.com/yourusername/pisarz/releases) | [📖 Dokumentacja](https://github.com/yourusername/pisarz/wiki) | [🤝 Społeczność](https://github.com/yourusername/pisarz/discussions)
+[⬇️ Download Pisarz / Pobierz Pisarz](https://github.com/yourusername/pisarz/releases) | [📖 Documentation / Dokumentacja](https://github.com/yourusername/pisarz/wiki) | [🤝 Community / Społeczność](https://github.com/yourusername/pisarz/discussions)
 
-*Stworzono z ❤️ dla społeczności pisarzy*
+*Created with ❤️ for the writing community*
+
+*Stworzone z ❤️ dla społeczności pisarzy*
 
 </div>

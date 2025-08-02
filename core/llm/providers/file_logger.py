@@ -90,3 +90,7 @@ def get_openai_file_logger() -> LLMFileLogger:
 def get_mock_file_logger() -> LLMFileLogger:
     """Get file logger for mock provider."""
     return LLMFileLogger("mock")
+
+def get_openrouter_file_logger() -> LLMFileLogger:
+    """Get file logger for OpenRouter provider."""
+    return LLMFileLogger("openrouter")
