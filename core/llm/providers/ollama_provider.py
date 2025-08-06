@@ -7,7 +7,7 @@ import json
 import requests
 import os
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Callable
 from urllib.parse import urljoin
 
 from core.logging_config import get_logger
@@ -40,6 +40,7 @@ class OllamaProvider(BaseLLMProvider):
         
         self._session = None
         self._available_models = []
+        self._current_request = None  # Track current request for cancellation
     
     def configure(self, settings: Dict[str, Any]):
         """Configure the provider with settings."""
@@ -98,7 +99,7 @@ class OllamaProvider(BaseLLMProvider):
             # Test basic connectivity with tags endpoint
             response = self._session.get(
                 urljoin(base_url, "/api/tags"),
-                timeout=10
+                timeout=self.timeout
             )
             
             if response.status_code == 200:
@@ -149,79 +150,42 @@ class OllamaProvider(BaseLLMProvider):
             # Merge kwargs with instance settings
             params = self._build_generation_params(**kwargs)
             
+            # Check if streaming is requested
+            stream = bool(kwargs.get("stream", False))
+            
             # Build request payload
             payload = {
                 "model": self.model,
                 "prompt": prompt,
-                "stream": False,  # Use non-streaming for simplicity
+                "stream": stream,
                 "options": params
             }
             
-            # Log detailed request information
-            self.logger.info(f"=== OLLAMA REQUEST ===")
+            # Log detailed request information using base class utility
+            request_params = {
+                'model': self.model,
+                'stream': stream,
+                **params
+            }
             base_url = f"http://{self.host}:{self.port}"
-            self.logger.info(f"URL: {urljoin(base_url, '/api/generate')}")
-            self.logger.info(f"Model: {self.model}")
-            self.logger.info(f"Prompt length: {len(prompt)} characters")
-            self.logger.info(f"Prompt preview: {prompt[:200]}...")
-            self.logger.info(f"Parameters: {params}")
-            self.logger.info(f"Timeout: {self.timeout} seconds")
-            
-            # Log full prompt if debug logging enabled
-            self.logger.debug(f"=== FULL PROMPT ===\n{prompt}\n=== END PROMPT ===")
+            self.log_request_details("Ollama", urljoin(base_url, '/api/generate'), prompt, request_params, self.timeout)
             
             
             # Make request
-            response = self._session.post(
-                urljoin(base_url, "/api/generate"),
-                json=payload,
-                timeout=self.timeout
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                generated_text = data.get('response', '')
-                
-                self.logger.info(f"=== OLLAMA RESPONSE ===")
-                self.logger.info(f"Response length: {len(generated_text)} characters")
-                self.logger.info(f"Response preview: {generated_text[:200]}...")
-                
-                # Log generation stats
-                if 'eval_count' in data and 'total_duration' in data:
-                    eval_count = data['eval_count']
-                    total_duration_ns = data['total_duration']
-                    total_duration_s = total_duration_ns / 1_000_000_000
-                    tokens_per_second = eval_count / total_duration_s if total_duration_s > 0 else 0
-                    
-                    self.logger.info(f"Generated {eval_count} tokens in {total_duration_s:.2f}s "
-                                   f"({tokens_per_second:.2f} tokens/s)")
-                
-                # Log response to file
-                stats = {}
-                if 'eval_count' in data and 'total_duration' in data:
-                    eval_count = data['eval_count']
-                    total_duration_ns = data['total_duration']
-                    total_duration_s = total_duration_ns / 1_000_000_000
-                    tokens_per_second = eval_count / total_duration_s if total_duration_s > 0 else 0
-                    stats = {
-                        "Eval count": f"{eval_count} tokens",
-                        "Total duration": f"{total_duration_s:.2f}s",
-                        "Tokens/second": f"{tokens_per_second:.2f}"
-                    }
-                
-                
-                return generated_text
-            else:
-                error_msg = f"Ollama generation failed: HTTP {response.status_code}"
-                try:
-                    error_data = response.json()
-                    if 'error' in error_data:
-                        error_msg += f" - {error_data['error']}"
-                except:
-                    pass
-                
-                self.logger.error(error_msg)
-                raise RuntimeError(error_msg)
+            try:
+                if stream:
+                    text = self._generate_streaming(payload, self.timeout)
+                else:
+                    text = self._generate_blocking(payload, self.timeout)
+            except requests.exceptions.Timeout as exc:
+                raise RuntimeError(_("Request to Ollama server timed out")) from exc
+            except requests.exceptions.RequestException as exc:
+                raise RuntimeError(_("Request to Ollama server failed: {}").format(exc)) from exc
+            except Exception as exc:
+                self.logger.error(_("Error in Ollama generation: {}").format(exc))
+                raise
+
+            return text
                 
         except requests.exceptions.Timeout:
             error_msg = f"Ollama request timed out after {self.timeout} seconds"
@@ -233,6 +197,62 @@ class OllamaProvider(BaseLLMProvider):
             raise RuntimeError(error_msg)
         except Exception as e:
             error_msg = f"Ollama generation error: {e}"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+    
+    def generate_streaming(self, prompt: str, chunk_callback: Callable[[str], None], **kwargs) -> str:
+        """Generate response with streaming, calling chunk_callback for each chunk."""
+        if not self._session:
+            raise RuntimeError(_("Ollama provider not initialized"))
+        
+        if not self.model:
+            raise RuntimeError(_("No model specified"))
+        
+        try:
+            # Merge kwargs with instance settings
+            params = self._build_generation_params(**kwargs)
+            
+            # Build request payload - force streaming
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "stream": True,  # Always enable streaming for this method
+                "options": params
+            }
+            
+            # Log request info
+            self.logger.info(f"=== OLLAMA STREAMING REQUEST ===")
+            base_url = f"http://{self.host}:{self.port}"
+            self.logger.info(f"URL: {urljoin(base_url, '/api/generate')}")
+            self.logger.info(f"Model: {self.model}")
+            self.logger.info(f"Prompt length: {len(prompt)} characters")
+            self.logger.info(f"Prompt preview: {prompt[:200]}...")
+            self.logger.info(f"Parameters: {params}")
+            
+            # Send request with streaming callback
+            timeout = kwargs.get('timeout', self.timeout)
+            
+            try:
+                text = self._generate_streaming_with_callback(payload, timeout, chunk_callback)
+            except requests.exceptions.Timeout as exc:
+                if self._current_request is None:  # Request was cancelled
+                    raise InterruptedError("Streaming was cancelled") from exc
+                raise RuntimeError(_("Request to Ollama server timed out")) from exc
+            except requests.exceptions.RequestException as exc:
+                if self._current_request is None:  # Request was cancelled
+                    raise InterruptedError("Streaming was cancelled") from exc
+                raise RuntimeError(_("Request to Ollama server failed: {}").format(exc)) from exc
+            except InterruptedError:
+                # Re-raise cancellation errors
+                raise
+            except Exception as exc:
+                self.logger.error(_("Error in Ollama streaming generation: {}").format(exc))
+                raise
+
+            return text
+        
+        except Exception as e:
+            error_msg = f"Ollama streaming generation error: {e}"
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
     
@@ -323,8 +343,191 @@ class OllamaProvider(BaseLLMProvider):
                 "message": str(e)
             }
     
+    def _generate_blocking(self, payload: Dict[str, Any], timeout: int) -> str:
+        """Handle non-streaming generation request."""
+        base_url = f"http://{self.host}:{self.port}"
+        
+        response = self._session.post(
+            urljoin(base_url, "/api/generate"),
+            json=payload,
+            timeout=timeout
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            generated_text = data.get('response', '')
+            
+            # Log response using base class utility
+            self.log_response_details("Ollama", generated_text, response.status_code)
+            
+            # Log generation stats
+            if 'eval_count' in data and 'total_duration' in data:
+                eval_count = data['eval_count']
+                total_duration_ns = data['total_duration']
+                total_duration_s = total_duration_ns / 1_000_000_000
+                tokens_per_second = eval_count / total_duration_s if total_duration_s > 0 else 0
+                
+                self.logger.info(f"Generated {eval_count} tokens in {total_duration_s:.2f}s "
+                               f"({tokens_per_second:.2f} tokens/s)")
+            
+            return generated_text
+        else:
+            error_msg = f"Ollama generation failed: HTTP {response.status_code}"
+            try:
+                error_data = response.json()
+                if 'error' in error_data:
+                    error_msg += f" - {error_data['error']}"
+            except:
+                pass
+            
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+    
+    def _generate_streaming(self, payload: Dict[str, Any], timeout: int) -> str:
+        """Handle streaming generation request without callback."""
+        base_url = f"http://{self.host}:{self.port}"
+        
+        with self._session.post(
+            urljoin(base_url, "/api/generate"),
+            json=payload,
+            timeout=timeout,
+            stream=True
+        ) as response:
+            
+            if response.status_code != 200:
+                error_msg = f"Ollama streaming failed: HTTP {response.status_code}"
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        error_msg += f" - {error_data['error']}"
+                except:
+                    pass
+                raise RuntimeError(error_msg)
+            
+            pieces = []
+            for line in response.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                
+                try:
+                    chunk = json.loads(line)
+                    
+                    # Check if done
+                    if chunk.get('done', False):
+                        break
+                    
+                    # Extract response content
+                    content = chunk.get('response', '')
+                    if content:
+                        pieces.append(content)
+                        
+                except json.JSONDecodeError:
+                    # Skip invalid JSON lines
+                    self.logger.debug("Skipping non-JSON chunk: %s", line[:120])
+                    continue
+            
+            full_text = "".join(pieces)
+            self.log_response_details("Ollama", full_text)
+            return full_text
+    
+    def _generate_streaming_with_callback(self, payload: Dict[str, Any], timeout: int, chunk_callback: Callable[[str], None]) -> str:
+        """Handle streaming generation with chunk callback."""
+        base_url = f"http://{self.host}:{self.port}"
+        
+        self._current_request = self._session.post(
+            urljoin(base_url, "/api/generate"),
+            json=payload,
+            timeout=timeout,
+            stream=True
+        )
+        
+        try:
+            with self._current_request as response:
+                if response.status_code != 200:
+                    error_msg = f"Ollama streaming failed: HTTP {response.status_code}"
+                    try:
+                        error_data = response.json()
+                        if 'error' in error_data:
+                            error_msg += f" - {error_data['error']}"
+                    except:
+                        pass
+                    raise RuntimeError(error_msg)
+                
+                pieces = []
+                try:
+                    for line in response.iter_lines(decode_unicode=True):
+                        if not line:
+                            continue
+                        
+                        try:
+                            chunk = json.loads(line)
+                            
+                            # Check if done
+                            if chunk.get('done', False):
+                                break
+                            
+                            # Extract response content
+                            content = chunk.get('response', '')
+                            if content:
+                                pieces.append(content)
+                                # Call callback with chunk content
+                                try:
+                                    chunk_callback(content)
+                                except Exception as e:
+                                    self.logger.warning(f"Chunk callback error: {e}")
+                                    # Continue streaming even if callback fails
+                                    
+                        except json.JSONDecodeError:
+                            # Skip invalid JSON lines
+                            self.logger.debug("Skipping non-JSON chunk: %s", line[:120])
+                            continue
+                            
+                except (AttributeError, ValueError) as e:
+                    # Handle cases where connection was closed during iteration
+                    if self._current_request is None:
+                        self.logger.info("Streaming connection was cancelled")
+                        raise InterruptedError("Streaming connection was cancelled")
+                    else:
+                        raise e
+                
+                full_text = "".join(pieces)
+                self.log_response_details("Ollama", full_text)
+                return full_text
+        finally:
+            self._current_request = None
+    
+    def cancel_current_request(self):
+        """Cancel the currently running request."""
+        if self._current_request:
+            try:
+                self.logger.info("Cancelling current Ollama request")
+                # Store reference before setting to None
+                request_to_close = self._current_request
+                self._current_request = None  # Set to None first to prevent reading
+                request_to_close.close()
+            except Exception as e:
+                self.logger.warning(f"Error cancelling request: {e}")
+                # Make sure it's still set to None even if close() fails
+                self._current_request = None
+    
+    def get_provider_info(self) -> Dict[str, Any]:
+        """Get Ollama provider information."""
+        info = super().get_provider_info()
+        info.update({
+            'type': 'ollama',
+            'host': self.host,
+            'port': self.port,
+            'model': self.model,
+            'supports_streaming': True,  # Streaming support enabled
+            'supports_system_prompt': True,
+            'timeout': self.timeout,
+            'models_available': len(self._available_models)
+        })
+        return info
+    
     def cleanup(self):
         """Clean up resources."""
+        self.cancel_current_request()
         if self._session:
             self._session.close()
             self._session = None

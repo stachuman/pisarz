@@ -9,7 +9,7 @@ default_context_length: 8000
 description: Continue writing with fully configurable text lengths and context sources
 format_version: '3.0'
 max_context_chars: 25000
-max_tokens: 8000
+max_tokens: 30000
 modified_date: null
 name: Continue Scene (Configurable)
 preview_length: 200
@@ -24,11 +24,11 @@ tags:
 - continuation
 - scene
 - configurable
-temperature: 0.75
+temperature: 0.85
 template_content: 'Kontynuuj tę scenę, pisząc naturalną kontynuację, zachowując styl
   i ton tekstu.
 
-  Utrzymuj styl pisania Murakami.
+  Utrzymuj styl pisania Gibsona . Zadbaj jednak o spójny i sensowny rozwój akcji.
 
 
   {% if characters %}
